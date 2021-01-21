@@ -1,0 +1,42 @@
+From dc3ada722ccd6086f02a9534071641fddbb9b424 Mon Sep 17 00:00:00 2001
+From: "pj.chen" <chen.pj@inventec.com>
+Date: Mon, 18 Jan 2021 01:54:00 +0000
+Subject: [PATCH 12/13] - Add support for inventec virtual driver
+
+---
+ src/PSUSensorMain.cpp | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/src/PSUSensorMain.cpp b/src/PSUSensorMain.cpp
+index 529c3c6..a2a2bbe 100644
+--- a/src/PSUSensorMain.cpp
++++ b/src/PSUSensorMain.cpp
+@@ -40,7 +40,7 @@
+ 
+ static constexpr bool DEBUG = false;
+ 
+-static constexpr std::array<const char*, 14> sensorTypes = {
++static constexpr std::array<const char*, 15> sensorTypes = {
+     "xyz.openbmc_project.Configuration.ADM1272",
+     "xyz.openbmc_project.Configuration.ADM1278",
+     "xyz.openbmc_project.Configuration.INA219",
+@@ -54,12 +54,14 @@ static constexpr std::array<const char*, 14> sensorTypes = {
+     "xyz.openbmc_project.Configuration.MAX34451",
+     "xyz.openbmc_project.Configuration.pmbus",
+     "xyz.openbmc_project.Configuration.PXE1610",
+-    "xyz.openbmc_project.Configuration.RAA228228"};
++    "xyz.openbmc_project.Configuration.RAA228228",
++    "xyz.openbmc_project.Configuration.VIRTUAL_PSU"
++    };
+ 
+ static std::vector<std::string> pmbusNames = {
+     "adm1272",  "adm1278",  "ina219",   "ina230",   "isl68137",
+     "isl68220", "max16601", "max20730", "max20734", "max20796",
+-    "max34451", "pmbus",    "pxe1610",  "raa228228"};
++    "max34451", "pmbus",    "pxe1610",  "raa228228", "virtual_psu"};
+ 
+ namespace fs = std::filesystem;
+ 
+-- 
+2.7.4
+

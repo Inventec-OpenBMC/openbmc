@@ -1,0 +1,256 @@
+From f3cf5c9834ee4f9094c1d21fb968d98117c9b062 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Fri, 29 May 2020 18:35:58 +0800
+Subject: [PATCH 2/5] Subject : Apply patch from original develop folder and
+ set gpio default setting in u-boot
+
+Ticket         : N/A
+Symptom/Reason : To complete the revised file from original develop folder
+                 and verify HW interface
+Root Cause     : N/A
+Solution/Change: revise board.c in u-boot to set gpio default setting
+---
+ arch/arm/mach-aspeed/ast2600/board_common.c | 190 +++++++++++++++++++++++++++-
+ configs/evb-ast2600_defconfig               |   4 +
+ 2 files changed, 193 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/mach-aspeed/ast2600/board_common.c b/arch/arm/mach-aspeed/ast2600/board_common.c
+index f527ce1..2e881f2 100644
+--- a/arch/arm/mach-aspeed/ast2600/board_common.c
++++ b/arch/arm/mach-aspeed/ast2600/board_common.c
+@@ -12,6 +12,34 @@
+ #include <linux/err.h>
+ #include <dm/uclass.h>
+ 
++#define GPIO000		0x1e780000		//A~D value
++#define GPIO004		0x1e780004		//A~D direction
++#define GPIO020		0x1e780020		//E~H value
++#define GPIO024		0x1e780024		//E~H direction
++#define GPIO070		0x1e780070		//I~L value
++#define GPIO074		0x1e780074		//I~L direction
++#define GPIO078		0x1e780078		//M~P value
++#define GPIO07C		0x1e78007C		//M~P direction
++#define GPIO080		0x1e780080		//Q~T value
++#define GPIO084		0x1e780084		//Q~T direction
++#define GPIO088		0x1e780088		//U~X value
++#define GPIO08C		0x1e78008C		//U~X direction
++#define GPIO1E0		0x1e7801e0		//Y~Z value
++#define GPIO1E4		0x1e7801e4		//Y~Z direction
++#define GPIO800		0x1e780800		//18A~D value
++#define GPIO804		0x1e780804		//18A~D direction
++#define GPIO820		0x1e780820		//18E value
++#define GPIO824		0x1e780824		//18E direction
++#define SCUBASE		0x1e6e2000
++#define SCU418		SCUBASE + 0x418
++#define SCU430		SCUBASE + 0x430
++#define SCU434		SCUBASE + 0x434
++#define SCU438		SCUBASE + 0x438
++#define SCU4BC		SCUBASE + 0x4bc
++#define SCU510		SCUBASE + 0x510
++#define SCU694		SCUBASE + 0x694
++
++
+ DECLARE_GLOBAL_DATA_PTR;
+ 
+ /*
+@@ -51,17 +79,177 @@ void reset_eth_phy(void)
+ }
+ #endif
+ 
++void enable_lpc_or_espi(){
++	u32 reg, reg_scu438;
++	int is_spi = 0;
++
++	//we check gpioz4 and set
++	reg_scu438 = readl(SCU438);
++
++	if (reg_scu438 & 0x1000){
++		//set gpioz4 to gpio pin
++		reg_scu438 &= ~0x1000;
++		writel(reg_scu438, SCU438);
++		is_spi = 1 ;
++	}
++
++	// read GPIO1E0 and get gpioz4 value
++	reg = readl(GPIO1E0);
++
++	if(is_spi == 1){
++		//set gpioz4 to spi function pin
++		reg_scu438 |= 0x1000;
++		writel(reg_scu438, SCU438);
++	}
++
++	//Enable lpc
++	if(reg & 0x1000){
++		//Set scu510 high to enable lpc
++		reg = readl(SCU510);
++		reg |= 0x40;
++		writel(reg, SCU510);
++	}else{
++		//Reset to espi
++		reg = readl(SCU510);
++		reg &= ~0x40;
++		writel(reg, SCU510);
++	}
++}
++
++void gpio_init()
++{
++	u32 reg;
++
++	//We set gpioL6 to gpio pin
++	reg = readl(SCU418);
++	reg &= ~(1<<30);
++	writel(reg, SCU418);
++
++	//We set gpiT0~T7 to gpio pin
++	reg = readl(SCU430);
++	reg |= (0xff <<24);
++	writel(reg, SCU430);
++
++	//We set gpiU0~U7 to gpio pin
++	reg = readl(SCU434);
++	reg |= (0x000000ff);
++	writel(reg, SCU434);
++
++	//We set gpioX0~ gpioX3~X7 to gpio pin
++	reg = readl(SCU434);
++	reg |= (0xf9<<24);
++	writel(reg, SCU434);
++
++	//Set gpioA~D value
++	reg = readl(GPIO000);
++	reg |= (0xa020091a);
++	writel(reg, GPIO000);
++
++	//Set gpioA~D direction
++	reg = readl(GPIO004);
++	reg |= (0xb0201b1b);
++	writel(reg, GPIO004);
++
++	//Set gpioE~H value
++	reg = readl(GPIO020);
++	reg |= (0x0148b040);
++	writel(reg, GPIO020);
++
++	//Set gpioE~H direction
++	reg = readl(GPIO024);
++	reg |= (0x05c9b870);
++	writel(reg, GPIO024);
++
++	//Set gpioI~L value
++	reg = readl(GPIO070);
++	reg |= (0x0000003f);
++	reg &= (0x40000000);
++	writel(reg, GPIO070);
++
++	//Set gpioI~L direction
++	reg = readl(GPIO074);
++	reg |= (0x4000007f);
++	writel(reg, GPIO074);
++
++	//Set gpioM~P value
++	reg = readl(GPIO078);
++	reg |= (0x0439091a);
++	writel(reg, GPIO078);
++
++	//Set gpioM~P direction
++	reg = readl(GPIO07C);
++	reg |= (0x06bf291a);
++	writel(reg, GPIO07C);
++
++	//Set gpioP1 pass through
++	reg = readl(SCU4BC);
++	reg |= (0x03000000);
++	writel(reg, SCU510);
++
++	//Set gpioQ~T value
++	reg = readl(GPIO080);
++	reg |= (0x00a4b204);
++	writel(reg, GPIO080);
++
++	//Set gpioQ~T direction
++	reg = readl(GPIO084);
++	reg |= (0x00bcb204);
++	writel(reg, GPIO084);
++
++	//Set gpioU~X value
++	reg = readl(GPIO088);
++	reg |= (0x0000c400);
++	writel(reg, GPIO088);
++
++	//Set gpioU~X direction
++	reg = readl(GPIO08C);
++	reg |= (0x0000c400);
++	writel(reg, GPIO08C);
++
++	//Set gpioY~Z value
++	reg = readl(GPIO1E0);
++	reg |= (0x00000100);
++	writel(reg, GPIO1E0);
++
++	//Set gpioY~Z direction
++	reg = readl(GPIO1E4);
++	reg |= (0x00000104);
++	writel(reg, GPIO1E4);
++
++	//Set gpio18A~D value
++	reg = readl(GPIO800);
++	reg |= (0x00000000);
++	writel(reg, GPIO800);
++
++	//Set gpio18A~D direction
++	reg = readl(GPIO804);
++	reg |= (0x00FEF000);
++	writel(reg, GPIO804);
++
++	//Set gpio18E0~E3 value
++	reg = readl(GPIO820);
++	reg |= (0x00000002);
++	writel(reg, GPIO820);
++
++	//Set gpio18E0~E3 direction
++	reg = readl(GPIO824);
++	reg |= (0x00000002);
++	writel(reg, GPIO824);
++}
+ __weak int board_init(void)
++
+ {
+ 	struct udevice *dev;
+ 	int i;
+ 	int ret;
+-
+ 	gd->bd->bi_boot_params = CONFIG_SYS_SDRAM_BASE + 0x100;
++	enable_lpc_or_espi();
++	gpio_init();
+ 
+ #ifdef ASPEED_RMII_DAUGHTER_CARD
+ 	reset_eth_phy();
+ #endif
++
+ 	/*
+ 	 * Loop over all MISC uclass drivers to call the comphy code
+ 	 * and init all CP110 devices enabled in the DT
+diff --git a/configs/evb-ast2600_defconfig b/configs/evb-ast2600_defconfig
+index aeb882a..ce4c6aa 100644
+--- a/configs/evb-ast2600_defconfig
++++ b/configs/evb-ast2600_defconfig
+@@ -15,6 +15,9 @@ CONFIG_BOOTARGS="console=ttyS4,115200n8 root=/dev/ram rw"
+ CONFIG_USE_BOOTCOMMAND=y
+ CONFIG_BOOTCOMMAND="bootm 20100000"
+ CONFIG_SYS_CONSOLE_ENV_OVERWRITE=y
++CONFIG_BOOTARGS="console=ttyS4,115200n8 root=/dev/ram rw mem.devmem=1"
++CONFIG_PRE_CONSOLE_BUFFER=y
++CONFIG_PRE_CON_BUF_ADDR=0x10000000
+ CONFIG_DISPLAY_BOARDINFO_LATE=y
+ CONFIG_ARCH_EARLY_INIT_R=y
+ CONFIG_BOARD_EARLY_INIT_F=y
+@@ -92,3 +95,4 @@ CONFIG_DM_USB=y
+ CONFIG_USB_EHCI_HCD=y
+ CONFIG_USB_STORAGE=y
+ CONFIG_WDT=y
++CONFIG_DM_I2C_COMPAT=y
+-- 
+2.7.4
+

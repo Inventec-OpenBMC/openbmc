@@ -1,0 +1,125 @@
+From 2229400827e8df340e6ae9495dc598e15a87d688 Mon Sep 17 00:00:00 2001
+From: "anonymous" <anonymous@inventec.com>
+Date: Thu, 27 Aug 2020 21:49:00 -0400
+Subject: [PATCH 1/4] Implement "Get System GUID" command get from MB EEPROM
+ when UUID DBUS cannot found
+
+Implement "Get System GUID" command get from MB EEPROM when UUID DBUS cannot found
+---
+ apphandler.cpp | 78 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ apphandler.hpp |  3 +++
+ 2 files changed, 80 insertions(+), 1 deletion(-)
+
+diff --git a/apphandler.cpp b/apphandler.cpp
+index 90818a9..88418aa 100644
+--- a/apphandler.cpp
++++ b/apphandler.cpp
+@@ -786,6 +786,71 @@ auto ipmiAppGetBtCapabilities()
+                                  outputBufferSize, transactionTime, nrRetries);
+ }
+ 
++uint8_t calTwoCompChecksum(std::array<uint8_t, 16> data)
++{
++    uint8_t checksumVal = std::accumulate(data.begin(), data.end(), 0);
++
++    checksumVal = (~checksumVal & 0xFF) + 1;
++    return checksumVal;
++}
++
++static bool readFromEeprom(std::array<uint8_t, 16> *uuidData)
++{
++    std::array<uint8_t, 16> uuid;
++    uint8_t tempData[17]; //byte 0~15 GUID, byte 16 checksum
++    bool rc = false;
++
++    try
++    {
++        FILE *fp;
++        fp = fopen(EEPROM_PATH, "rb");
++
++        if (fp != 0)
++        {
++            fseek(fp, SYSGUID_OFFSET, SEEK_SET);
++
++            // Read 17 Bytes include 2's complement checksum
++            if (fread(tempData, sizeof(uint8_t)*17, 1, fp) != 1)
++            {
++                log<level::ERR>("Read GUID from EEPROM fail");
++                return rc;
++            }
++            else
++            {
++                // 16 Byte Data to match GUID format of RFC4122 field
++                // reverse to LSB format of IPMI GUID define.
++                for (int i = 0; i < 16; i++)
++                {
++                    uuid[i] = tempData[15-i];
++                }
++
++                // Verify 2's checksum
++                if (calTwoCompChecksum(uuid) != tempData[16])
++                {
++                    log<level::ERR>("EEPROM Checksum Fail");
++                    return rc;
++                }
++                else
++                {
++                    log<level::ERR>("EEPROM Checksum Pass");
++                    std::memcpy(uuidData, &uuid, 16);
++                    rc = true;
++                }
++            }
++            fclose(fp);
++        }
++    }
++    catch (const InternalFailure& e)
++    {
++        log<level::ERR>("Failed in reading System GUID from EEPROM",
++                        entry("EXCEPTION=%s", e.what())
++                       );
++        return rc;
++    }
++
++    return rc;
++}
++
+ auto ipmiAppGetSystemGuid() -> ipmi::RspType<std::array<uint8_t, 16>>
+ {
+     static constexpr auto bmcInterface =
+@@ -811,7 +876,18 @@ auto ipmiAppGetSystemGuid() -> ipmi::RspType<std::array<uint8_t, 16>>
+         log<level::ERR>("Failed in reading BMC UUID property",
+                         entry("INTERFACE=%s", uuidInterface),
+                         entry("PROPERTY=%s", uuidProperty));
+-        return ipmi::responseUnspecifiedError();
++
++        // DBUS interface fail then try to get from MB EEPROM
++        std::array<uint8_t, 16> uuidEeprom;
++        bool status = readFromEeprom(&uuidEeprom);
++        if (!status)
++        {
++            return ipmi::responseUnspecifiedError();
++        }
++        else
++        {
++            return ipmi::responseSuccess(uuidEeprom);
++        }
+     }
+     std::array<uint8_t, 16> uuid;
+     std::string rfc4122Uuid = std::get<std::string>(propValue);
+diff --git a/apphandler.hpp b/apphandler.hpp
+index 4f03121..58cc52e 100644
+--- a/apphandler.hpp
++++ b/apphandler.hpp
+@@ -2,6 +2,9 @@
+ 
+ #include <stdint.h>
+ 
++#define EEPROM_PATH "/sys/bus/i2c/devices/3-0054/eeprom"
++#define SYSGUID_OFFSET 0x1F00
++
+ // IPMI commands for App net functions.
+ enum ipmi_netfn_app_cmds
+ {
+-- 
+2.7.4
+

@@ -1,0 +1,99 @@
+From 674e129b379477b20d1c7f8a79ffd80a837bd073 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Tue, 22 Sep 2020 18:12:49 -0400
+Subject: [PATCH 10/11] Modified IPMI Clear SEL function
+
+Modified IPMI Clear SEL function to enhanced log clear sel event
+- Add SIGHUP signal directly
+- Log Clear SEL event directly
+---
+ src/storagecommands.cpp | 63 +++++++++++++++++++++++++++++++++++--------------
+ 1 file changed, 45 insertions(+), 18 deletions(-)
+
+diff --git a/src/storagecommands.cpp b/src/storagecommands.cpp
+index c0a4f4b..d4a68d1 100644
+--- a/src/storagecommands.cpp
++++ b/src/storagecommands.cpp
+@@ -1246,34 +1246,61 @@ ipmi::RspType<uint8_t> ipmiStorageClearSEL(ipmi::Context::ptr ctx,
+         }
+     }
+ 
+-    // Reload rsyslog so it knows to start new log files
+-    std::shared_ptr<sdbusplus::asio::connection> dbus = getSdBus();
+-    sdbusplus::message::message rsyslogReload = dbus->new_method_call(
+-        "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
+-        "org.freedesktop.systemd1.Manager", "ReloadUnit");
+-    rsyslogReload.append("rsyslog.service", "replace");
+-    try
++    std::string clearMsg = "";
++    std::string clearTime = "";
++    constexpr const char* ipmiSelFile = "/var/lib/sel_log/ipmi_sel";
++    constexpr const char* ipmiClrSelFile = "/var/lib/sel_log/clear_sel";
++    time_t rawtime;
++    struct tm * timeinfo;
++    char buffer [80];
++    FILE *fp;
++
++    // Signal rsyslog so it knows to start new log files
++    snprintf(buffer, sizeof(buffer), "kill -HUP $(ps | grep 'rsyslogd' | grep -v 'grep'| awk '{print $1}')");
++    fp = popen(buffer, "r");
++
++    if (fp == NULL)
+     {
+-        sdbusplus::message::message reloadResponse = dbus->call(rsyslogReload);
++        return ipmi::responseUnspecifiedError();
+     }
+-    catch (sdbusplus::exception_t& e)
++    pclose(fp);
++
++    std::memset(buffer, 0, sizeof(buffer));
++
++    time (&rawtime);
++    timeinfo = localtime(&rawtime);
++    strftime(buffer, 80, "%FT%T%Ez", timeinfo);
++    clearTime = std::string(buffer);
++
++    clearMsg = clearTime + " 1,2,200004108A6F02FFFF,,,";
++
++    // Log Record 1 - Clear Log event
++    std::ofstream outFile(ipmiSelFile, std::ofstream::out);
++    if (!outFile.good())
+     {
+-        phosphor::logging::log<phosphor::logging::level::ERR>(e.what());
++        return ipmi::responseUnspecifiedError();
+     }
++    outFile << clearMsg << std::endl;
++    outFile.close();
+ 
+-    // Last to log one clear sel event, sensor number 0x8A
+-    uint16_t responseID = 0xFFFF;
+-    uint8_t recordType = 0x02;
+-    std::vector<uint8_t> clearEvent = {0x20, 0x00, 0x04, 0x10, 0x8A, 0x6F, 0x02, 0xFF, 0xFF};
+-    try
++    std::ofstream clrFile(ipmiClrSelFile, std::ofstream::out);
++    if (!clrFile.good())
+     {
+-        responseID = sendIpmiSelToDbus(clearEvent, recordType);
++        return ipmi::responseUnspecifiedError();
+     }
+-    catch (sdbusplus::exception_t& e)
++    clrFile << clearMsg << std::endl;
++    clrFile.close();
++
++    // Signal for sel-logger to record index restart
++    snprintf(buffer, sizeof(buffer), "kill -HUP $(ps | grep 'sel-logger' | grep -v 'grep'| awk '{print $1}')");
++    fp = popen(buffer, "r");
++
++    if (fp == NULL)
+     {
+-        std::cerr << "failed to call IpmiSelAdd to log clear event\n";
+         return ipmi::responseUnspecifiedError();
+     }
++    pclose(fp);
++
+     return ipmi::responseSuccess(ipmi::sel::eraseComplete);
+ }
+ 
+-- 
+2.7.4
+

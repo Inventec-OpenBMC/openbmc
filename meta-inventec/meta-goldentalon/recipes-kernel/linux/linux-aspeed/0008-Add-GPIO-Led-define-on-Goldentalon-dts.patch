@@ -1,0 +1,132 @@
+From 70331cb1747872741e0a22298741859f92b02b02 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Mon, 6 Jul 2020 23:27:06 -0400
+Subject: [PATCH 08/21] Add GPIO Led define on Goldentalon dts
+
+- Add LED deine for UID, Heart Heat, Fauld, Power On and Power Fail on dts
+---
+ arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts | 38 ++++++++++++++++
+ include/dt-bindings/gpio/aspeed-g6-gpio.h          | 53 ++++++++++++++++++++++
+ 2 files changed, 91 insertions(+)
+ create mode 100644 include/dt-bindings/gpio/aspeed-g6-gpio.h
+
+diff --git a/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts b/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts
+index d3ba8f4..638c1f9 100644
+--- a/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts
++++ b/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts
+@@ -5,6 +5,7 @@
+ 
+ #include "aspeed-g6.dtsi"
+ #include <dt-bindings/i2c/i2c.h>
++#include <dt-bindings/gpio/aspeed-g6-gpio.h>
+ 
+ / {
+ 	model = "AST2600 EVB";
+@@ -22,8 +23,45 @@
+ 		device_type = "memory";
+ 		reg = <0x80000000 0x80000000>;
+ 	};
++
++        leds {
++                compatible = "gpio-leds";
++
++                // UID led
++                uid {
++                    label = "UID_LED";
++                    gpios = <&gpio0 ASPEED_G6_GPIO(G, 0) GPIO_ACTIVE_LOW>;
++                };
++
++                // Heart beat led
++                heartbeat {
++                    label = "HB_LED";
++                    gpios = <&gpio0 ASPEED_G6_GPIO(P, 7) GPIO_ACTIVE_LOW>;
++                };
++
++                // Fault led
++                plt_fault {
++                    label = "FAULT_LED";
++                    gpios = <&gpio0 ASPEED_G6_GPIO(S, 7) GPIO_ACTIVE_LOW>;
++                };
++
++                // Power on led
++                pwron {
++                    label = "PWR_ON_LED";
++                    gpios = <&gpio0 ASPEED_G6_GPIO(L, 6) GPIO_ACTIVE_LOW>;
++                };
++
++                // Power fail led
++                pwrfail {
++                    label = "PWR_FAIL_LED";
++                    gpios = <&gpio0 ASPEED_G6_GPIO(I, 6) GPIO_ACTIVE_LOW>;
++                };
++        };
+ };
+ 
++
++
++
+ &mdio0 {
+     status = "okay";
+ 
+diff --git a/include/dt-bindings/gpio/aspeed-g6-gpio.h b/include/dt-bindings/gpio/aspeed-g6-gpio.h
+new file mode 100644
+index 0000000..f2b9455
+--- /dev/null
++++ b/include/dt-bindings/gpio/aspeed-g6-gpio.h
+@@ -0,0 +1,53 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * This header provides constants for binding aspeed,*-gpio.
++ *
++ * The first cell in Aspeed's GPIO specifier is the GPIO ID. The macros below
++ * provide names for this.
++ *
++ * The second cell contains standard flag values specified in gpio.h.
++ */
++
++#ifndef _DT_BINDINGS_GPIO_ASPEED_GPIO_H
++#define _DT_BINDINGS_GPIO_ASPEED_GPIO_H
++
++#include <dt-bindings/gpio/gpio.h>
++
++// Parallel GPIO
++#define ASPEED_GPIO_PORT_A 0
++#define ASPEED_GPIO_PORT_B 1
++#define ASPEED_GPIO_PORT_C 2
++#define ASPEED_GPIO_PORT_D 3
++#define ASPEED_GPIO_PORT_E 4
++#define ASPEED_GPIO_PORT_F 5
++#define ASPEED_GPIO_PORT_G 6
++#define ASPEED_GPIO_PORT_H 7
++#define ASPEED_GPIO_PORT_I 8
++#define ASPEED_GPIO_PORT_J 9
++#define ASPEED_GPIO_PORT_K 10
++#define ASPEED_GPIO_PORT_L 11
++#define ASPEED_GPIO_PORT_M 12
++#define ASPEED_GPIO_PORT_N 13
++#define ASPEED_GPIO_PORT_O 14
++#define ASPEED_GPIO_PORT_P 15
++#define ASPEED_GPIO_PORT_Q 16
++#define ASPEED_GPIO_PORT_R 17
++#define ASPEED_GPIO_PORT_S 18
++#define ASPEED_GPIO_PORT_T 19
++#define ASPEED_GPIO_PORT_U 20
++#define ASPEED_GPIO_PORT_V 21
++#define ASPEED_GPIO_PORT_W 22
++#define ASPEED_GPIO_PORT_X 23
++#define ASPEED_GPIO_PORT_Y 24
++#define ASPEED_GPIO_PORT_Z 25
++// 1.8V Parallel GPIO
++#define ASPEED_GPIO_PORT_18A 0
++#define ASPEED_GPIO_PORT_18B 1
++#define ASPEED_GPIO_PORT_18C 2
++#define ASPEED_GPIO_PORT_18D 3
++#define ASPEED_GPIO_PORT_18E 4
++
++#define ASPEED_G6_GPIO(port, offset) \
++	((ASPEED_GPIO_PORT_##port * 8) + offset)
++
++#endif
+-- 
+2.7.4
+

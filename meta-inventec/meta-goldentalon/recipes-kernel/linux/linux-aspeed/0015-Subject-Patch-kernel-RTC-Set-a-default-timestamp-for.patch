@@ -1,0 +1,42 @@
+From 195d8d0769fc891d52eb0cb8a32d6429aa668200 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Tue, 1 Sep 2020 23:13:33 -0400
+Subject: [PATCH 15/21] Subject: [Patch][kernel][RTC] Set a default timestamp
+ for rtc init failed condition
+
+- If the RTC value read from register is invalid then set it to default timestamp
+---
+ drivers/rtc/class.c | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/rtc/class.c b/drivers/rtc/class.c
+index 7c88d19..54a8a70 100644
+--- a/drivers/rtc/class.c
++++ b/drivers/rtc/class.c
+@@ -20,6 +20,7 @@
+ 
+ #include "rtc-core.h"
+ 
++#define DEFAULT_RTC_TIMESTAMP (1598918400) // Define a default timestamp 2020-09-01 Tuesday 00:00:00
+ static DEFINE_IDA(rtc_ida);
+ struct class *rtc_class;
+ 
+@@ -58,7 +59,14 @@ static void rtc_hctosys(struct rtc_device *rtc)
+ 	if (err) {
+ 		dev_err(rtc->dev.parent,
+ 			"hctosys: unable to read the hardware clock\n");
+-		goto err_read;
++		// goto err_read;
++
++		// Due to some platform doesn't have battery to keep RTC register count
++		// once AC lost, the value of RTC register is unknown
++		// that will cause system time init failed.
++		// So we set a default timestamp to avoid this case.
++		rtc_time64_to_tm(DEFAULT_RTC_TIMESTAMP, &tm);
++		rtc_set_time(rtc, &tm);
+ 	}
+ 
+ 	tv64.tv_sec = rtc_tm_to_time64(&tm);
+-- 
+2.7.4
+

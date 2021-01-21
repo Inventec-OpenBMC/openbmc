@@ -1,0 +1,28 @@
+From 0a4fcf3490e04d221f37fdbd68bbea85de232c0a Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Fri, 10 Jul 2020 15:02:00 -0400
+Subject: [PATCH 03/11] Subject: [PATCH] [IPMI] Remove Intel IPMI OEM commands
+ from the cmake file.
+
+Remove Intel IPMI OEM commands from the cmake file.
+- Because we don't use these OEM commands, so remove them from compile recipe.
+---
+ CMakeLists.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 12ad5bc..9a946f7 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -97,7 +97,7 @@ add_custom_command(OUTPUT include/ipmi-whitelist.hpp
+                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+ 
+ add_library (zinteloemcmds
+-             SHARED src/oemcommands.cpp src/sensorcommands.cpp
++             SHARED src/sensorcommands.cpp
+              src/storagecommands.cpp src/multinodecommands.cpp
+              src/firmware-update.cpp src/appcommands.cpp src/smbioshandler.cpp
+              src/smbiosmdrv2handler.cpp src/manufacturingcommands.cpp
+-- 
+2.7.4
+

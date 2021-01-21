@@ -1,0 +1,30 @@
+From 7ab34b287339409875ed1dd04506c11ae109d241 Mon Sep 17 00:00:00 2001
+From: "anonymous" <anonymous@inventec.com>
+Date: Thu, 13 Aug 2020 16:10:41 -0400
+Subject: [PATCH] Subject: [PATCH] Subject: [PATCH][Entity-Manager] Add a
+ writable dbus interface "MonitorSettings"
+
+- Add a writable dbus interface "MonitorSettings" for run-time configuring sensor.
+---
+ src/EntityManager.cpp | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/src/EntityManager.cpp b/src/EntityManager.cpp
+index 5b5e5ce..8392e1a 100644
+--- a/src/EntityManager.cpp
++++ b/src/EntityManager.cpp
+@@ -76,8 +76,9 @@ const static boost::container::flat_map<const char*, probe_type_codes, cmp_str>
+                  {"FOUND", probe_type_codes::FOUND},
+                  {"MATCH_ONE", probe_type_codes::MATCH_ONE}}};
+ 
+-static constexpr std::array<const char*, 6> settableInterfaces = {
+-    "FanProfile", "Pid", "Pid.Zone", "Stepwise", "Thresholds", "Polling"};
++static constexpr std::array<const char*, 7> settableInterfaces = {
++    "FanProfile", "Pid", "Pid.Zone", "Stepwise", "Thresholds", "Polling",
++    "MonitorSettings"};
+ using JsonVariantType =
+     std::variant<std::vector<std::string>, std::vector<double>, std::string,
+                  int64_t, uint64_t, double, int32_t, uint32_t, int16_t,
+-- 
+2.7.4
+

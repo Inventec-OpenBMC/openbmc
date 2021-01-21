@@ -1,0 +1,68 @@
+{
+    "filters": [
+        {
+          "Description": "Allow all slave address of Bus 0",
+          "busId": "0x00",
+          "slaveAddr": "0x00",
+          "slaveAddrMask": "0xFF",
+          "command": "0x00",
+          "commandMask": "0xFF"
+        },
+        {
+            "Description": "Allow all slave address of Bus 1",
+            "busId": "0x01",
+            "slaveAddr": "0x00",
+            "slaveAddrMask": "0xFF",
+            "command": "0x00",
+            "commandMask": "0xFF"
+        },
+        {
+            "Description": "Allow all slave address of Bus 2",
+            "busId": "0x02",
+            "slaveAddr": "0x00",
+            "slaveAddrMask": "0xFF",
+            "command": "0x00",
+            "commandMask": "0xFF"
+        },
+        {
+            "Description": "Allow all slave address of Bus 3",
+            "busId": "0x03",
+            "slaveAddr": "0x00",
+            "slaveAddrMask": "0xFF",
+            "command": "0x00",
+            "commandMask": "0xFF"
+        },
+        {
+            "Description": "Allow all slave address of Bus 4",
+            "busId": "0x04",
+            "slaveAddr": "0x00",
+            "slaveAddrMask": "0xFF",
+            "command": "0x00",
+            "commandMask": "0xFF"
+        },
+        {
+            "Description": "Allow all slave address of Bus 5",
+            "busId": "0x05",
+            "slaveAddr": "0x00",
+            "slaveAddrMask": "0xFF",
+            "command": "0x00",
+            "commandMask": "0xFF"
+        },
+        {
+            "Description": "Allow all slave address of Bus 6",
+            "busId": "0x06",
+            "slaveAddr": "0x00",
+            "slaveAddrMask": "0xFF",
+            "command": "0x00",
+            "commandMask": "0xFF"
+        },
+        {
+            "Description": "Allow all slave address of Bus 7",
+            "busId": "0x07",
+            "slaveAddr": "0x00",
+            "slaveAddrMask": "0xFF",
+            "command": "0x00",
+            "commandMask": "0xFF"
+        }
+    ]
+}

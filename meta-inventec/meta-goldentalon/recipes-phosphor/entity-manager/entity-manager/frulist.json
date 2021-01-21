@@ -1,0 +1,40 @@
+{
+    "FRU": [
+        {
+            "ID": 0,
+            "Name": "MB_FRU",
+            "Bus": "3",
+            "Address": "0x54"
+        },
+        {
+            "ID": 1,
+            "Name": "RULER_FRU",
+            "Bus": "0",
+            "Address": "0x0"
+        },
+        {
+            "ID": 2,
+            "Name": "M2_FRU",
+            "Bus": "0",
+            "Address": "0x0"
+        },
+        {
+            "ID": 3,
+            "Name": "PCIE_EXP_FRU",
+            "Bus": "0",
+            "Address": "0x0"
+        },
+        {
+            "ID": 4,
+            "Name": "PCIE_RISER_FRU",
+            "Bus": "0",
+            "Address": "0x0"
+        },
+        {
+            "ID": 5,
+            "Name": "SCM_FRU",
+            "Bus": "14",
+            "Address": "0x50"
+        }
+    ]
+}

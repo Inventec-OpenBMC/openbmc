@@ -1,0 +1,117 @@
+From fadcf97e80d4df27c62d0e7e3c33250f0d41b494 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Thu, 13 Aug 2020 18:30:21 +0800
+Subject: [PATCH 03/13] Subject: [PATCH] [Sensor] Patch to support sensor
+ number, entity number and entity instance
+
+Patch to support IPMI information from entity-manager inventory
+- Hwmon temperature sensor
+---
+ include/HwmonTempSensor.hpp |  2 ++
+ src/HwmonTempMain.cpp       | 10 +++++++++-
+ src/HwmonTempSensor.cpp     | 23 +++++++++++++++++++++++
+ 3 files changed, 34 insertions(+), 1 deletion(-)
+
+diff --git a/include/HwmonTempSensor.hpp b/include/HwmonTempSensor.hpp
+index 3064c53..a2aed83 100644
+--- a/include/HwmonTempSensor.hpp
++++ b/include/HwmonTempSensor.hpp
+@@ -2,6 +2,7 @@
+ 
+ #include "Thresholds.hpp"
+ #include "sensor.hpp"
++#include "IpmiInfo.hpp"
+ 
+ #include <boost/asio/streambuf.hpp>
+ #include <sdbusplus/asio/object_server.hpp>
+@@ -19,6 +20,7 @@ class HwmonTempSensor :
+                     std::shared_ptr<sdbusplus::asio::connection>& conn,
+                     boost::asio::io_service& io, const std::string& fanName,
+                     std::vector<thresholds::Threshold>&& thresholds,
++                    std::vector<ipmidata::IpmiConfig>&& ipmiinfo,
+                     const std::string& sensorConfiguration,
+                     const PowerState powerState);
+     ~HwmonTempSensor();
+diff --git a/src/HwmonTempMain.cpp b/src/HwmonTempMain.cpp
+index b5cbf23..5ca1284 100644
+--- a/src/HwmonTempMain.cpp
++++ b/src/HwmonTempMain.cpp
+@@ -221,11 +221,18 @@ void createSensors(
+                 sensor = nullptr;
+                 auto hwmonFile = getFullHwmonFilePath(directory.string(),
+                                                       "temp1", permitSet);
++                std::vector<ipmidata::IpmiConfig> sensorIpmiConfig;
++                std::string labelHead = sensorName.substr(0, sensorName.find(" "));
++                if (!parseIpmiDataFromConfig(*sensorData, sensorIpmiConfig, &labelHead))
++                {
++                    std::cerr << "error populating ipmi for "
++                              << sensorName << "\n";
++                }
+                 if (hwmonFile)
+                 {
+                     sensor = std::make_shared<HwmonTempSensor>(
+                         *hwmonFile, sensorType, objectServer, dbusConnection,
+-                        io, sensorName, std::move(sensorThresholds),
++                        io, sensorName, std::move(sensorThresholds), std::move(sensorIpmiConfig), 
+                         *interfacePath, readState);
+                     sensor->setupRead();
+                 }
+@@ -254,6 +261,7 @@ void createSensors(
+                             *hwmonFile, sensorType, objectServer,
+                             dbusConnection, io, sensorName,
+                             std::vector<thresholds::Threshold>(),
++                            std::move(sensorIpmiConfig),
+                             *interfacePath, readState);
+                         sensor->setupRead();
+                     }
+diff --git a/src/HwmonTempSensor.cpp b/src/HwmonTempSensor.cpp
+index eaaa9e8..0a1856a 100644
+--- a/src/HwmonTempSensor.cpp
++++ b/src/HwmonTempSensor.cpp
+@@ -45,6 +45,7 @@ HwmonTempSensor::HwmonTempSensor(
+     std::shared_ptr<sdbusplus::asio::connection>& conn,
+     boost::asio::io_service& io, const std::string& sensorName,
+     std::vector<thresholds::Threshold>&& _thresholds,
++    std::vector<ipmidata::IpmiConfig>&& _ipmiinfo,
+     const std::string& sensorConfiguration, const PowerState powerState) :
+     Sensor(boost::replace_all_copy(sensorName, " ", "_"),
+            std::move(_thresholds), sensorConfiguration, objectType, maxReading,
+@@ -56,6 +57,27 @@ HwmonTempSensor::HwmonTempSensor(
+         "/xyz/openbmc_project/sensors/temperature/" + name,
+         "xyz.openbmc_project.Sensor.Value");
+ 
++    ipmiInterface = objectServer.add_interface(
++        "/xyz/openbmc_project/sensors/temperature/" + name,
++        "xyz.openbmc_project.Sensor.IpmiSensor");
++
++    if (_ipmiinfo.empty())
++    {
++        // Default
++        ipmiInterface->register_property("sensorNumber", 0);
++        ipmiInterface->register_property("entityID", 0);
++        ipmiInterface->register_property("entityInstance", 0);
++    }
++    else
++    {
++        for (auto& ipmi : _ipmiinfo)
++        {
++            ipmiInterface->register_property("sensorNumber", ipmi.number);
++            ipmiInterface->register_property("entityID", ipmi.entityId);
++            ipmiInterface->register_property("entityInstance", ipmi.entityIns);
++        }
++    }
++
+     if (thresholds::hasWarningInterface(thresholds))
+     {
+         thresholdInterfaceWarning = objectServer.add_interface(
+@@ -82,6 +104,7 @@ HwmonTempSensor::~HwmonTempSensor()
+     objServer.remove_interface(thresholdInterfaceWarning);
+     objServer.remove_interface(thresholdInterfaceCritical);
+     objServer.remove_interface(sensorInterface);
++    objServer.remove_interface(ipmiInterface);
+     objServer.remove_interface(association);
+ }
+ 
+-- 
+2.7.4
+

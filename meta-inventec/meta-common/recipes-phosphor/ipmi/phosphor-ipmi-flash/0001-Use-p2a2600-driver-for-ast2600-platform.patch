@@ -1,0 +1,25 @@
+From d364dabc58360061170a5b80172633fcc033fc14 Mon Sep 17 00:00:00 2001
+From: "Lin.TommySC" <lin.tommysc@inventec.com>
+Date: Tue, 19 Jan 2021 01:17:01 +0000
+Subject: [PATCH] Use p2a2600 driver for ast2600 platform
+
+---
+ bmc/firmware-handler/pci_handler.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/bmc/firmware-handler/pci_handler.cpp b/bmc/firmware-handler/pci_handler.cpp
+index 1b6b7ff..f96c321 100644
+--- a/bmc/firmware-handler/pci_handler.cpp
++++ b/bmc/firmware-handler/pci_handler.cpp
+@@ -29,7 +29,7 @@
+ namespace ipmi_flash
+ {
+ 
+-const std::string PciDataHandler::p2aControlPath = "/dev/aspeed-p2a-ctrl";
++const std::string PciDataHandler::p2aControlPath = "/dev/aspeed-p2a2600-ctrl";
+ 
+ bool PciDataHandler::open()
+ {
+-- 
+2.7.4
+

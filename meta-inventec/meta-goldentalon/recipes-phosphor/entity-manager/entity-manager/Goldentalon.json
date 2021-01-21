@@ -1,0 +1,943 @@
+{
+    "Exposes": [
+        {
+            "Address": "0x1C",
+            "Bus": "1",
+            "Name": "TEMP_INLET_38",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 36
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 35
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "TEMP_INLET_38",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x72",
+                    "EntityId": "0x07",
+                    "EntityInstance": "1"
+                }
+            ],
+            "Type": "TMP421"
+        },
+        {
+            "Address": "0x1D",
+            "Bus": "1",
+            "Name": "TEMP_INLET_3A",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 36
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 35
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "TEMP_INLET_3A",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x73",
+                    "EntityId": "0x7",
+                    "EntityInstance": "2"
+                }
+            ],
+            "Type": "TMP421"
+        },
+        {
+            "Address": "0x1E",
+            "Bus": "1",
+            "Name": "TEMP_INLET_3C",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 36
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 35
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "TEMP_INLET_3C",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x74",
+                    "EntityId": "0x7",
+                    "EntityInstance": "3"
+                }
+            ],
+            "Type": "TMP421"
+        },
+        {
+            "Address": "0x4C",
+            "Bus": "1",
+            "Name": "TEMP_OUTLET_98",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 71
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 70
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 5
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 3
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "TEMP_OUTLET_98",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x75",
+                    "EntityId": "0x7",
+                    "EntityInstance": "4"
+                }
+            ],
+            "Type": "TMP421"
+        },
+        {
+            "Address": "0x4D",
+            "Bus": "1",
+            "Name": "TEMP_OUTLET_9A",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 71
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 70
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 5
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 3
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "TEMP_OUTLET_9A",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x76",
+                    "EntityId": "0x7",
+                    "EntityInstance": "5"
+                }
+            ],
+            "Type": "TMP421"
+        },
+        {
+            "Address": "0x4E",
+            "Bus": "1",
+            "Name": "TEMP_OUTLET_9C",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 71
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 70
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 5
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 3
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "TEMP_OUTLET_9C",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x77",
+                    "EntityId": "0x7",
+                    "EntityInstance": "6"
+                }
+            ],
+            "Type": "TMP421"
+        },
+        {
+            "Address": "0x08",
+            "Class": "METemp",
+            "Name": "TEMP_PCH",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 86
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "TEMP_PCH",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xAF",
+                    "EntityId": "0x3",
+                    "EntityInstance": "0"
+                }
+            ],
+            "Type": "IpmbSensor"
+        },
+        {
+            "Bus": 0,
+            "Address": "0x30",
+            "CpuID": 1,
+            "DtsCritOffset": 0.0,
+            "Name": "CPU",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DTS",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 100
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "TEMP_CPU",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xAD",
+                    "EntityId": "3",
+                    "EntityInstance": "1"
+                },
+                {
+                    "Label": "TEMP_DIMM_A0",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xB4",
+                    "EntityId": "0x20",
+                    "EntityInstance": "0"
+                },
+                {
+                    "Label": "TEMP_DIMM_B0",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xB5",
+                    "EntityId": "0x20",
+                    "EntityInstance": "1"
+                },
+                {
+                    "Label": "TEMP_DIMM_C0",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xB6",
+                    "EntityId": "0x20",
+                    "EntityInstance": "2"
+                },
+                {
+                    "Label": "TEMP_DIMM_D0",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xB7",
+                    "EntityId": "0x20",
+                    "EntityInstance": "3"
+                },
+                {
+                    "Label": "TEMP_DIMM_E0",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xB8",
+                    "EntityId": "0x20",
+                    "EntityInstance": "4"
+                },
+                {
+                    "Label": "TEMP_DIMM_F0",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xB9",
+                    "EntityId": "0x20",
+                    "EntityInstance": "5"
+                },
+                {
+                    "Label": "TEMP_DIMM_G0",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xC9",
+                    "EntityId": "0x20",
+                    "EntityInstance": "6"
+                },
+                {
+                    "Label": "TEMP_DIMM_F0",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xCA",
+                    "EntityId": "0x20",
+                    "EntityInstance": "7"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+        {
+            "Address": "0x58",
+            "Bus": "4",
+            "Labels": [
+                "pout1",
+                "temp1",
+                "fan1",
+                "fan2"
+            ],
+            "fan2_Name" :"PSU0_FAN_1",
+            "Name": "PSU0",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "pout1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 1200
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 44
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "fan1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 25300
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "fan1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "fan2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 25300
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "fan2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 2600
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "pout1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x89",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "0"
+                },
+                {
+                    "Label": "temp1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x8E",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "1"
+                },
+                {
+                    "Label": "fan1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x8F",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "0"
+                },
+                {
+                    "Label": "fan2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x8B",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "0"
+                }
+            ],
+            "Type": "pmbus"
+        },
+        {
+            "Address": "0x11",
+            "Bus": "6",
+            "Labels": [
+                "pin",
+                "temp1",
+                "vin",
+                "iout1"
+            ],
+            "vin_Max": "15",
+            "vin_Min": "10",
+            "iout1_Max": "130",
+            "pin_Max": "1300",
+            "pin_Rsense" : 0.2,
+            "iout1_Rsense" : 0.2,
+            "Name": "HSC0",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "pin",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 805
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vin",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 13
+                },
+               {
+                    "Direction": "less than",
+                    "Label": "vin",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 11
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 105
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "pin",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x0E",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "1"
+                },
+                {
+                    "Label": "vin",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x0F",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "1"
+                },
+                {
+                    "Label": "iout1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x10",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "1"
+                },
+                {
+                    "Label": "temp1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x14",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "1"
+                }
+            ],
+            "Type": "ADM1278"
+        },
+        {
+            "Class": "Gpio",
+            "Name": "CPU_PROCHOT",
+            "PowerState": "On",
+            "SensorInfo": [
+                {
+                    "Label": "CPU_PROCHOT",
+                    "SensorModel": "Event",
+                    "SensorNum": "0xA8",
+                    "EntityId": "0x03",
+                    "EntityInstance": "0"
+                }
+            ],
+            "Type": "GpioSensor",
+            "MonitorSettings": [
+                {
+                    "Disable": false,
+                    "EnableHookHandlr": true,
+                    "HookHandlr": 1,
+                    "MonitorMode": 1,
+                    "DelayCheck_Ms": 200
+                }
+            ]
+        },
+        {
+            "Class": "Gpio",
+            "Name": "MEM_HOT",
+            "PowerState": "On",
+            "SensorInfo": [
+                {
+                    "Label": "MEM_HOT",
+                    "SensorModel": "Event",
+                    "SensorNum": "0xC1",
+                    "EntityId": "0x20",
+                    "EntityInstance": "0"
+                }
+            ],
+            "Type": "GpioSensor",
+            "MonitorSettings": [
+                {
+                    "Disable": false,
+                    "EnableHookHandlr": true,
+                    "HookHandlr": 1,
+                    "MonitorMode": 1,
+                    "DelayCheck_Ms": 200
+                }
+            ]
+        },
+        {
+            "Class": "Gpio",
+            "Name": "PCH_THERMAL_TRIP",
+            "PowerState": "On",
+            "SensorInfo": [
+                {
+                    "Label": "PCH_THERMAL_TRIP",
+                    "SensorModel": "Event",
+                    "SensorNum": "0x1E",
+                    "EntityId": "0x03",
+                    "EntityInstance": "0"
+                }
+            ],
+            "Type": "GpioSensor",
+            "MonitorSettings": [
+                {
+                    "Disable": false,
+                    "EnableHookHandlr": true,
+                    "HookHandlr": 1,
+                    "MonitorMode": 1,
+                    "DelayCheck_Ms": 200
+                }
+            ]
+        },
+        {
+            "Class": "Gpio",
+            "Name": "CPU_THERMAL_TRIP",
+            "PowerState": "On",
+            "SensorInfo": [
+                {
+                    "Label": "CPU_THERMAL_TRIP",
+                    "SensorModel": "Event",
+                    "SensorNum": "0x1D",
+                    "EntityId": "0x03",
+                    "EntityInstance": "0"
+                }
+            ],
+            "Type": "GpioSensor",
+            "MonitorSettings": [
+                {
+                    "Disable": false,
+                    "EnableHookHandlr": true,
+                    "HookHandlr": 1,
+                    "MonitorMode": 1,
+                    "DelayCheck_Ms": 200
+                }
+            ]
+        },
+        {
+            "Index":"2",
+            "Address": "0x58",
+            "Bus": "0",
+            "Name": "P12V_STBY",
+            "PowerState": "On",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 12.936
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 11.022
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "P12V_STBY",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xCD",
+                    "EntityId": "0x07",
+                    "EntityInstance": "1"
+                }
+            ],
+            "Type": "ADT7462"
+        },
+        {
+            "Index":"3",
+            "Address": "0x58",
+            "Bus": "0",
+            "Name": "P5V_STBY",
+            "PowerState": "On",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 5.4
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 4.59
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "P5V_STBY",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xD6",
+                    "EntityId": "0x07",
+                    "EntityInstance": "1"
+                }
+            ],
+            "Type": "ADT7462"
+        },
+        {
+            "Index":"4",
+            "Address": "0x58",
+            "Bus": "0",
+            "Name": "PVNN_PCH_STBY",
+            "PowerState": "On",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 1.078
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0.784
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "PVNN_PCH_STBY",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xDE",
+                    "EntityId": "0x07",
+                    "EntityInstance": "1"
+                }
+            ],
+            "Type": "ADT7462"
+        },
+        {
+            "Address": "0x5C",
+            "Bus": "0",
+            "Name": "P5V",
+            "Index":"3",
+            "PowerState": "On",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 5.4
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 4.59
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "P5V",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xC5",
+                    "EntityId": "0x07",
+                    "EntityInstance": "1"
+                }
+            ],
+            "Type": "ADT7462"
+        },
+        {
+            "Address": "0x5C",
+            "Bus": "0",
+            "Name": "P1V05_PCH_STBY",
+            "Index":"4",
+            "PowerState": "On",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 1.196
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0.902
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "P1V05_PCH_STBY",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xD7",
+                    "EntityId": "0x07",
+                    "EntityInstance": "1"
+                }
+            ],
+            "Type": "ADT7462"
+        },
+        {
+            "Address": "0x5C",
+            "Bus": "0",
+            "Name": "P3V3",
+            "Index":"6",
+            "PowerState": "On",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 3.548
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 3.038
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "P3V3",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xC4",
+                    "EntityId": "0x07",
+                    "EntityInstance": "1"
+                }
+            ],
+            "Type": "ADT7462"
+        },
+        {
+            "Address": "0x5C",
+            "Bus": "0",
+            "Name": "P3V_VBAT",
+            "Index":"8",
+            "PowerState": "On",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 3.451
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 2.291
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "P3V_VBAT",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xEB",
+                    "EntityId": "0x07",
+                    "EntityInstance": "1"
+                }
+            ],
+            "Type": "ADT7462"
+        },
+        {
+            "Address": "0x5C",
+            "Bus": "0",
+            "Name": "P3V3_STBY",
+            "Index":"9",
+            "PowerState": "On",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 3.548
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 3.038
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "P3V3_STBY",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xDF",
+                    "EntityId": "0x07",
+                    "EntityInstance": "1"
+                }
+            ],
+            "Type": "ADT7462"
+        },
+        {
+            "Address": "0x4E",
+            "Bus": "14",
+            "Name": "SCM_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 70
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 69
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 5
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "SCM_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x03",
+                    "EntityId": "0x07",
+                    "EntityInstance": "1"
+                }
+            ],
+            "Type": "TMP421"
+        }
+    ],
+    "Name": "GOLDENTALON",
+    "Probe": [
+            "xyz.openbmc_project.FruDevice({'BOARD_PRODUCT_NAME': '.*SCM*'})",
+            "OR",
+            "xyz.openbmc_project.FruDevice({'PRODUCT_PRODUCT_NAME': '.*SCM*'})"
+    ],
+    "Type": "Board",
+    "xyz.openbmc_project.Inventory.Decorator.Asset": {
+        "Manufacturer": "$BOARD_MANUFACTURER",
+        "Model": "$BOARD_PRODUCT_NAME",
+        "PartNumber": "$BOARD_PART_NUMBER",
+        "SerialNumber": "$BOARD_SERIAL_NUMBER"
+    },
+    "xyz.openbmc_project.Inventory.Decorator.AssetTag": {
+        "AssetTag": "$PRODUCT_ASSET_TAG"
+    },
+    "xyz.openbmc_project.Inventory.Item.System": {}
+}

@@ -1,0 +1,140 @@
+From a15169c4bd09a41fd29ff18638a50f4abc163c2d Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Tue, 6 Oct 2020 14:53:58 +0800
+Subject: [PATCH 4/4] Patch DCMI Get Power reading command
+
+Patch DCMI Get Power Reading command
+- Minimum/Maximum/Average Power and time period from Get NM Statistics
+- Time Stamp from BMC time
+- Power Reading State active
+---
+ dcmihandler.cpp         | 73 +++++++++++++++++++++++++++++++++++++++++++++++--
+ include/ipmid/utils.hpp | 13 +++++++++
+ 2 files changed, 83 insertions(+), 3 deletions(-)
+
+diff --git a/dcmihandler.cpp b/dcmihandler.cpp
+index e9653c1..bbeea57 100644
+--- a/dcmihandler.cpp
++++ b/dcmihandler.cpp
+@@ -28,6 +28,14 @@ constexpr auto PCAP_INTERFACE = "xyz.openbmc_project.Control.Power.Cap";
+ constexpr auto POWER_CAP_PROP = "PowerCap";
+ constexpr auto POWER_CAP_ENABLE_PROP = "PowerCapEnable";
+ 
++constexpr auto NM_PROXY_SERVICE = "xyz.openbmc_project.NodeManagerProxy";
++constexpr auto POWER_METRIC_PATH = "/xyz/openbmc_project/Power/PowerMetric";
++constexpr auto POWER_METRIC_INTERFACE = "xyz.openbmc_project.Power.PowerMetric";
++constexpr auto POWER_AVG_PROP = "AverageConsumedWatts";
++constexpr auto POWER_MAX_PROP = "MaxConsumedWatts";
++constexpr auto POWER_MIN_PROP = "MinConsumedWatts";
++constexpr auto POWER_PERIOD_PROP = "IntervalInMin";
++
+ constexpr auto DCMI_PARAMETER_REVISION = 2;
+ constexpr auto DCMI_SPEC_MAJOR_VERSION = 1;
+ constexpr auto DCMI_SPEC_MINOR_VERSION = 5;
+@@ -1196,7 +1204,12 @@ ipmi_ret_t getPowerReading(ipmi_netfn_t netfn, ipmi_cmd_t cmd,
+         reinterpret_cast<dcmi::GetPowerReadingResponse*>(response);
+ 
+     sdbusplus::bus::bus bus{ipmid_get_sd_bus_connection()};
++    uint32_t timePeriod = 0;
++    uint16_t powerMin = 0;
++    uint16_t powerMax = 0;
++    uint16_t powerAvg = 0;
+     int64_t power = 0;
++
+     try
+     {
+         power = getPowerReading(bus);
+@@ -1215,9 +1228,63 @@ ipmi_ret_t getPowerReading(ipmi_netfn_t netfn, ipmi_cmd_t cmd,
+     // after Telemetry changes.
+     uint16_t totalPower = static_cast<uint16_t>(power);
+     responseData->currentPower = totalPower;
+-    responseData->minimumPower = totalPower;
+-    responseData->maximumPower = totalPower;
+-    responseData->averagePower = totalPower;
++
++    try
++    {
++        // Get NM Power Metric proerities
++        auto properties = ipmi::getAllDbusProperties(
++            bus, NM_PROXY_SERVICE, POWER_METRIC_PATH, POWER_METRIC_INTERFACE);
++
++        auto findTime = properties.find(POWER_PERIOD_PROP);
++        if (findTime != properties.end())
++        {
++            timePeriod = std::visit(ipmi::VariantToUnsignedIntVisitor(), findTime->second);
++        }
++        responseData->timeFrame = timePeriod * 1000; // milliseconds
++
++        auto findMin = properties.find(POWER_MIN_PROP);
++        if (findMin != properties.end())
++        {
++            powerMin = std::visit(ipmi::VariantToUnsignedIntVisitor(), findMin->second);
++        }
++        responseData->minimumPower = powerMin;
++
++        auto findMax = properties.find(POWER_MAX_PROP);
++        if (findMax != properties.end())
++        {
++            powerMax = std::visit(ipmi::VariantToUnsignedIntVisitor(), findMax->second);
++        }
++        responseData->maximumPower = powerMax;
++
++        auto findAvg = properties.find(POWER_AVG_PROP);
++        if (findAvg != properties.end())
++        {
++            powerAvg = std::visit(ipmi::VariantToUnsignedIntVisitor(), findAvg->second);
++        }
++        responseData->averagePower = powerAvg;
++    }
++    catch (InternalFailure& e)
++    {
++        log<level::ERR>("Error in reading NM Power Metric",
++                        entry("OBJ_PATH=%s", POWER_METRIC_PATH),
++                        entry("INTERFACE=%s", POWER_METRIC_INTERFACE));
++        responseData->minimumPower = totalPower;
++        responseData->maximumPower = totalPower;
++        responseData->averagePower = totalPower;
++    }
++
++    responseData->powerReadingState = 0x40; // BIT6 Power Measurement active
++
++    // BMC Time Stamp
++    struct timespec baseTime = {};
++    if (clock_gettime(CLOCK_REALTIME, &baseTime) < 0)
++    {
++        responseData->timeStamp = 0x0;
++    }
++    else
++    {
++        responseData->timeStamp = baseTime.tv_sec;
++    }
+ 
+     *data_len = sizeof(*responseData);
+     return rc;
+diff --git a/include/ipmid/utils.hpp b/include/ipmid/utils.hpp
+index b8b59bf..6530a10 100644
+--- a/include/ipmid/utils.hpp
++++ b/include/ipmid/utils.hpp
+@@ -424,6 +424,19 @@ struct VariantToDoubleVisitor
+     }
+ };
+ 
++struct VariantToUnsignedIntVisitor
++{
++    template <typename T>
++    unsigned int operator()(const T& t) const
++    {
++        if constexpr (std::is_arithmetic_v<T>)
++        {
++            return static_cast<unsigned int>(t);
++        }
++        throw std::invalid_argument("Cannot translate type to unsigned int");
++    }
++};
++
+ namespace method_no_args
+ {
+ 
+-- 
+2.7.4
+

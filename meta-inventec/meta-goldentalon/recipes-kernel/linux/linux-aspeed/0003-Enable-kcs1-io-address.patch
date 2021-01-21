@@ -1,0 +1,30 @@
+From a7da343e0ec633e947900c37e832a1068278ca6a Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Wed, 3 Jun 2020 16:22:14 -0400
+Subject: [PATCH 03/21] Enable kcs1 io address
+
+Enable io address 0xca0
+---
+ arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts b/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts
+index 84b79f1..19878e9 100644
+--- a/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts
++++ b/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts
+@@ -169,6 +169,12 @@
+ 	status = "okay";
+ };
+ 
++&kcs1 {
++	// BMC KCS channel 1
++	status = "okay";
++	kcs_addr = <0xca0>;
++};
++
+ &kcs2 {
+ 	// BMC KCS channel 2
+ 	status = "okay";
+-- 
+2.7.4
+

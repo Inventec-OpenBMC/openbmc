@@ -1,0 +1,116 @@
+From f1df003d6cd8e274de7c98c1ae8a70cdc2c9fa40 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Wed, 12 Aug 2020 23:35:59 -0400
+Subject: [PATCH 08/11] =?UTF-8?q?Modified=20Platform=20Event=20(a.k.a.=20?=
+ =?UTF-8?q?=E2=80=9CEvent=20Message=E2=80=9D)=20command=20to=20log=20messa?=
+ =?UTF-8?q?ge=20to=20SEL?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Modified Platform Event (a.k.a. “Event Message”) command to log message to SEL.
+- Changed Add SEL dbus method define to hpp.
+---
+ include/commandutils.hpp |  6 ++++++
+ src/sensorcommands.cpp   | 32 +++++++++++++++++++++++++++++++-
+ src/storagecommands.cpp  | 10 +---------
+ 3 files changed, 38 insertions(+), 10 deletions(-)
+
+diff --git a/include/commandutils.hpp b/include/commandutils.hpp
+index 7ed49c8..afa2064 100644
+--- a/include/commandutils.hpp
++++ b/include/commandutils.hpp
+@@ -28,6 +28,12 @@
+ 
+ static constexpr bool debug = false;
+ 
++const static constexpr char* selService = "xyz.openbmc_project.Logging.IPMI";
++const static constexpr char* selPath = "/xyz/openbmc_project/Logging/IPMI";
++const static constexpr char* selAddIntf = "xyz.openbmc_project.Logging.IPMI";
++const static constexpr char* selAdd = "IpmiSelAdd";
++const static constexpr char* selAddOem = "IpmiSelAddOem";
++
+ inline static void printRegistration(unsigned int netfn, unsigned int cmd)
+ {
+     if constexpr (debug)
+diff --git a/src/sensorcommands.cpp b/src/sensorcommands.cpp
+index 5bf11b0..a81ef8d 100644
+--- a/src/sensorcommands.cpp
++++ b/src/sensorcommands.cpp
+@@ -342,7 +342,7 @@ ipmi::RspType<> ipmiSenPlatformEvent(ipmi::message::Payload& p)
+     constexpr const uint8_t meId = 0x2C;
+     constexpr const uint8_t meSensorNum = 0x17;
+     constexpr const uint8_t disabled = 0x80;
+-
++    constexpr const uint8_t recordType = 0x02;
+     uint8_t generatorID = 0;
+     uint8_t evmRev = 0;
+     uint8_t sensorType = 0;
+@@ -377,6 +377,36 @@ ipmi::RspType<> ipmiSenPlatformEvent(ipmi::message::Payload& p)
+         return ipmi::responseReqDataLenInvalid();
+     }
+ 
++    uint16_t recordId = 0xFFFF;
++    std::vector<uint8_t> eventData(9, 0xFF);
++    eventData[0] = generatorID;
++    eventData[1] = 0x00;
++    eventData[2] = evmRev;
++    eventData[3] = sensorType;
++    eventData[4] = sensorNum;
++    eventData[5] = eventType;
++    eventData[6] = eventData1;
++    eventData[7] = eventData2.value_or(0xFF);
++    eventData[8] = eventData3.value_or(0xFF);
++
++    std::shared_ptr<sdbusplus::asio::connection> bus = getSdBus();
++
++    sdbusplus::message::message writeSEL = bus->new_method_call(
++                             selService, selPath, selAddIntf, selAddOem);
++    writeSEL.append("ipmiPlatformEvent", eventData, recordType);
++
++    try
++    {
++        auto ret = bus->call(writeSEL);
++        ret.read(recordId);
++    }
++    catch (sdbusplus::exception_t& e)
++    {
++        std::cerr << "failed to call IpmiSelAddOem method\n";
++        return ipmi::responseUnspecifiedError();
++        //-throw std::runtime_error("ipmiPlatformEvent fail");
++    }
++
+     // Send this request to the Redfish hooks to log it as a Redfish message
+     // instead.  There is no need to add it to the SEL, so just return success.
+     intel_oem::ipmi::sel::checkRedfishHooks(
+diff --git a/src/storagecommands.cpp b/src/storagecommands.cpp
+index 967a124..c0a4f4b 100644
+--- a/src/storagecommands.cpp
++++ b/src/storagecommands.cpp
+@@ -53,11 +53,6 @@ namespace intel_oem::ipmi::sel
+ {
+ static const std::filesystem::path selLogDir = "/var/lib/sel_log";
+ static const std::string selLogFilename = "ipmi_sel";
+-const static constexpr char* selService = "xyz.openbmc_project.Logging.IPMI";
+-const static constexpr char* selPath = "/xyz/openbmc_project/Logging/IPMI";
+-const static constexpr char* selAddIntf = "xyz.openbmc_project.Logging.IPMI";
+-const static constexpr char* selAdd = "IpmiSelAdd";
+-const static constexpr char* selAddOem = "IpmiSelAddOem";
+ 
+ static int getFileTimestamp(const std::filesystem::path& file)
+ {
+@@ -756,10 +751,7 @@ uint16_t sendIpmiSelToDbus(std::vector<uint8_t> event, uint8_t recordType)
+     std::shared_ptr<sdbusplus::asio::connection> bus = getSdBus();
+ 
+     sdbusplus::message::message writeSEL = bus->new_method_call(
+-        intel_oem::ipmi::sel::selService,
+-        intel_oem::ipmi::sel::selPath,
+-        intel_oem::ipmi::sel::selAddIntf,
+-        intel_oem::ipmi::sel::selAddOem);
++                             selService, selPath, selAddIntf, selAddOem);
+     writeSEL.append("ipmiAddSELEntry", event, recordType);
+ 
+     try
+-- 
+2.7.4
+

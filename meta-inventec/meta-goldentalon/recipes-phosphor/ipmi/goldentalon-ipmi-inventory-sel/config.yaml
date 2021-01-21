@@ -1,0 +1,5 @@
+/xyz/openbmc_project/inventory/system:
+    eventReadingType: 111
+    offset: 2
+    sensorID: 44
+    sensorType: 18

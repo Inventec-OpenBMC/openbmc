@@ -1,0 +1,50 @@
+From 8d1fb269e84096bbf91c9aa69866e6315b705ef7 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Mon, 5 Oct 2020 13:32:58 +0800
+Subject: [PATCH 3/4] Fixed DCMI get power reading fail when get exception
+
+Fixed DCMI get power reading fail
+- DBUS object  has no Scale property.
+- Value property is define DOUBLE type not INTEGER type.
+---
+ dcmihandler.cpp | 18 ++++++++++++++----
+ 1 file changed, 14 insertions(+), 4 deletions(-)
+
+diff --git a/dcmihandler.cpp b/dcmihandler.cpp
+index f8498f5..e9653c1 100644
+--- a/dcmihandler.cpp
++++ b/dcmihandler.cpp
+@@ -1010,16 +1010,26 @@ int64_t getPowerReading(sdbusplus::bus::bus& bus)
+     try
+     {
+         auto service = ipmi::getService(bus, SENSOR_VALUE_INTF, objectPath);
+-
+         // Read the sensor value and scale properties
+         auto properties = ipmi::getAllDbusProperties(bus, service, objectPath,
+                                                      SENSOR_VALUE_INTF);
+-        auto value = std::get<int64_t>(properties[SENSOR_VALUE_PROP]);
+-        auto scale = std::get<int64_t>(properties[SENSOR_SCALE_PROP]);
++        auto findValue = properties.find(SENSOR_VALUE_PROP);
++        double value = 0.0;
++        if (findValue != properties.end())
++        {
++            value = std::visit(ipmi::VariantToDoubleVisitor(), findValue->second);
++        }
++
++        auto findFactor = properties.find(SENSOR_SCALE_PROP);
++        double scale = 0.0;
++        if (findFactor != properties.end())
++        {
++            scale = std::visit(ipmi::VariantToDoubleVisitor(), findFactor->second);
++        }
+ 
+         // Power reading needs to be scaled with the Scale value using the
+         // formula Value * 10^Scale.
+-        power = value * std::pow(10, scale);
++        power = static_cast<uint64_t>(value * std::pow(10, scale));
+     }
+     catch (std::exception& e)
+     {
+-- 
+2.7.4
+

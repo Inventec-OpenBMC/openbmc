@@ -1,0 +1,39 @@
+From 55e11714e55a2705f5afeae78ed67770c9e5ce19 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Tue, 14 Jul 2020 23:58:27 -0400
+Subject: [PATCH 5/5] Subject: [PATCH] [Uboot] Patch diable hardware heartbeat
+ LED.
+
+Patch diable hardware heartbeat LED.
+- Because we need to enable software heartbeat LED function.
+---
+ arch/arm/mach-aspeed/ast2600/board_common.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/arch/arm/mach-aspeed/ast2600/board_common.c b/arch/arm/mach-aspeed/ast2600/board_common.c
+index e9e6b1e..6935271 100644
+--- a/arch/arm/mach-aspeed/ast2600/board_common.c
++++ b/arch/arm/mach-aspeed/ast2600/board_common.c
+@@ -40,6 +40,7 @@
+ #define SCU4BC		SCUBASE + 0x4bc
+ #define SCU510		SCUBASE + 0x510
+ #define SCU694		SCUBASE + 0x694
++#define SCU69C		SCUBASE + 0x69c
+ #define WDT1BASE    0x1e785000
+ #define WDTMASK1    0x1c
+ #define WDTMASK2    0x20
+@@ -240,6 +241,11 @@ void gpio_init()
+ 	reg = readl(GPIO824);
+ 	reg |= (0x00000002);
+ 	writel(reg, GPIO824);
++
++	//Disable HW heartbeat LED
++	reg = readl(SCU69C);
++	reg &= ~(1 << 31);
++	writel(reg, SCU69C);
+ }
+ 
+ void i2c1_init()
+-- 
+2.7.4
+

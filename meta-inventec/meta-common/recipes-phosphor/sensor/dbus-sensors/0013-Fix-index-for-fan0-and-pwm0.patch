@@ -1,0 +1,55 @@
+From cf1cbf29f65bdf80c8ddae894cb57c11024bb617 Mon Sep 17 00:00:00 2001
+From: "pj.chen" <chen.pj@inventec.com>
+Date: Wed, 3 Feb 2021 06:27:21 +0000
+Subject: [PATCH 13/13] - Fix index for fan0 and pwm0
+
+---
+ src/FanMain.cpp | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/src/FanMain.cpp b/src/FanMain.cpp
+index aed4ae1..2357afa 100644
+--- a/src/FanMain.cpp
++++ b/src/FanMain.cpp
+@@ -277,6 +277,7 @@ void createSensors(
+                 FanTypes fanType = getFanType(directory);
+                 size_t bus = 0;
+                 size_t address = 0;
++
+                 if (fanType == FanTypes::i2c)
+                 {
+                     /*
+@@ -301,8 +302,10 @@ void createSensors(
+                     bus = std::stoi(link.substr(0, findDash));
+                     address = std::stoi(link.substr(findDash + 1), nullptr, 16);
+                 }
++                /* Fix for fan0_input */
+                 // convert to 0 based
+-                size_t index = std::stoul(indexStr) - 1;
++                //size_t index = std::stoul(indexStr) - 1;
++                size_t index = std::stoul(indexStr);
+ 
+                 const char* baseType;
+                 const SensorData* sensorData = nullptr;
+@@ -560,7 +563,6 @@ void createSensors(
+                         pwmCkList.emplace_back(connectorName);
+                         pwms.emplace_back(pwmSysPath);
+                     }
+-
+                     pwmNumbers.emplace_back(pwm, *interfacePath, pwmName, connectorName, false);
+                 }
+ 
+@@ -594,8 +596,9 @@ void createSensors(
+                 for (auto itr = pwmNumbers.begin(); itr != pwmNumbers.end(); itr++)
+                 {
+                     auto &[index, configPath, name, conetrName, is_used] = *itr;
++                    /* Fix for pwm0_input */
+                     if (!is_used &&(pwm.filename().string() ==
+-                        "pwm" + std::to_string(index + 1)))
++                        "pwm" + std::to_string(index )))
+                     {
+                         path = &configPath;
+                         pwmName = &name;
+-- 
+2.7.4
+

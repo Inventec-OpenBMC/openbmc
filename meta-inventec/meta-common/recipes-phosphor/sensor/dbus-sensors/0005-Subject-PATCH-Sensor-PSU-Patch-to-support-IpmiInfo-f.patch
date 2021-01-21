@@ -1,0 +1,243 @@
+From 356b5edac9fc067d85a3c03158dab5c913b3766e Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Fri, 14 Aug 2020 09:05:42 +0800
+Subject: [PATCH 05/13] Subject: [PATCH] [Sensor][PSU] Patch to support
+ IpmiInfo for PSU dbus sensor
+
+- Patch to support IpmiInfo for PSU dbus sensor
+- Modify the dbus proerty name of the  match lable
+  (pin, pout1, vin, vout1, iin, iout1, temp1, fan1, fan2)
+---
+ include/PSUSensor.hpp |  5 ++++-
+ src/PSUSensor.cpp     | 40 +++++++++++++++++++++++++++++++++++++---
+ src/PSUSensorMain.cpp | 49 ++++++++++++++++++++++++++++++++++++++-----------
+ 3 files changed, 79 insertions(+), 15 deletions(-)
+
+diff --git a/include/PSUSensor.hpp b/include/PSUSensor.hpp
+index 102fe63..feaa43b 100644
+--- a/include/PSUSensor.hpp
++++ b/include/PSUSensor.hpp
+@@ -3,6 +3,7 @@
+ #include "PwmSensor.hpp"
+ #include "Thresholds.hpp"
+ #include "sensor.hpp"
++#include "IpmiInfo.hpp"
+ 
+ #include <boost/asio/streambuf.hpp>
+ #include <sdbusplus/asio/object_server.hpp>
+@@ -18,9 +19,10 @@ class PSUSensor : public Sensor, public std::enable_shared_from_this<PSUSensor>
+               std::shared_ptr<sdbusplus::asio::connection>& conn,
+               boost::asio::io_service& io, const std::string& sensorName,
+               std::vector<thresholds::Threshold>&& thresholds,
++              std::vector<ipmidata::IpmiConfig>&& ipmiinfo,
+               const std::string& sensorConfiguration,
+               std::string& sensorTypeName, unsigned int factor, double max,
+-              double min, const std::string& label, size_t tSize);
++              double min, double rsense, const std::string& label, size_t tSize);
+     ~PSUSensor();
+     void setupRead(void);
+ 
+@@ -33,6 +35,7 @@ class PSUSensor : public Sensor, public std::enable_shared_from_this<PSUSensor>
+     std::string pathRatedMin;
+     std::string pathRatedMax;
+     size_t errCount;
++    double rsenseValue;
+     unsigned int sensorFactor;
+     uint8_t minMaxReadCounter;
+     void handleResponse(const boost::system::error_code& err);
+diff --git a/src/PSUSensor.cpp b/src/PSUSensor.cpp
+index 25cc5ad..35b9666 100644
+--- a/src/PSUSensor.cpp
++++ b/src/PSUSensor.cpp
+@@ -41,9 +41,10 @@ PSUSensor::PSUSensor(const std::string& path, const std::string& objectType,
+                      std::shared_ptr<sdbusplus::asio::connection>& conn,
+                      boost::asio::io_service& io, const std::string& sensorName,
+                      std::vector<thresholds::Threshold>&& _thresholds,
++                     std::vector<ipmidata::IpmiConfig>&& _ipmiinfo,
+                      const std::string& sensorConfiguration,
+                      std::string& sensorTypeName, unsigned int factor,
+-                     double max, double min, const std::string& label,
++                     double max, double min, double rsense, const std::string& label,
+                      size_t tSize) :
+     Sensor(boost::replace_all_copy(sensorName, " ", "_"),
+            std::move(_thresholds), sensorConfiguration, objectType, max, min,
+@@ -52,13 +53,17 @@ PSUSensor::PSUSensor(const std::string& path, const std::string& objectType,
+     inputDev(io), waitTimer(io), path(path), pathRatedMax(""), pathRatedMin(""),
+     sensorFactor(factor), minMaxReadCounter(0)
+ {
++    rsenseValue = rsense;
++
+     if constexpr (DEBUG)
+     {
+         std::cerr << "Constructed sensor: path " << path << " type "
+                   << objectType << " config " << sensorConfiguration
+                   << " typename " << sensorTypeName << " factor " << factor
+-                  << " min " << min << " max " << max << " name \""
+-                  << sensorName << "\"\n";
++                  << " min " << min
++                  << " max " << max
++                  << " rsense " << rsenseValue
++                  << " name \"" << sensorName << "\"\n";
+     }
+ 
+     fd = open(path.c_str(), O_RDONLY);
+@@ -74,6 +79,26 @@ PSUSensor::PSUSensor(const std::string& path, const std::string& objectType,
+     sensorInterface = objectServer.add_interface(
+         dbusPath, "xyz.openbmc_project.Sensor.Value");
+ 
++    ipmiInterface = objectServer.add_interface(
++        dbusPath, "xyz.openbmc_project.Sensor.IpmiSensor");
++
++    if (_ipmiinfo.empty())
++    {
++        // Default
++        ipmiInterface->register_property("sensorNumber", 0);
++        ipmiInterface->register_property("entityID", 0);
++        ipmiInterface->register_property("entityInstance", 0);
++    }
++    else
++    {
++        for (auto& ipmi : _ipmiinfo)
++        {
++            ipmiInterface->register_property("sensorNumber", ipmi.number);
++            ipmiInterface->register_property("entityID", ipmi.entityId);
++            ipmiInterface->register_property("entityInstance", ipmi.entityIns);
++        }
++    }
++
+     if (thresholds::hasWarningInterface(thresholds))
+     {
+         thresholdInterfaceWarning = objectServer.add_interface(
+@@ -124,6 +149,7 @@ PSUSensor::~PSUSensor()
+     waitTimer.cancel();
+     inputDev.close();
+     objServer.remove_interface(sensorInterface);
++    objServer.remove_interface(ipmiInterface);
+     objServer.remove_interface(thresholdInterfaceWarning);
+     objServer.remove_interface(thresholdInterfaceCritical);
+     objServer.remove_interface(association);
+@@ -178,6 +204,14 @@ void PSUSensor::handleResponse(const boost::system::error_code& err)
+             rawValue = std::stod(response);
+             responseStream.clear();
+             double nvalue = rawValue / sensorFactor;
++            double nvalue = nvalue / rsenseValue;   // For HSC devic Rsense value
++
++            if constexpr (DEBUG)
++            {
++                std::cerr << "Read " << path << " scale " << sensorFactor
++                          << " value " << nvalue 
++                          << " Rsense " << rsenseValue << "\n";
++            }
+ 
+             updateValue(nvalue);
+ 
+diff --git a/src/PSUSensorMain.cpp b/src/PSUSensorMain.cpp
+index 1a1cb3c..5120a8d 100644
+--- a/src/PSUSensorMain.cpp
++++ b/src/PSUSensorMain.cpp
+@@ -570,6 +570,25 @@ void createSensors(boost::asio::io_service& io,
+             std::string keyScale = labelHead + "_Scale";
+             std::string keyMin = labelHead + "_Min";
+             std::string keyMax = labelHead + "_Max";
++            std::string keyRsense = labelHead + "_Rsense";
++
++            double sensorRsense = 1; // Defaule 1 for PSU type
++            auto findRsense = baseConfig->second.find(keyRsense);
++            if (findRsense != baseConfig->second.end())
++            {
++                try
++                {
++                    sensorRsense = std::visit(
++                        VariantToDoubleVisitor(), findRsense->second);
++
++                    std::cout << keyRsense << " Rsense: " << sensorRsense << "\n";
++                }
++                catch (std::invalid_argument&)
++                {
++                    std::cerr << "Unable to parse " << keyRsense << "\n";
++                    continue;
++                }
++            }
+ 
+             bool customizedName = false;
+             auto findCustomName = baseConfig->second.find(keyName);
+@@ -737,6 +756,13 @@ void createSensors(boost::asio::io_service& io,
+                           << sensorNameSubStr << "\n";
+             }
+ 
++            std::vector<ipmidata::IpmiConfig> sensorIpmiConfig;
++            if (!parseIpmiDataFromConfig(*sensorData, sensorIpmiConfig, &labelHead))
++            {
++                std::cerr << "error populating ipmi for "
++                          << sensorNameSubStr << "\n";
++            }
++
+             auto findSensorType = sensorTable.find(sensorNameSubStr);
+             if (findSensorType == sensorTable.end())
+             {
+@@ -782,9 +808,10 @@ void createSensors(boost::asio::io_service& io,
+ 
+             sensors[sensorName] = std::make_shared<PSUSensor>(
+                 sensorPathStr, sensorType, objectServer, dbusConnection, io,
+-                sensorName, std::move(sensorThresholds), *interfacePath,
++                sensorName, std::move(sensorThresholds),
++                std::move(sensorIpmiConfig), *interfacePath,
+                 findSensorType->second, factor, psuProperty->maxReading,
+-                psuProperty->minReading, labelHead, thresholdConfSize);
++                psuProperty->minReading, sensorRsense, labelHead, thresholdConfSize);
+             sensors[sensorName]->setupRead();
+             ++numCreated;
+             if constexpr (DEBUG)
+@@ -816,15 +843,15 @@ void propertyInitialize(void)
+                    {"in", "voltage/"},
+                    {"fan", "fan_tach/"}};
+ 
+-    labelMatch = {{"pin", PSUProperty("Input Power", 3000, 0, 6)},
+-                  {"pout1", PSUProperty("Output Power", 3000, 0, 6)},
++    labelMatch = {{"pin", PSUProperty("PIN", 1300, 0, 6)},
++                  {"pout1", PSUProperty("POUT", 1300, 0, 6)},
+                   {"pout2", PSUProperty("Output Power", 3000, 0, 6)},
+                   {"pout3", PSUProperty("Output Power", 3000, 0, 6)},
+                   {"power1", PSUProperty("Output Power", 3000, 0, 6)},
+                   {"maxpin", PSUProperty("Max Input Power", 3000, 0, 6)},
+-                  {"vin", PSUProperty("Input Voltage", 300, 0, 3)},
++                  {"vin", PSUProperty("VIN", 300, 0, 3)},
+                   {"maxvin", PSUProperty("Max Input Voltage", 300, 0, 3)},
+-                  {"vout1", PSUProperty("Output Voltage", 255, 0, 3)},
++                  {"vout1", PSUProperty("VOUT", 255, 0, 3)},
+                   {"vout2", PSUProperty("Output Voltage", 255, 0, 3)},
+                   {"vout3", PSUProperty("Output Voltage", 255, 0, 3)},
+                   {"vout4", PSUProperty("Output Voltage", 255, 0, 3)},
+@@ -857,8 +884,8 @@ void propertyInitialize(void)
+                   {"vout31", PSUProperty("Output Voltage", 255, 0, 3)},
+                   {"vout32", PSUProperty("Output Voltage", 255, 0, 3)},
+                   {"in1", PSUProperty("Output Voltage", 255, 0, 3)},
+-                  {"iin", PSUProperty("Input Current", 20, 0, 3)},
+-                  {"iout1", PSUProperty("Output Current", 255, 0, 3)},
++                  {"iin", PSUProperty("IIN", 20, 0, 3)},
++                  {"iout1", PSUProperty("IOUT", 255, 0, 3)},
+                   {"iout2", PSUProperty("Output Current", 255, 0, 3)},
+                   {"iout3", PSUProperty("Output Current", 255, 0, 3)},
+                   {"iout4", PSUProperty("Output Current", 255, 0, 3)},
+@@ -874,15 +901,15 @@ void propertyInitialize(void)
+                   {"iout14", PSUProperty("Output Current", 255, 0, 3)},
+                   {"curr1", PSUProperty("Output Current", 255, 0, 3)},
+                   {"maxiout1", PSUProperty("Max Output Current", 255, 0, 3)},
+-                  {"temp1", PSUProperty("Temperature", 127, -128, 3)},
++                  {"temp1", PSUProperty("TEMP", 127, -128, 3)},
+                   {"temp2", PSUProperty("Temperature", 127, -128, 3)},
+                   {"temp3", PSUProperty("Temperature", 127, -128, 3)},
+                   {"temp4", PSUProperty("Temperature", 127, -128, 3)},
+                   {"temp5", PSUProperty("Temperature", 127, -128, 3)},
+                   {"temp6", PSUProperty("Temperature", 127, -128, 3)},
+                   {"maxtemp1", PSUProperty("Max Temperature", 127, -128, 3)},
+-                  {"fan1", PSUProperty("Fan Speed 1", 30000, 0, 0)},
+-                  {"fan2", PSUProperty("Fan Speed 2", 30000, 0, 0)}};
++                  {"fan1", PSUProperty("FAN_0", 30000, 0, 0)},
++                  {"fan2", PSUProperty("FAN_1", 30000, 0, 0)}};
+ 
+     pwmTable = {{"fan1", "Fan_1"}, {"fan2", "Fan_2"}};
+ 
+-- 
+2.7.4
+

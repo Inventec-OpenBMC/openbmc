@@ -1,0 +1,132 @@
+From 1b476524e134f50315a7a411f20026433476d568 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Thu, 13 Aug 2020 18:10:20 +0800
+Subject: [PATCH 04/13] Subject: [PATCH] [Sensor] Patch to support sensor
+ number, entity number and entity instance
+
+Patch to support IPMI information from entity-manager inventory
+ - CPU/DIMM temperature sensor
+---
+ include/CPUSensor.hpp |  2 ++
+ src/CPUSensor.cpp     | 29 +++++++++++++++++++++++++++++
+ src/CPUSensorMain.cpp | 11 ++++++++++-
+ 3 files changed, 41 insertions(+), 1 deletion(-)
+
+diff --git a/include/CPUSensor.hpp b/include/CPUSensor.hpp
+index a3045c5..ea8ef44 100644
+--- a/include/CPUSensor.hpp
++++ b/include/CPUSensor.hpp
+@@ -3,6 +3,7 @@
+ #include "Thresholds.hpp"
+ #include "Utils.hpp"
+ #include "sensor.hpp"
++#include "IpmiInfo.hpp"
+ 
+ #include <boost/asio/streambuf.hpp>
+ #include <boost/container/flat_map.hpp>
+@@ -25,6 +26,7 @@ class CPUSensor : public Sensor
+               std::shared_ptr<sdbusplus::asio::connection>& conn,
+               boost::asio::io_service& io, const std::string& sensorName,
+               std::vector<thresholds::Threshold>&& thresholds,
++              std::vector<ipmidata::IpmiConfig>&& ipmiinfo,
+               const std::string& configuration, int cpuId, bool show,
+               double dtsOffset);
+     ~CPUSensor();
+diff --git a/src/CPUSensor.cpp b/src/CPUSensor.cpp
+index 2356821..e8d7c79 100644
+--- a/src/CPUSensor.cpp
++++ b/src/CPUSensor.cpp
+@@ -40,6 +40,7 @@ CPUSensor::CPUSensor(const std::string& path, const std::string& objectType,
+                      std::shared_ptr<sdbusplus::asio::connection>& conn,
+                      boost::asio::io_service& io, const std::string& sensorName,
+                      std::vector<thresholds::Threshold>&& _thresholds,
++                     std::vector<ipmidata::IpmiConfig>&& _ipmiinfo,
+                      const std::string& sensorConfiguration, int cpuId,
+                      bool show, double dtsOffset) :
+     Sensor(boost::replace_all_copy(sensorName, " ", "_"),
+@@ -85,6 +86,27 @@ CPUSensor::CPUSensor(const std::string& path, const std::string& objectType,
+             association = objectServer.add_interface(interfacePath,
+                                                      association::interface);
+ 
++            ipmiInterface = objectServer.add_interface(
++                "/xyz/openbmc_project/sensors/temperature/" + name,
++                "xyz.openbmc_project.Sensor.IpmiSensor");
++
++            if (_ipmiinfo.empty())
++            {
++                // Default
++                ipmiInterface->register_property("sensorNumber", 0);
++                ipmiInterface->register_property("entityID", 0);
++                ipmiInterface->register_property("entityInstance", 0);
++            }
++            else
++            {
++                for (auto& ipmi : _ipmiinfo)
++                {
++                    ipmiInterface->register_property("sensorNumber", ipmi.number);
++                    ipmiInterface->register_property("entityID", ipmi.entityId);
++                    ipmiInterface->register_property("entityInstance", ipmi.entityIns);
++                }
++            }
++
+             setInitialProperties(conn);
+         }
+     }
+@@ -105,6 +127,7 @@ CPUSensor::~CPUSensor()
+         objServer.remove_interface(thresholdInterfaceCritical);
+         objServer.remove_interface(sensorInterface);
+         objServer.remove_interface(association);
++        objServer.remove_interface(ipmiInterface);
+     }
+ }
+ 
+@@ -241,6 +264,11 @@ void CPUSensor::handleResponse(const boost::system::error_code& err)
+                 updateMinMaxValues();
+             }
+ 
++            /*
++                Because threshold value of CPUs and DIMMs are defined in Entity-manager configuration files
++                we don't want these settings changed in run-time to avoid some cases,
++                such as BIOS changed the temp_high by accident that may cause BMC recording wrong event.
++
+             double gTcontrol = gCpuSensors[nameTcontrol]
+                                    ? gCpuSensors[nameTcontrol]->value
+                                    : std::numeric_limits<double>::quiet_NaN();
+@@ -273,6 +301,7 @@ void CPUSensor::handleResponse(const boost::system::error_code& err)
+                     }
+                 }
+             }
++            */
+         }
+         catch (const std::invalid_argument&)
+         {
+diff --git a/src/CPUSensorMain.cpp b/src/CPUSensorMain.cpp
+index dfc942f..7efc36c 100644
+--- a/src/CPUSensorMain.cpp
++++ b/src/CPUSensorMain.cpp
+@@ -380,12 +380,21 @@ bool createSensors(boost::asio::io_service& io,
+                               << sensorName << "\n";
+                 }
+             }
++
++            std::vector<ipmidata::IpmiConfig> sensorIpmiConfig;
++            labelHead = boost::replace_all_copy(sensorName, " ", "_");
++            if (!parseIpmiDataFromConfig(*sensorData, sensorIpmiConfig, &labelHead))
++            {
++                std::cerr << "error populating ipmi for "
++                          << sensorName << "\n";
++            }
++
+             auto& sensorPtr = gCpuSensors[sensorName];
+             // make sure destructor fires before creating a new one
+             sensorPtr = nullptr;
+             sensorPtr = std::make_unique<CPUSensor>(
+                 inputPathStr, sensorType, objectServer, dbusConnection, io,
+-                sensorName, std::move(sensorThresholds), *interfacePath, cpuId,
++                sensorName, std::move(sensorThresholds), std::move(sensorIpmiConfig), *interfacePath, cpuId,
+                 show, dtsOffset);
+             createdSensors.insert(sensorName);
+             if (DEBUG)
+-- 
+2.7.4
+

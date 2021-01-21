@@ -1,0 +1,142 @@
+From e0ca67b82599c73fa60d03418bfdb8d5c8173be9 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Tue, 22 Sep 2020 18:15:27 -0400
+Subject: [PATCH 2/2] Add SIGHUP handler to check clear_sel to restart record
+ index
+
+Add SIGHUP handler to check clear_sel to restart record index
+- For 1st event maybe log on IPMI handle of clear log so to restart it
+---
+ include/sel_logger.hpp |  1 +
+ src/sel_logger.cpp     | 58 ++++++++++++++++++++++++++++++++++++++++----------
+ 2 files changed, 48 insertions(+), 11 deletions(-)
+
+diff --git a/include/sel_logger.hpp b/include/sel_logger.hpp
+index 89328bb..1f48810 100644
+--- a/include/sel_logger.hpp
++++ b/include/sel_logger.hpp
+@@ -37,6 +37,7 @@ static constexpr uint8_t selEvtDataUnspecified = 0xFF;
+ unsigned int recordIndex = 0;
+ static const std::filesystem::path selLogDir = "/var/lib/sel_log";
+ static const std::string selLogFilename = "ipmi_sel";
++static const std::string selClearLogFile = "/var/lib/sel_log/clear_sel";
+ 
+ template <typename... T>
+ static uint16_t
+diff --git a/src/sel_logger.cpp b/src/sel_logger.cpp
+index 025e4e9..2fc3cd0 100644
+--- a/src/sel_logger.cpp
++++ b/src/sel_logger.cpp
+@@ -47,8 +47,20 @@ struct DBusInternalError final : public sdbusplus::exception_t
+     };
+ };
+ 
+-static bool getSELLogFiles(std::vector<std::filesystem::path>& selLogFiles)
++static bool getClearSelLogFiles()
+ {
++    std::ifstream logStream(selClearLogFile);
++    return logStream.is_open();
++}
++
++static bool delClearSelLogFiles()
++{
++    return std::filesystem::remove(selClearLogFile);
++}
++
++static bool getSELLogFiles(std::vector<std::filesystem::path> &selLogFiles)
++{
++
+     // Loop through the directory looking for ipmi_sel log files
+     for (const std::filesystem::directory_entry& dirEnt :
+          std::filesystem::directory_iterator(selLogDir))
+@@ -86,7 +98,6 @@ static unsigned int initializeRecordId(void)
+     {
+         newestEntry = line;
+     }
+-
+     std::vector<std::string> newestEntryFields;
+     boost::split(newestEntryFields, newestEntry, boost::is_any_of(" ,"),
+                  boost::token_compress_on);
+@@ -102,17 +113,26 @@ static unsigned int getNewRecordId(void)
+ {
+     static unsigned int recordId = initializeRecordId();
+ 
+-    // If the log has been cleared, also clear the current ID
+-    std::vector<std::filesystem::path> selLogFiles;
+-    if (!getSELLogFiles(selLogFiles))
++    if (getClearSelLogFiles())
+     {
+-        recordId = selInvalidRecID;
++        delClearSelLogFiles();
++        recordId = 1;
+     }
+-
+-    if (++recordId >= selInvalidRecID)
++    else
+     {
+-        recordId = 1;
++        // If the log has been cleared, also clear the current ID
++        std::vector<std::filesystem::path> selLogFiles;
++        if (!getSELLogFiles(selLogFiles))
++        {
++            recordId = selInvalidRecID;
++        }
++
++        if (++recordId >= selInvalidRecID)
++        {
++            recordId = 1;
++        }
+     }
++
+     recordIndex = recordId;
+     return recordId;
+ }
+@@ -173,12 +193,28 @@ static uint16_t selAddOemRecord(const std::string& message,
+     return recordId;
+ }
+ 
+-int main(int argc, char* argv[])
++static void hupHandle(int number)
++{
++    unsigned int recordId = getNewRecordId();
++    if (getClearSelLogFiles())
++    {
++        delClearSelLogFiles();
++    }
++
++    std::cerr << "sel-logger hup handle record: " << recordId << "\n";
++}
++
++int main(int argc, char *argv[])
+ {
+     // setup connection to dbus
+     boost::asio::io_service io;
+     auto conn = std::make_shared<sdbusplus::asio::connection>(io);
+ 
++    if (getClearSelLogFiles())
++    {
++        delClearSelLogFiles();
++    }
++
+     // IPMI SEL Object
+     conn->request_name(ipmiSelObject);
+     auto server = sdbusplus::asio::object_server(conn);
+@@ -210,7 +246,6 @@ int main(int argc, char* argv[])
+                                        {
+                                            recordIndex = record;
+                                        }
+-
+                                        return 1;
+                                    },
+                                    // get handle
+@@ -232,6 +267,7 @@ int main(int argc, char* argv[])
+         startPulseEventMonitor(conn);
+ #endif
+ 
++    signal(SIGHUP, hupHandle);
+     io.run();
+ 
+     return 0;
+-- 
+2.7.4
+

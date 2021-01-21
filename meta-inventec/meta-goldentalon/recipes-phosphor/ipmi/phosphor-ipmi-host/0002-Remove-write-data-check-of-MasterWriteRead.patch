@@ -1,0 +1,51 @@
+From 015eb09b1795e42bc057732d386760e0c429b4cf Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Thu, 17 Sep 2020 14:02:59 -0400
+Subject: [PATCH 2/4] Subject: [Patch][phosphor-ipmi-host] Remove write data
+ check of masterWriteRead cmd
+
+- For using masterWriteRead cmd without limited data size.
+---
+ apphandler.cpp | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/apphandler.cpp b/apphandler.cpp
+index 88418aa..62e8f4f 100644
+--- a/apphandler.cpp
++++ b/apphandler.cpp
+@@ -1641,6 +1641,7 @@ static bool populateI2CMasterWRWhitelist()
+     return true;
+ }
+ 
++#if 0 // remove write data filter because we want full access of I2C bus
+ static inline bool isWriteDataWhitelisted(const std::vector<uint8_t>& data,
+                                           const std::vector<uint8_t>& dataMask,
+                                           const std::vector<uint8_t>& writeData)
+@@ -1654,6 +1655,7 @@ static inline bool isWriteDataWhitelisted(const std::vector<uint8_t>& data,
+ 
+     return (processedDataBuf == processedReqBuf);
+ }
++#endif
+ 
+ static bool isCmdWhitelisted(uint8_t busId, uint8_t slaveAddr,
+                              std::vector<uint8_t>& writeData)
+@@ -1665,6 +1667,8 @@ static bool isCmdWhitelisted(uint8_t busId, uint8_t slaveAddr,
+             ((slaveAddr | wlEntry.slaveAddrMask) ==
+              (wlEntry.slaveAddr | wlEntry.slaveAddrMask)))
+         {
++            return true;
++#if 0 // remove write data filter because we want full access of I2C bus
+             const std::vector<uint8_t>& dataMask = wlEntry.dataMask;
+             // Skip as no-match, if requested write data is more than the
+             // write data mask size
+@@ -1676,6 +1680,7 @@ static bool isCmdWhitelisted(uint8_t busId, uint8_t slaveAddr,
+             {
+                 return true;
+             }
++#endif
+         }
+     }
+     return false;
+-- 
+2.7.4
+

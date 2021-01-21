@@ -1,0 +1,35 @@
+From 2f1f8cf935b176822a98121c64612e94906c1d3f Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Wed, 8 Jul 2020 19:46:26 -0400
+Subject: [PATCH 09/21] Subject : Add lpc snoop driver in kernel dts
+
+Ticket         : N/A
+Symptom/Reason : To verify lpc snoop
+Root Cause     : N/A
+Solution/Change: Add lpc snoop in kernel dts
+Entry Test     :
+                 After we entering the bmc console in kernel, we can press the
+                 power button, then use devmem 0x1e789094 to get value from port 80
+---
+ arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts b/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts
+index 638c1f9..3b72d52 100644
+--- a/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts
++++ b/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts
+@@ -206,6 +206,11 @@
+ 	status = "okay";
+ };
+ 
++&lpc_snoop {
++	status = "okay";
++	snoop-ports = <0x80>;
++};
++
+ &vuart1 {
+ 	// VUART Host Console
+ 	status = "okay";
+-- 
+2.7.4
+

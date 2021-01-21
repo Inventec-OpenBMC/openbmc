@@ -1,0 +1,43 @@
+From 887eaec1a6e122b4be96546a48217401c94fed9f Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Wed, 1 Jul 2020 15:08:45 +0800
+Subject: [PATCH 06/21] Revise kernel spi frequency approximate to 33MHz
+
+---
+ arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts b/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts
+index 98e9bb0..d525267 100644
+--- a/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts
++++ b/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts
+@@ -77,7 +77,7 @@
+ 		status = "okay";
+ 		m25p,fast-read;
+ 		label = "bmc";
+-		spi-max-frequency = <33000000>;
++		spi-max-frequency = <33333334>;
+ 		spi-bus-width = <2> ;
+ 
+ 		partitions {
+@@ -115,7 +115,7 @@
+ 		status = "okay";
+ 		label = "bmc2";
+ 		m25p,fast-read;
+-		spi-max-frequency = <33000000>;
++		spi-max-frequency = <33333334>;
+ 		spi-bus-width = <2> ;
+ 	};
+ };
+@@ -129,7 +129,7 @@
+ 		status = "okay";
+ 		m25p,fast-read;
+ 		label = "bios";
+-		spi-max-frequency = <33000000>;
++		spi-max-frequency = <33333334>;
+ 		spi-bus-width = <2> ;
+ 	};
+ };
+-- 
+2.7.4
+

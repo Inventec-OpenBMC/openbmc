@@ -1,0 +1,128 @@
+{
+    "Exposes": [
+        {
+            "Name": "ME_PWR_STATE",
+            "SensorInfo": [
+                {
+                    "Label": "ME_PWR_STATE",
+                    "SensorModel": "Event",
+                    "SensorNum": "0x16",
+                    "EntityId": "0x2E",
+                    "EntityInstance": "0"
+                }
+            ],
+            "Type": "NMEvent"
+        },
+        {
+            "Name": "SPS_FW_HEALTH",
+            "SensorInfo": [
+                {
+                    "Label": "SPS_FW_HEALTH",
+                    "SensorModel": "Event",
+                    "SensorNum": "0x17",
+                    "EntityId": "0x2E",
+                    "EntityInstance": "0"
+                }
+            ],
+            "Type": "NMEvent"
+        },
+        {
+            "Name": "NM_EXCEPTION",
+            "SensorInfo": [
+                {
+                    "Label": "NM_EXCEPTION",
+                    "SensorModel": "Event",
+                    "SensorNum": "0x18",
+                    "EntityId": "0x2E",
+                    "EntityInstance": "0"
+                }
+            ],
+            "Type": "NMEvent"
+        },
+        {
+            "Name": "NM_HEALTH",
+            "SensorInfo": [
+                {
+                    "Label": "NM_HEALTH",
+                    "SensorModel": "Event",
+                    "SensorNum": "0x19",
+                    "EntityId": "0x2E",
+                    "EntityInstance": "0"
+                }
+            ],
+            "Type": "NMEvent"
+        },
+        {
+            "Name": "CPU_IIO_ERR",
+            "SensorInfo": [
+                {
+                    "Label": "CPU_IIO_ERR",
+                    "SensorModel": "Event",
+                    "SensorNum": "0xA7",
+                    "EntityId": "0x03",
+                    "EntityInstance": "0"
+                }
+            ],
+            "Type": "BIOSEvent"
+        },
+        {
+            "Name": "MEM_ECC_ERROR",
+            "SensorInfo": [
+                {
+                    "Label": "MEM_ECC_ERROR",
+                    "SensorModel": "Event",
+                    "SensorNum": "0x87",
+                    "EntityId": "0x20",
+                    "EntityInstance": "0"
+                }
+            ],
+            "Type": "BIOSEvent"
+        },
+        {
+            "Name": "PCIE_ERROR",
+            "SensorInfo": [
+                {
+                    "Label": "PCIE_ERROR",
+                    "SensorModel": "Event",
+                    "SensorNum": "0xA1",
+                    "EntityId": "0x03",
+                    "EntityInstance": "0"
+                }
+            ],
+            "Type": "BIOSEvent"
+        },
+        {
+            "Name": "NVDIMM_ERROR",
+            "SensorInfo": [
+                {
+                    "Label": "NVDIMM_ERROR",
+                    "SensorModel": "Event",
+                    "SensorNum": "0x05",
+                    "EntityId": "0xD0",
+                    "EntityInstance": "0"
+                }
+            ],
+            "Type": "BIOSEvent"
+        },
+        {
+            "Name": "WATCHDOG",
+            "SensorInfo": [
+                {
+                    "Label": "WATCHDOG",
+                    "SensorModel": "Discrete",
+                    "SensorNum": "0x93",
+                    "EntityId": "0x07",
+                    "EntityInstance": "0"
+                }
+            ],
+            "Type": "Watchdog"
+        }
+    ],
+    "Name": "SCM_EVENT",
+    "Probe": [
+            "xyz.openbmc_project.FruDevice({'BOARD_PRODUCT_NAME': '.*SCM*'})",
+            "OR",
+            "xyz.openbmc_project.FruDevice({'PRODUCT_PRODUCT_NAME': '.*SCM*'})"
+    ],
+    "Type": "Event"
+}

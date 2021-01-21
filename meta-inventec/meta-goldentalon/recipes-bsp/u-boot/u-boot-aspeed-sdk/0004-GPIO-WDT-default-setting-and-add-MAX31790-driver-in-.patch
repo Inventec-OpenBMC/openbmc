@@ -1,0 +1,413 @@
+From a356ac64ab4c8e63c23fe74c8ae7eda47e90a64e Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Fri, 3 Jul 2020 23:19:59 -0400
+Subject: [PATCH 4/5] GPIO, WDT default setting and add MAX31790 driver in
+ uboot
+
+1. GPIO, WDT default setting in board.c
+2. Add MAX31790 driver
+
+%% original patch: 0004-GPIO-WDT-default-setting-and-add-MAX31790-driver-in-.patch
+---
+ arch/arm/dts/ast2600-goldentalon.dts            |  37 +++++++
+ arch/arm/mach-aspeed/ast2600/board_common.c |  65 +++++++++++--
+ configs/goldentalon-ast2600_defconfig           |   1 +
+ drivers/i2c/Kconfig                         |  10 ++
+ drivers/i2c/Makefile                        |   1 +
+ drivers/i2c/max31790_i2c.c                  | 143 ++++++++++++++++++++++++++++
+ 6 files changed, 249 insertions(+), 8 deletions(-)
+ create mode 100644 drivers/i2c/max31790_i2c.c
+
+diff --git a/arch/arm/dts/ast2600-goldentalon.dts b/arch/arm/dts/ast2600-goldentalon.dts
+index c279a17..ce393ef 100644
+--- a/arch/arm/dts/ast2600-goldentalon.dts
++++ b/arch/arm/dts/ast2600-goldentalon.dts
+@@ -152,6 +152,43 @@
+ #endif
+ };
+ 
++
++&i2c1 {
++
++	status = "okay";
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_i2c2_default>;
++
++	// //Fan controller
++	fanc1: max31790@2c {
++		compatible = "maxim,max31790";
++		reg = <0x2c>;
++		// #address-cells = <1>;
++		// #size-cells = <0>;
++		// fan-mode = "pwm";
++		// fanconfig1 = <0x08>;
++		// fanconfig2 = <0x08>;
++		// fanconfig3 = <0x08>;
++		// fanconfig4 = <0x08>;
++		// fanconfig5 = <0x08>;
++		// fanconfig6 = <0x08>;
++	};
++	fanc2: max31790@2f {
++		compatible = "maxim,max31790";
++		reg = <0x2f>;
++		// #address-cells = <2>;
++		// #size-cells = <0>;
++		// fan-mode = "pwm";
++		// fanconfig1 = <0x08>;
++		// fanconfig2 = <0x08>;
++		// fanconfig3 = <0x08>;
++		// fanconfig4 = <0x08>;
++		// fanconfig5 = <0x08>;
++		// fanconfig6 = <0x08>;
++	};
++};
++
+ #if 0
+ &i2c4 {
+ 	status = "okay";
+diff --git a/arch/arm/mach-aspeed/ast2600/board_common.c b/arch/arm/mach-aspeed/ast2600/board_common.c
+index 2e881f2..e9e6b1e 100644
+--- a/arch/arm/mach-aspeed/ast2600/board_common.c
++++ b/arch/arm/mach-aspeed/ast2600/board_common.c
+@@ -11,6 +11,8 @@
+ #include <linux/bitops.h>
+ #include <linux/err.h>
+ #include <dm/uclass.h>
++#include <i2c.h>
++
+ 
+ #define GPIO000		0x1e780000		//A~D value
+ #define GPIO004		0x1e780004		//A~D direction
+@@ -38,6 +40,9 @@
+ #define SCU4BC		SCUBASE + 0x4bc
+ #define SCU510		SCUBASE + 0x510
+ #define SCU694		SCUBASE + 0x694
++#define WDT1BASE    0x1e785000
++#define WDTMASK1    0x1c
++#define WDTMASK2    0x20
+ 
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+@@ -142,7 +147,7 @@ void gpio_init()
+ 
+ 	//Set gpioA~D value
+ 	reg = readl(GPIO000);
+-	reg |= (0xa020091a);
++	reg |= (0xa0200b1a);
+ 	writel(reg, GPIO000);
+ 
+ 	//Set gpioA~D direction
+@@ -152,18 +157,18 @@ void gpio_init()
+ 
+ 	//Set gpioE~H value
+ 	reg = readl(GPIO020);
+-	reg |= (0x0148b040);
++	reg |= (0x0540b070);
+ 	writel(reg, GPIO020);
+ 
+ 	//Set gpioE~H direction
+ 	reg = readl(GPIO024);
+-	reg |= (0x05c9b870);
++	reg |= (0x05c1b870);
+ 	writel(reg, GPIO024);
+ 
+ 	//Set gpioI~L value
+ 	reg = readl(GPIO070);
+ 	reg |= (0x0000003f);
+-	reg &= (0x40000000);
++	reg &= (0x4000003f);
+ 	writel(reg, GPIO070);
+ 
+ 	//Set gpioI~L direction
+@@ -173,7 +178,7 @@ void gpio_init()
+ 
+ 	//Set gpioM~P value
+ 	reg = readl(GPIO078);
+-	reg |= (0x0439091a);
++	reg |= (0x0039091a);
+ 	writel(reg, GPIO078);
+ 
+ 	//Set gpioM~P direction
+@@ -218,12 +223,12 @@ void gpio_init()
+ 
+ 	//Set gpio18A~D value
+ 	reg = readl(GPIO800);
+-	reg |= (0x00000000);
++	reg |= (0x003c0000);
+ 	writel(reg, GPIO800);
+ 
+ 	//Set gpio18A~D direction
+ 	reg = readl(GPIO804);
+-	reg |= (0x00FEF000);
++	reg |= (0x00fef000);
+ 	writel(reg, GPIO804);
+ 
+ 	//Set gpio18E0~E3 value
+@@ -236,6 +241,49 @@ void gpio_init()
+ 	reg |= (0x00000002);
+ 	writel(reg, GPIO824);
+ }
++
++void i2c1_init()
++{
++	int ret;
++	struct udevice *dev;
++
++	i2c_set_bus_num(1);		// set_current_bus
++	i2c_init(100000, 0x2c);	// init_max31790_speed_address
++	i2c_init(100000, 0x2f);	// init_max31790_speed_address
++
++	// get udevice info
++	uclass_get_device_by_name(UCLASS_I2C_GENERIC, "max31790@2c", &dev);
++	ret = device_probe(dev); // probe device, return 0 if success
++	if (ret)
++	{
++		printf("probe max31790@2c fail\n");
++	}
++
++	// get udevice info
++	uclass_get_device_by_name(UCLASS_I2C_GENERIC, "max31790@2f", &dev);
++	ret = device_probe(dev); // probe device, return 0 if success
++	if (ret)
++	{
++		printf("probe max31790@2f fail\n");
++	}
++}
++
++wdt_init()
++{
++    u32 reg;
++
++    // Workaround to keep GPIO value by WDT1 trigger reset when BMC reboot
++    // GPIOG3 will become low to let ME into recovery when GPIO controller be reset
++    reg = readl(WDT1BASE + WDTMASK1);
++    reg &= ~(1<<24); // Disable GPIO#1 Controller
++    writel(reg, WDT1BASE + WDTMASK1);
++
++    reg = readl(WDT1BASE + WDTMASK2);
++    reg &= ~(1<<9); // Disable GPIO#2 Controller
++    writel(reg, WDT1BASE + WDTMASK2);
++}
++
++
+ __weak int board_init(void)
+ 
+ {
+@@ -245,6 +293,7 @@ __weak int board_init(void)
+ 	gd->bd->bi_boot_params = CONFIG_SYS_SDRAM_BASE + 0x100;
+ 	enable_lpc_or_espi();
+ 	gpio_init();
++	wdt_init();
+ 
+ #ifdef ASPEED_RMII_DAUGHTER_CARD
+ 	reset_eth_phy();
+@@ -264,6 +313,7 @@ __weak int board_init(void)
+ 			break;
+ 	}
+ 
++	i2c1_init();
+ 	return 0;
+ }
+ 
+@@ -278,7 +328,6 @@ __weak int dram_init(void)
+ 		debug("DRAM FAIL1\r\n");
+ 		return ret;
+ 	}
+-
+ 	ret = ram_get_info(dev, &ram);
+ 	if (ret) {
+ 		debug("DRAM FAIL2\r\n");
+diff --git a/configs/goldentalon-ast2600_defconfig b/configs/goldentalon-ast2600_defconfig
+index a443b0b..8a23c01 100644
+--- a/configs/goldentalon-ast2600_defconfig
++++ b/configs/goldentalon-ast2600_defconfig
+@@ -73,3 +73,4 @@ CONFIG_DM_SPI=y
+ CONFIG_SYSRESET=y
+ CONFIG_WDT=y
+ CONFIG_DM_I2C_COMPAT=y
++CONFIG_MAX31790_I2C=y
+diff --git a/drivers/i2c/Kconfig b/drivers/i2c/Kconfig
+index 2156240..c24c374 100644
+--- a/drivers/i2c/Kconfig
++++ b/drivers/i2c/Kconfig
+@@ -446,6 +446,16 @@ config TEGRA186_BPMP_I2C
+ 	  by the BPMP, and can only be accessed by the main CPU via IPC
+ 	  requests to the BPMP. This driver covers the latter case.
+ 
++config MAX31790_I2C
++	tristate "Maxim MAX31790 sensor chip"
++	depends on DM_I2C
++	help
++	  If you say yes here you get support for 6-Channel PWM-Output
++	  Fan RPM Controller.
++
++	  This driver can also be built as a module. If so, the module
++	  will be called max31790.
++
+ config SYS_I2C_BUS_MAX
+ 	int "Max I2C busses"
+ 	depends on ARCH_KEYSTONE || ARCH_OMAP2PLUS || ARCH_SOCFPGA
+diff --git a/drivers/i2c/Makefile b/drivers/i2c/Makefile
+index e614d3a..6552386 100644
+--- a/drivers/i2c/Makefile
++++ b/drivers/i2c/Makefile
+@@ -39,5 +39,6 @@ obj-$(CONFIG_SYS_I2C_UNIPHIER_F) += i2c-uniphier-f.o
+ obj-$(CONFIG_SYS_I2C_VERSATILE) += i2c-versatile.o
+ obj-$(CONFIG_SYS_I2C_XILINX_XIIC) += xilinx_xiic.o
+ obj-$(CONFIG_TEGRA186_BPMP_I2C) += tegra186_bpmp_i2c.o
++obj-$(CONFIG_MAX31790_I2C)	+= max31790_i2c.o
+ 
+ obj-$(CONFIG_I2C_MUX) += muxes/
+diff --git a/drivers/i2c/max31790_i2c.c b/drivers/i2c/max31790_i2c.c
+new file mode 100644
+index 0000000..fc035ca
+--- /dev/null
++++ b/drivers/i2c/max31790_i2c.c
+@@ -0,0 +1,143 @@
++// SPDX-License-Identifier: GPL-2.0-or-later
++/*
++ * max31790.c - Part of lm_sensors, Linux kernel modules for hardware
++ *             monitoring.
++ *
++ * (C) 2015 by Il Han <corone.il.han@gmail.com>
++ */
++#include <common.h>
++#include <linux/err.h>
++#include <dm.h>
++#include <i2c.h>
++
++/* max31790 registers */
++#define max31790_REG_GLOBAL_CONFIG	0x00
++#define max31790_REG_FAN_CONFIG(ch)	(0x02 + (ch))
++#define max31790_REG_FAN_DYNAMICS(ch)	(0x08 + (ch))
++#define max31790_REG_FAN_FAULT_STATUS2	0x10
++#define max31790_REG_FAN_FAULT_STATUS1	0x11
++#define max31790_REG_TACH_COUNT(ch)	(0x18 + (ch) * 2)
++#define max31790_REG_PWM_DUTY_CYCLE(ch)	(0x30 + (ch) * 2)
++#define max31790_REG_PWMOUT(ch)		(0x40 + (ch) * 2)
++#define max31790_REG_TARGET_COUNT(ch)	(0x50 + (ch) * 2)
++
++/* Fan Config register bits */
++#define max31790_FAN_CFG_RPM_MODE	0x80
++#define max31790_FAN_CFG_TACH_INPUT_EN	0x08
++#define max31790_FAN_CFG_TACH_INPUT	0x01
++
++/* Fan Dynamics register bits */
++#define max31790_FAN_DYN_SR_SHIFT	5
++#define max31790_FAN_DYN_SR_MASK	0xE0
++#define SR_FROM_REG(reg)		(((reg) & max31790_FAN_DYN_SR_MASK) \
++					 >> max31790_FAN_DYN_SR_SHIFT)
++
++#define FAN_RPM_MIN			120
++#define FAN_RPM_MAX			7864320
++
++#define RPM_FROM_REG(reg, sr)		(((reg) >> 4) ? \
++					 ((60 * (sr) * 8192) / ((reg) >> 4)) : \
++					 FAN_RPM_MAX)
++#define RPM_TO_REG(rpm, sr)		((60 * (sr) * 8192) / ((rpm) * 2))
++
++#define NR_CHANNEL			6
++
++/**
++ * struct hwmon_ops - hwmon device operations
++ */
++struct hwmon_ops {
++	int (*read)(struct udevice *dev, uint offset, uint8_t *buffer, int len);
++	int (*write)(struct udevice *dev, uint offset, const uint8_t *buffer,
++		 int len);
++};
++
++/*
++ * @max31790_read:	Read callback for data attributes. Mandatory if readable
++ *		data attributes are present.
++ *		Parameters are:
++ * 		@dev:		Chip to read from
++ * 		@offset:	Offset within chip to start reading
++ * 		@buffer:	Place to put data
++ * 		@len:		Number of bytes to read
++ *		The function returns 0 on success or a negative error number.
++ */
++static int max31790_read(struct udevice *dev, uint offset, uint8_t *buffer, int len)
++{
++	const struct hwmon_ops *ops = device_get_ops(dev);
++
++	if (!ops->read)
++		return -ENOSYS;
++
++	return dm_i2c_read(dev, offset, buffer, len);
++}
++
++/*
++ * @max31790_write:	Write callback for data attributes. Mandatory if writeable
++ *		data attributes are present.
++ *		Parameters are:
++ * 		@dev:		Chip to write to
++ * 		@offset:	Offset within chip to start writing
++ * 		@buffer:	Buffer containing data to write
++ * 		@len:		Number of bytes to write
++ *		The function returns 0 on success or a negative error number.
++ */
++static int max31790_write(struct udevice *dev, uint offset, const uint8_t *buffer,
++		 int len)
++{
++	const struct hwmon_ops *ops = device_get_ops(dev);
++
++	if (!ops->write)
++		return -ENOSYS;
++
++	return dm_i2c_write(dev, offset, buffer, len);;
++}
++
++static const struct hwmon_ops max31790_ops = {
++	.read = max31790_read,
++	.write = max31790_write,
++};
++
++/*
++ * @max31790_probe:	Init max31790 default setting here
++ */
++static int max31790_probe(struct udevice *dev)
++{
++	int ret = 0;
++	int TIMEOUT = 5;
++	uint8_t buffer[2];
++
++	// set fan default pwm , we set 100% pwm here.
++	buffer[0] = 0xff;//LSB
++	buffer[1] = 0x80;//MSB
++
++	// Try to write to the device, return 0 if success
++	for (int i = 0; i < TIMEOUT; i++)
++	{
++		ret = max31790_write(dev, max31790_REG_PWMOUT(0), &buffer, 2);
++		if (ret == 0)
++		{
++			// printf("max31790_write: dev%s, offset:%x, buffer1:%x, buffer2:%x\n", dev->name, max31790_REG_PWMOUT(0), buffer[0], buffer[1]);
++			return ret;
++		}
++	}
++
++	return 0;
++}
++
++static const struct udevice_id max31790_id[] = {
++	{ .compatible = "maxim,max31790", .data = 0 },
++	{ },
++};
++
++U_BOOT_DRIVER(max31790) = {
++	.name			= "max31790",
++	.id 			= UCLASS_I2C_GENERIC,
++	.of_match     	= max31790_id,
++	.ops	        = &max31790_ops,
++	.probe        	= max31790_probe,
++};
++
++UCLASS_DRIVER(max31790) = {
++	.id		        = UCLASS_I2C_GENERIC,
++	.name		  	= "max31790",
++};
+-- 
+2.7.4
+

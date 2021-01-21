@@ -1,0 +1,474 @@
+{
+    "Exposes": [
+        {
+            "BindConnector": "System Fan connector A",
+            "Index": 0,
+            "MaxReading": 35000,
+            "Name": "SYS_FAN_0A",
+            "Address": "0x2C",
+            "Bus": "1",
+            "Presence": {
+                "Method": "tach",
+                "TachVal": 600,
+                "HysVal": 300
+            },
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 43992
+                },                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1296
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "SYS_FAN_0A",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xF0",
+                    "EntityId": "0x1D",
+                    "EntityInstance": "1"
+                }
+            ],
+            "Type": "MAX31790"
+        },
+        {
+            "BindConnector": "System Fan connector A",
+            "Index": 1,
+            "MaxReading": 35000,
+            "Name": "SYS_FAN_1A",
+            "Address": "0x2C",
+            "Bus": "1",
+            "Presence": {
+                "Method": "tach",
+                "TachVal": 600,
+                "HysVal": 300
+            },
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 43992
+                },                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1296
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "SYS_FAN_1A",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xF1",
+                    "EntityId": "0x1D",
+                    "EntityInstance": "2"
+                }
+            ],
+            "Type": "MAX31790"
+        },
+        {
+            "BindConnector": "System Fan connector A",
+            "Index": 2,
+            "MaxReading": 35000,
+            "Name": "SYS_FAN_2A",
+            "Address": "0x2C",
+            "Bus": "1",
+            "Presence": {
+                "Method": "tach",
+                "TachVal": 600,
+                "HysVal": 300
+            },
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 43992
+                },                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1296
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "SYS_FAN_2A",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xF2",
+                    "EntityId": "0x1D",
+                    "EntityInstance": "3"
+                }
+            ],
+            "Type": "MAX31790"
+        },
+        {
+            "BindConnector": "System Fan connector A",
+            "Index": 3,
+            "MaxReading": 35000,
+            "Name": "SYS_FAN_3A",
+            "Address": "0x2C",
+            "Bus": "1",
+            "Presence": {
+                "Method": "tach",
+                "TachVal": 600,
+                "HysVal": 300
+            },
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 43992
+                },                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1296
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "SYS_FAN_3A",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xF3",
+                    "EntityId": "0x1D",
+                    "EntityInstance": "4"
+                }
+            ],
+            "Type": "MAX31790"
+        },
+        {
+            "BindConnector": "System Fan connector A",
+            "Index": 4,
+            "MaxReading": 35000,
+            "Name": "SYS_FAN_4A",
+            "Address": "0x2C",
+            "Bus": "1",
+            "Presence": {
+                "Method": "tach",
+                "TachVal": 600,
+                "HysVal": 300
+            },
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 43992
+                },                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1296
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "SYS_FAN_4A",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xF4",
+                    "EntityId": "0x1D",
+                    "EntityInstance": "5"
+                }
+            ],
+            "Type": "MAX31790"
+        },
+        {
+            "BindConnector": "System Fan connector A",
+            "Index": 5,
+            "MaxReading": 35000,
+            "Name": "SYS_FAN_5A",
+            "Address": "0x2C",
+            "Bus": "1",
+            "Presence": {
+                "Method": "tach",
+                "TachVal": 600,
+                "HysVal": 300
+            },
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 43992
+                },                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1296
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "SYS_FAN_5A",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xF5",
+                    "EntityId": "0x1D",
+                    "EntityInstance": "6"
+                }
+            ],
+            "Type": "MAX31790"
+        },
+        {
+            "BindConnector": "System Fan connector A",
+            "Index": 0,
+            "MaxReading": 35000,
+            "Name": "SYS_FAN_0B",
+            "Address": "0x2F",
+            "Bus": "1",
+            "Presence": {
+                "Method": "tach",
+                "TachVal": 600,
+                "HysVal": 300
+            },
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 43992
+                },                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1296
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "SYS_FAN_0B",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xF6",
+                    "EntityId": "0x1D",
+                    "EntityInstance": "7"
+                }
+            ],
+            "Type": "MAX31790"
+        },
+        {
+            "BindConnector": "System Fan connector A",
+            "Index": 1,
+            "MaxReading": 35000,
+            "Name": "SYS_FAN_1B",
+            "Address": "0x2F",
+            "Bus": "1",
+            "Presence": {
+                "Method": "tach",
+                "TachVal": 600,
+                "HysVal": 300
+            },
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 43992
+                },                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1296
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "SYS_FAN_1B",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xF7",
+                    "EntityId": "0x1D",
+                    "EntityInstance": "8"
+                }
+            ],
+            "Type": "MAX31790"
+        },
+        {
+            "BindConnector": "System Fan connector A",
+            "Index": 2,
+            "MaxReading": 35000,
+            "Name": "SYS_FAN_2B",
+            "Address": "0x2F",
+            "Bus": "1",
+            "Presence": {
+                "Method": "tach",
+                "TachVal": 600,
+                "HysVal": 300
+            },
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 43992
+                },                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1296
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "SYS_FAN_2B",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xF8",
+                    "EntityId": "0x1D",
+                    "EntityInstance": "9"
+                }
+            ],
+            "Type": "MAX31790"
+        },
+        {
+            "BindConnector": "System Fan connector A",
+            "Index": 3,
+            "MaxReading": 35000,
+            "Name": "SYS_FAN_3B",
+            "Address": "0x2F",
+            "Bus": "1",
+            "Presence": {
+                "Method": "tach",
+                "TachVal": 600,
+                "HysVal": 300
+            },
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 43992
+                },                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1296
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "SYS_FAN_3B",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xF9",
+                    "EntityId": "0x1D",
+                    "EntityInstance": "10"
+                }
+            ],
+            "Type": "MAX31790"
+        },
+        {
+            "BindConnector": "System Fan connector A",
+            "Index": 4,
+            "MaxReading": 35000,
+            "Name": "SYS_FAN_4B",
+            "Address": "0x2F",
+            "Bus": "1",
+            "Presence": {
+                "Method": "tach",
+                "TachVal": 600,
+                "HysVal": 300
+            },
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 43992
+                },                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1296
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "SYS_FAN_4B",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xFA",
+                    "EntityId": "0x1D",
+                    "EntityInstance": "11"
+                }
+            ],
+            "Type": "MAX31790"
+        },
+        {
+            "BindConnector": "System Fan connector A",
+            "Index": 5,
+            "MaxReading": 35000,
+            "Name": "SYS_FAN_5B",
+            "Address": "0x2F",
+            "Bus": "1",
+            "Presence": {
+                "Method": "tach",
+                "TachVal": 600,
+                "HysVal": 300
+            },
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 43992
+                },                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1296
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "SYS_FAN_5B",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xFB",
+                    "EntityId": "0x1D",
+                    "EntityInstance": "12"
+                }
+            ],
+            "Type": "MAX31790"
+        },
+        {
+            "Name": "System Fan connector A",
+            "Pwm": 0,
+            "PwmName": "PWM_1",
+            "Status": "enable",
+            "Tachs": [
+                0, 1, 2, 3, 4, 5,
+                6, 7, 8, 9, 10, 11
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "PWM_1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x01",
+                    "EntityId": "0x1D",
+                    "EntityInstance": "0"
+                }
+            ],
+            "Type": "MAX31790"
+        }
+    ],
+    "Name": "SCM_FAN",
+    "Probe": [
+            "xyz.openbmc_project.FruDevice({'BOARD_PRODUCT_NAME': '.*SCM*'})",
+            "OR",
+            "xyz.openbmc_project.FruDevice({'PRODUCT_PRODUCT_NAME': '.*SCM*'})"
+    ],
+    "Type": "Board",
+    "xyz.openbmc_project.Inventory.Decorator.Asset": {
+        "Manufacturer": "$BOARD_MANUFACTURER",
+        "Model": "$BOARD_PRODUCT_NAME",
+        "PartNumber": "$BOARD_PART_NUMBER",
+        "SerialNumber": "$BOARD_SERIAL_NUMBER"
+    },
+    "xyz.openbmc_project.Inventory.Decorator.AssetTag": {
+        "AssetTag": "$PRODUCT_ASSET_TAG"
+    },
+    "xyz.openbmc_project.Inventory.Item.System": {}
+}
+

@@ -1,0 +1,226 @@
+From acb97893dd6635ba98fa3a26fbd56d36fc61bc8b Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Thu, 30 Jul 2020 21:28:56 -0400
+Subject: [PATCH 11/21] Patched hsc setting on dts and Pmbus/HSC driver
+
+- Updated Goldentalon dts setting for MB HSC device
+- Enabled ADM1278 temperature monitor
+- Added PIN/VIN /VOUT /IOUT sample averaging property value for ADM1278.
+  And set default 16 sample on dts
+- Added Pmbus and HSC hwmon device status word attribute
+---
+ arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts |  9 +++-
+ drivers/hwmon/pmbus/adm1275.c                      | 55 ++++++++++++++++++++++
+ drivers/hwmon/pmbus/pmbus.c                        |  3 ++
+ drivers/hwmon/pmbus/pmbus.h                        |  4 +-
+ drivers/hwmon/pmbus/pmbus_core.c                   | 34 +++++++++++--
+ 5 files changed, 98 insertions(+), 7 deletions(-)
+
+diff --git a/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts b/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts
+index 3b72d52..90c9957 100644
+--- a/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts
++++ b/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts
+@@ -368,11 +368,16 @@
+ 		//Rsense = <500>;  // the value need to be fine tune in future
+ 	};
+ 
+-	//HSC
++	//MB HSC
+ 	hsc:adm1278@11 {
+ 		compatible = "adm1278";
+ 		reg = <0x11>;
+-		//Rsense = <500>;  // the value need to be fine tune in future
++		//-shunt-resistor-micro-ohms = <0.2>;  // Err, This value should be integer
++                // Below property only support on adm1278
++                // averaging sample  <0>- dis, <1>- 2 sample, <2>- 4, <3>- 8, <4>- 16, <5>- 32, <6>- 64, <7>- 128
++                pwr-avg-samples = <4>;
++                // averaging sample  <0>- dis, <1>- 2 sample, <2>- 4, <3>- 8, <4>- 16, <5>- 32, <6>- 64, <7>- 128
++                vi-avg-samples = <4>;
+ 	};
+ };
+ 
+diff --git a/drivers/hwmon/pmbus/adm1275.c b/drivers/hwmon/pmbus/adm1275.c
+index 1931757..d7cd542 100644
+--- a/drivers/hwmon/pmbus/adm1275.c
++++ b/drivers/hwmon/pmbus/adm1275.c
+@@ -476,6 +476,8 @@ static int adm1275_probe(struct i2c_client *client,
+ 	int vindex = -1, voindex = -1, cindex = -1, pindex = -1;
+ 	int tindex = -1;
+ 	u32 shunt;
++	u32 pwr_avg = -1;
++	u32 vi_avg = -1;
+ 
+ 	if (!i2c_check_functionality(client->adapter,
+ 				     I2C_FUNC_SMBUS_READ_BYTE_DATA
+@@ -698,6 +700,59 @@ static int adm1275_probe(struct i2c_client *client,
+ 			}
+ 		}
+ 
++                /* Enable TEMP1 if not enabled*/
++		if (!(config & ADM1278_TEMP1_EN)) {
++			config |= ADM1278_TEMP1_EN;
++			ret = i2c_smbus_write_byte_data(client,
++							ADM1275_PMON_CONFIG,
++							config);
++			if (ret < 0) {
++				dev_err(&client->dev,
++					"Failed to enable TEMP1 monitoring\n");
++				return -ENODEV;
++			}
++		}
++
++		// averaging sample
++		// <0>- dis, <1>- 2 sample, <2>- 4, <3>- 8, 
++		// <4>- 16, <5>- 32, <6>- 64, <7>- 128 sample
++		ret = of_property_read_u32(client->dev.of_node, 
++						"pwr-avg-samples", &pwr_avg);
++		if (!(ret < 0)) {
++			if ((pwr_avg < 8) && (pwr_avg >= 0)) {
++				pwr_avg  = pwr_avg << ADM1278_PWR_AVG_SHIFT; 
++			}
++			else {
++				pwr_avg = 0;
++			}
++			config &= ~(ADM1278_PWR_AVG_MASK);
++			config |= pwr_avg;
++		}
++
++		ret = of_property_read_u32(client->dev.of_node,
++						"vi-avg-samples", &vi_avg);
++		if (!(ret < 0)) {
++			if ((vi_avg < 8) && (vi_avg >= 0)) {
++				vi_avg  = vi_avg << ADM1278_VI_AVG_SHIFT; 
++			}
++			else {
++				pwr_avg = 0;
++			}
++			config &= ~(ADM1278_VI_AVG_MASK);
++			config |= vi_avg;
++		}
++
++		if ((pwr_avg != -1) || (vi_avg != -1)) {
++			ret = i2c_smbus_write_word_data(client,
++					ADM1275_PMON_CONFIG,
++					config);
++			if (ret < 0) {
++				dev_err(&client->dev,
++					"Failed to setting sample averaging\n");
++				return -ENODEV;
++			}
++		}
++
+ 		if (config & ADM1278_TEMP1_EN)
+ 			info->func[0] |=
+ 				PMBUS_HAVE_TEMP | PMBUS_HAVE_STATUS_TEMP;
+diff --git a/drivers/hwmon/pmbus/pmbus.c b/drivers/hwmon/pmbus/pmbus.c
+index 6d384e8..d10c957 100644
+--- a/drivers/hwmon/pmbus/pmbus.c
++++ b/drivers/hwmon/pmbus/pmbus.c
+@@ -64,6 +64,9 @@ static void pmbus_find_sensor_groups(struct i2c_client *client,
+ 					 PMBUS_STATUS_TEMPERATURE))
+ 			info->func[0] |= PMBUS_HAVE_STATUS_TEMP;
+ 
++	if (pmbus_check_word_register(client, 0, PMBUS_STATUS_WORD))
++		info->func[0] |= PMBUS_HAVE_STATUS_WORD;
++
+ 	/* Sensors detected on all pages */
+ 	for (page = 0; page < info->pages; page++) {
+ 		if (pmbus_check_word_register(client, page, PMBUS_READ_VOUT)) {
+diff --git a/drivers/hwmon/pmbus/pmbus.h b/drivers/hwmon/pmbus/pmbus.h
+index 18e06fc..6df6f92 100644
+--- a/drivers/hwmon/pmbus/pmbus.h
++++ b/drivers/hwmon/pmbus/pmbus.h
+@@ -357,6 +357,7 @@ enum pmbus_sensor_classes {
+ 	PSC_POWER,
+ 	PSC_TEMPERATURE,
+ 	PSC_FAN,
++	PSC_STATUS,
+ 	PSC_PWM,
+ 	PSC_NUM_CLASSES		/* Number of power sensor classes */
+ };
+@@ -390,7 +391,8 @@ enum pmbus_sensor_classes {
+ #define PMBUS_HAVE_SAMPLES	BIT(22)
+ 
+ #define PMBUS_PHASE_VIRTUAL	BIT(30)	/* Phases on this page are virtual */
+-#define PMBUS_PAGE_VIRTUAL	BIT(31)	/* Page is virtual */
++#define PMBUS_HAVE_STATUS_WORD  BIT(30)
++#define PMBUS_PAGE_VIRTUAL	BIT(31)
+ 
+ enum pmbus_data_format { linear = 0, direct, vid };
+ enum vrm_version { vr11 = 0, vr12, vr13, imvp9, amd625mv };
+diff --git a/drivers/hwmon/pmbus/pmbus_core.c b/drivers/hwmon/pmbus/pmbus_core.c
+index 4b058d3..82ffe0a 100644
+--- a/drivers/hwmon/pmbus/pmbus_core.c
++++ b/drivers/hwmon/pmbus/pmbus_core.c
+@@ -39,9 +39,8 @@
+ #define PB_STATUS_TEMP_BASE	(PB_STATUS_FAN34_BASE + PMBUS_PAGES)
+ #define PB_STATUS_INPUT_BASE	(PB_STATUS_TEMP_BASE + PMBUS_PAGES)
+ #define PB_STATUS_VMON_BASE	(PB_STATUS_INPUT_BASE + 1)
+-
+-#define PB_NUM_STATUS_REG	(PB_STATUS_VMON_BASE + 1)
+-
++#define PB_STATUS_WORD_BASE	(PB_STATUS_VMON_BASE + 2)
++#define PB_NUM_STATUS_REG	(PB_STATUS_WORD_BASE + 1)
+ #define PMBUS_NAME_SIZE		24
+ 
+ struct pmbus_sensor {
+@@ -618,6 +617,11 @@ static struct pmbus_data *pmbus_update_device(struct device *dev)
+ 			  = _pmbus_read_byte_data(client, 0,
+ 						  PMBUS_VIRT_STATUS_VMON);
+ 
++		if ((info->func[0] & PMBUS_HAVE_STATUS_WORD) && (data->has_status_word))
++			data->status[PB_STATUS_WORD_BASE]
++			  = _pmbus_read_word_data(client, 0,
++						  PMBUS_STATUS_WORD);
++
+ 		for (sensor = data->sensors; sensor; sensor = sensor->next) {
+ 			if (!data->valid || sensor->update)
+ 				sensor->data
+@@ -656,7 +660,7 @@ static long pmbus_reg2data_linear(struct pmbus_data *data,
+ 	val = mantissa;
+ 
+ 	/* scale result to milli-units for all sensors except fans */
+-	if (sensor->class != PSC_FAN)
++	if ((sensor->class != PSC_FAN) && (sensor->class != PSC_STATUS))
+ 		val = val * 1000L;
+ 
+ 	/* scale result to micro-units for power sensors */
+@@ -2091,6 +2095,23 @@ static int pmbus_add_samples_attributes(struct i2c_client *client,
+ 	return 0;
+ }
+ 
++static int pmbus_add_status_attributes(struct i2c_client *client,
++					struct pmbus_data *data)
++{
++	const struct pmbus_driver_info *info = data->info;
++	int index = 1;
++	int page;
++	int ret;
++
++	for (page = 0; page < info->pages; page++) {
++		if (pmbus_add_sensor(data, "status", "input", index, page,
++			PMBUS_STATUS_WORD, PSC_STATUS, true, true, false) == NULL)
++			return -ENOMEM;
++		index++;
++	}
++	return 0;
++}
++
+ static int pmbus_find_attributes(struct i2c_client *client,
+ 				 struct pmbus_data *data)
+ {
+@@ -2120,6 +2141,11 @@ static int pmbus_find_attributes(struct i2c_client *client,
+ 	if (ret)
+ 		return ret;
+ 
++        /* Status */
++	ret = pmbus_add_status_attributes(client, data);
++	if (ret)
++		return ret;
++
+ 	/* Fans */
+ 	ret = pmbus_add_fan_attributes(client, data);
+ 	if (ret)
+-- 
+2.7.4
+

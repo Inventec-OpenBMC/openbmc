@@ -1,0 +1,33 @@
+bmc_booted:
+    HB_LED:
+        Action: 'Blink'
+        DutyOn: 50
+        Period: 1000
+#        Priority: 'On'
+
+power_on:
+    PWR_ON_LED:
+        Action: 'On'
+    PWR_FAIL_LED:
+        Action: 'Off'
+
+power_fail:
+    PWR_ON_LED:
+        Action: 'Off'
+    PWR_FAIL_LED:
+        Action: 'On'
+
+enclosure_identify:
+    UID_LED:
+        Action: 'On'
+
+enclosure_identify_blink:
+    UID_LED:
+        Action: 'Blink'
+        DutyOn: 50
+        Period: 1000
+
+enclosure_fault:
+    FAULT_LED:
+        Action: 'On'
+

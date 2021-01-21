@@ -1,0 +1,42 @@
+From badeccd7b1e2e34330a2b36440fd2079bc5ee3b3 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Mon, 8 Jun 2020 14:48:05 -0400
+Subject: [PATCH 04/21] Subject : Disable mac3 in kernel to avoid kernel
+ exception
+
+Ticket         : N/A
+Symptom/Reason : If we enable mac3, it will show kernel exception
+Root Cause     : N/A
+Solution/Change: Disable mac3 in kernel dts
+Entry Test     :
+                 1. If we enable mac3, it will show kernel exception
+                 2. Disable mac3 in kernel dts, so it won't display the error message
+---
+ arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts b/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts
+index 19878e9..98e9bb0 100644
+--- a/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts
++++ b/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts
+@@ -43,6 +43,8 @@
+     pinctrl-0 = <&pinctrl_rgmii1_default>;
+ };
+ 
++#if 0
++
+ &mac2 {
+ 	status = "okay";
+ 
+@@ -51,6 +53,8 @@
+ 	use-ncsi;
+ };
+ 
++#endif
++
+ &peci{
+ 	peci0: peci-bus@0{
+ 		status = "okay";
+-- 
+2.7.4
+

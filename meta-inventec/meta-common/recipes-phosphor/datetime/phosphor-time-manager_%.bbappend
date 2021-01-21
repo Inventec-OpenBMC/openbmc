@@ -1,0 +1,3 @@
+FILESEXTRAPATHS_prepend := "${THISDIR}/${BPN}:"
+
+SRCREV = "c6d33972d95fd77dbbe5a249ee35ba90e25314f8"

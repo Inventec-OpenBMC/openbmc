@@ -1,0 +1,30 @@
+From 622a336381130d2b309b15d0b4d4f52d77534abe Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Thu, 2 Jul 2020 19:28:05 -0400
+Subject: [PATCH 07/21] Add PSU pmbus defne on goldentalon dts
+
+- Add PSU pmbus defne on goldentalon dts
+---
+ arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts b/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts
+index d525267..d3ba8f4 100644
+--- a/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts
++++ b/arch/arm/boot/dts/aspeed-bmc-microsoft-goldentalon.dts
+@@ -307,6 +307,12 @@
+ 
+ &i2c4 {
+ 	status = "okay";
++
++	// PSU
++	psu0:psu0@58 {
++		compatible = "pmbus";
++		reg = <0x58>;
++	};
+ };
+ 
+ &i2c6 {
+-- 
+2.7.4
+

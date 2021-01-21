@@ -1,0 +1,11 @@
+0:
+  /system/chassis/motherboard/bmc:
+    entityID: 6
+    entityInstance: 1
+    interfaces:
+      xyz.openbmc_project.Common.UUID:
+        UUID:
+          IPMIFruProperty: UUID
+          IPMIFruSection: Board
+      xyz.openbmc_project.Inventory.Item.Bmc:
+

@@ -1,0 +1,111 @@
+From f9b07422dfe8997aa7f40cf333f76f06f1a08b48 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Thu, 13 Aug 2020 19:01:10 +0800
+Subject: [PATCH 02/13] Subject: [PATCH] [Sensor] Patch to support sensor
+ number, entity number and entity instance
+
+Patch to support IPMI information from entity-manager inventory
+- IPMB PCH temperature sensor
+---
+ include/IpmbSensor.hpp |  2 ++
+ src/IpmbSensor.cpp     | 35 +++++++++++++++++++++++++++++++++++
+ 2 files changed, 37 insertions(+)
+
+diff --git a/include/IpmbSensor.hpp b/include/IpmbSensor.hpp
+index 4207d1c..c518e10 100644
+--- a/include/IpmbSensor.hpp
++++ b/include/IpmbSensor.hpp
+@@ -1,5 +1,6 @@
+ #pragma once
+ #include "sensor.hpp"
++#include "IpmiInfo.hpp"
+ 
+ #include <boost/asio/deadline_timer.hpp>
+ #include <boost/container/flat_map.hpp>
+@@ -80,6 +81,7 @@ struct IpmbSensor : public Sensor
+                const std::string& sensorConfiguration,
+                sdbusplus::asio::object_server& objectServer,
+                std::vector<thresholds::Threshold>&& thresholds,
++               std::vector<ipmidata::IpmiConfig>&& ipmiinfo,
+                uint8_t deviceAddress, uint8_t hostSMbusIndex,
+                std::string& sensorTypeName);
+     ~IpmbSensor();
+diff --git a/src/IpmbSensor.cpp b/src/IpmbSensor.cpp
+index 29fd7f4..947e9c4 100644
+--- a/src/IpmbSensor.cpp
++++ b/src/IpmbSensor.cpp
+@@ -66,6 +66,7 @@ IpmbSensor::IpmbSensor(std::shared_ptr<sdbusplus::asio::connection>& conn,
+                        const std::string& sensorConfiguration,
+                        sdbusplus::asio::object_server& objectServer,
+                        std::vector<thresholds::Threshold>&& thresholdData,
++                       std::vector<ipmidata::IpmiConfig>&& _ipmiinfo,
+                        uint8_t deviceAddress, uint8_t hostSMbusIndex,
+                        std::string& sensorTypeName) :
+     Sensor(boost::replace_all_copy(sensorName, " ", "_"),
+@@ -80,6 +81,26 @@ IpmbSensor::IpmbSensor(std::shared_ptr<sdbusplus::asio::connection>& conn,
+     sensorInterface = objectServer.add_interface(
+         dbusPath, "xyz.openbmc_project.Sensor.Value");
+ 
++    ipmiInterface = objectServer.add_interface(
++        dbusPath, "xyz.openbmc_project.Sensor.IpmiSensor");
++
++    if (_ipmiinfo.empty())
++    {
++        // Default
++        ipmiInterface->register_property("sensorNumber", 0);
++        ipmiInterface->register_property("entityID", 0);
++        ipmiInterface->register_property("entityInstance", 0);
++    }
++    else
++    {
++        for (auto& ipmi : _ipmiinfo)
++        {
++            ipmiInterface->register_property("sensorNumber", ipmi.number);
++            ipmiInterface->register_property("entityID", ipmi.entityId);
++            ipmiInterface->register_property("entityInstance", ipmi.entityIns);
++        }
++    }
++
+     if (thresholds::hasWarningInterface(thresholds))
+     {
+         thresholdInterfaceWarning = objectServer.add_interface(
+@@ -99,6 +120,7 @@ IpmbSensor::~IpmbSensor()
+     objectServer.remove_interface(thresholdInterfaceWarning);
+     objectServer.remove_interface(thresholdInterfaceCritical);
+     objectServer.remove_interface(sensorInterface);
++    objectServer.remove_interface(ipmiInterface);
+     objectServer.remove_interface(association);
+ }
+ 
+@@ -413,6 +435,14 @@ void createSensors(
+                         std::cerr << "error populating thresholds for " << name
+                                   << "\n";
+                     }
++
++                    std::vector<ipmidata::IpmiConfig> sensorIpmiConfig;
++                    if (!parseIpmiDataFromConfig(pathPair.second, sensorIpmiConfig, &name))
++                    {
++                        std::cerr << "error populating ipmi for " 
++                                  << name << "\n";
++                    }
++
+                     uint8_t deviceAddress =
+                         loadVariant<uint8_t>(entry.second, "Address");
+ 
+@@ -438,8 +468,13 @@ void createSensors(
+                     auto& sensor = sensors[name];
+                     sensor = std::make_unique<IpmbSensor>(
+                         dbusConnection, io, name, pathPair.first, objectServer,
++<<<<<<< HEAD
+                         std::move(sensorThresholds), deviceAddress,
+                         hostSMbusIndex, sensorTypeName);
++=======
++                        std::move(sensorThresholds), std::move(sensorIpmiConfig), deviceAddress,
++                        sensorTypeName);
++>>>>>>> ffffc21... Subject: [PATCH] [Sensor] Patch to support sensor number, entity number and entity instance
+ 
+                     /* Initialize scale and offset value */
+                     sensor->scaleVal = 1;
+-- 
+2.7.4
+
