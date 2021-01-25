@@ -1,0 +1,48 @@
+{
+    "Exposes": [
+        {
+            "Address": "0x49",
+            "Bus": "6",
+            "Name": "TEMP_92",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 36
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 35
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "TEMP_92",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x68",
+                    "EntityId": "0x07",
+                    "EntityInstance": "0"
+                }
+            ],
+            "Type": "TMP75"
+        }
+    ],
+    "Name": "Transformers runbmc",
+    "Probe": "xyz.openbmc_project.FruDevice({'BUS': '8', 'ADDRESS' : 81})",
+    "Type": "Board"
+}

@@ -1,0 +1,93 @@
+From 6f8105045710816e8a17df1b81639410fb214779 Mon Sep 17 00:00:00 2001
+From: Neil Chen <Chen.NeilZX@inventec.com>
+Date: Wed, 3 Feb 2021 07:52:22 +0000
+Subject: [PATCH] [inventec][transformers] enable peci interface , get
+ cpu/dimmp temp by adding eagle stream(Sapphire Rapids) support
+
+---
+ drivers/hwmon/peci-dimmtemp.c         | 11 +++++++++--
+ drivers/mfd/intel-peci-client.c       |  6 ++++++
+ include/linux/mfd/intel-peci-client.h |  6 ++++++
+ 3 files changed, 21 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/hwmon/peci-dimmtemp.c b/drivers/hwmon/peci-dimmtemp.c
+index 1cdc729..9c22ded 100644
+--- a/drivers/hwmon/peci-dimmtemp.c
++++ b/drivers/hwmon/peci-dimmtemp.c
+@@ -38,6 +38,7 @@ static const u8 support_model[4] = {
+ 	INTEL_FAM6_SKYLAKE_X,
+ 	INTEL_FAM6_SKYLAKE_XD,
+ 	INTEL_FAM6_ICELAKE_X,
++	INTEL_FAM6_SAPPHIRERAPIDS_X,
+ };
+ 
+ static inline int read_ddr_dimm_temp_config(struct peci_dimmtemp *priv,
+@@ -153,6 +154,11 @@ static int get_dimm_temp(struct peci_dimmtemp *priv, int dimm_no)
+ 		priv->temp_max[dimm_no] = rp_msg.pci_config[1] * 1000;
+ 		priv->temp_crit[dimm_no] = rp_msg.pci_config[2] * 1000;
+ 		break;
++	case INTEL_FAM6_SAPPHIRERAPIDS_X:
++		/*<TBD> not sure how to get temp config hard code here as Icelake patch*/
++		priv->temp_max[dimm_no] = 85 * 1000; //85C
++		priv->temp_crit[dimm_no] = 90 * 1000; //90C
++		break;
+ 	default:
+ 		return -EOPNOTSUPP;
+ 	}
+@@ -377,9 +383,10 @@ static int peci_dimmtemp_probe(struct platform_device *pdev)
+ 			break;
+ 		}
+ 	}
+-	if (i == ARRAY_SIZE(support_model))
++	if (i == ARRAY_SIZE(support_model)) {
++		dev_err(dev, "model is not in support model\n");
+ 		return -ENODEV;
+-
++	}
+ 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
+ 	if (!priv)
+ 		return -ENOMEM;
+diff --git a/drivers/mfd/intel-peci-client.c b/drivers/mfd/intel-peci-client.c
+index 2e81dcb..cebb177 100644
+--- a/drivers/mfd/intel-peci-client.c
++++ b/drivers/mfd/intel-peci-client.c
+@@ -54,6 +54,12 @@ static const struct cpu_gen_info cpu_gen_info_table[] = {
+ 		.core_max      = CORE_MAX_ON_ICE,
+ 		.chan_rank_max = CHAN_RANK_MAX_ON_ICE,
+ 		.dimm_idx_max  = DIMM_IDX_MAX_ON_ICE },
++	{ /* SAPPHIRERAPIDS */
++		.family        = INTEL_FAM6,
++		.model         = INTEL_FAM6_SAPPHIRERAPIDS_X,
++		.core_max      = CORE_MAX_ON_SAPPHIRERAPIDS,
++		.chan_rank_max = CHAN_RANK_MAX_ON_SAPPHIRERAPIDS,
++		.dimm_idx_max  = DIMM_IDX_MAX_ON_SAPPHIRERAPIDS },
+ };
+ 
+ static int peci_client_get_cpu_gen_info(struct peci_client_manager *priv)
+diff --git a/include/linux/mfd/intel-peci-client.h b/include/linux/mfd/intel-peci-client.h
+index e2e8dd0..b94fde5 100644
+--- a/include/linux/mfd/intel-peci-client.h
++++ b/include/linux/mfd/intel-peci-client.h
+@@ -19,6 +19,7 @@
+ #define INTEL_FAM6_SKYLAKE_X		0x55
+ #define INTEL_FAM6_SKYLAKE_XD		0x56
+ #define INTEL_FAM6_ICELAKE_X		0x6A
++#define INTEL_FAM6_SAPPHIRERAPIDS_X     0x8F
+ #endif
+ 
+ #define INTEL_FAM6             6 /* P6 (Pentium Pro and later) */
+@@ -43,6 +44,11 @@
+ #define CHAN_RANK_MAX_ON_ICE   8  /* Max number of channel ranks on Icelake */
+ #define DIMM_IDX_MAX_ON_ICE    2  /* Max DIMM index per channel on IceLake */
+ 
++/*SAPPHIRERAPIDS*/
++#define CORE_MAX_ON_SAPPHIRERAPIDS 50 /* Max number of cores */
++#define CHAN_RANK_MAX_ON_SAPPHIRERAPIDS  8  /* Max number of channel ranks*/
++#define DIMM_IDX_MAX_ON_SAPPHIRERAPIDS   2  /* Max DIMM index per channel*/
++
+ #define CORE_NUMS_MAX          CORE_MAX_ON_SKX
+ #define CHAN_RANK_MAX          CHAN_RANK_MAX_ON_HSX
+ #define DIMM_IDX_MAX           DIMM_IDX_MAX_ON_HSX
+-- 
+2.7.4
+

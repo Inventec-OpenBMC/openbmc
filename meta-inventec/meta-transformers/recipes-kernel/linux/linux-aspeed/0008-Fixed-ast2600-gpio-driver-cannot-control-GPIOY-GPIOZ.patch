@@ -1,0 +1,24 @@
+From 33fbae8396bfa4e3b6a5004359e78b0ca345fcc4 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Fri, 21 Aug 2020 16:00:22 -0400
+Subject: [PATCH] Fixed ast2600 gpio driver cannot control GPIOY/GPIOZ group
+
+Fixed ast2600 gpio driver cannot control GPIOY/GPIOZ group.
+Corrected input/output bit map offset.
+
+diff --git a/drivers/gpio/gpio-aspeed.c b/drivers/gpio/gpio-aspeed.c
+index 09e53c5..aa8ee7f 100644
+--- a/drivers/gpio/gpio-aspeed.c
++++ b/drivers/gpio/gpio-aspeed.c
+@@ -1116,7 +1116,7 @@ static const struct aspeed_gpio_config ast2500_config =
+ static const struct aspeed_bank_props ast2600_bank_props[] = {
+ 	/*     input	  output   */
+ 	{5, 0xffffffff,  0x0000ffff}, /* U/V/W/X */
+-	{6, 0xffff0000,  0x0fff0000}, /* Y/Z */
++	{6, 0x0000ffff,  0x0000ffff}, /* Y/Z */
+ 	{ },
+ };
+ 
+-- 
+2.7.4
+

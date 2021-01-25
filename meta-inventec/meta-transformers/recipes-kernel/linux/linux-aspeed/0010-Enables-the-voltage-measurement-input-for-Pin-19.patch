@@ -1,0 +1,29 @@
+From f8c4c82aa2ccfbb274c1c83b8e863e8bcd11cb13 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Fri, 21 Aug 2020 14:25:35 -0400
+Subject: [PATCH] Enables the voltage measurement input for Pin 19
+
+Enables the voltage measurement input for Pin 19
+---
+ drivers/hwmon/adt7462.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/drivers/hwmon/adt7462.c b/drivers/hwmon/adt7462.c
+index ac767fc..1f511a3 100644
+--- a/drivers/hwmon/adt7462.c
++++ b/drivers/hwmon/adt7462.c
+@@ -1809,6 +1809,11 @@ static int adt7462_probe(struct i2c_client *client,
+ 
+ 	mutex_lock(&data->lock);
+ 
++	// Pin Configuration Register 1 Setting
++	reg = i2c_smbus_read_byte_data(client, ADT7462_REG_PIN_CFG(0));
++	reg &= ~ADT7462_DIODE3_INPUT;		// Enables the voltage measurement input for Pin 19
++	i2c_smbus_write_byte_data(client, ADT7462_REG_PIN_CFG(0), reg);
++
+ 	// Pin Configuration Register 2 Setting
+ 	reg = i2c_smbus_read_byte_data(client, ADT7462_REG_PIN_CFG(1));
+ 	reg &= ~ADT7462_PIN8_INPUT;		//Set Pin 8 to +12V2
+-- 
+2.7.4
+

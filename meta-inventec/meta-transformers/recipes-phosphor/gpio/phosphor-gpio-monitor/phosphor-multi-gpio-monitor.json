@@ -1,0 +1,10 @@
+[
+   {
+       "Name": "CPLD_CATERR",
+       "ChipId": "0",
+       "LineName": "CPLD_CATERR",
+       "EventMon": "BOTH",
+       "Continue": true
+   }
+]
+

@@ -1,0 +1,20 @@
+0:
+  /motherboard:
+    entityID: 7
+    entityInstance: 0
+    interfaces:
+      xyz.openbmc_project.Inventory.Item.Bmc:
+
+1:
+  /runbmc:
+    entityID: 7
+    entityInstance: 0
+    interfaces:
+      xyz.openbmc_project.Inventory.Item.Bmc:
+
+2:
+  /scmbridge:
+    entityID: 7
+    entityInstance: 0
+    interfaces:
+      xyz.openbmc_project.Inventory.Item.Bmc:

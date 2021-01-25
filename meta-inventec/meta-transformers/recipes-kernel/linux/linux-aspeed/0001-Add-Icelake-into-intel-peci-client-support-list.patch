@@ -1,0 +1,53 @@
+From d658e9c4606c3426e99c1a37263d585dd642b6e6 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Tue, 29 Sep 2020 14:39:06 -0400
+Subject: [PATCH] Subject: [Patch][kernel] Add Icelake into intel-peci-client
+ support list
+
+---
+ drivers/mfd/intel-peci-client.c       | 6 ++++++
+ include/linux/mfd/intel-peci-client.h | 4 ++++
+ 2 files changed, 10 insertions(+)
+
+diff --git a/drivers/mfd/intel-peci-client.c b/drivers/mfd/intel-peci-client.c
+index 24f1543..c36e0b7 100644
+--- a/drivers/mfd/intel-peci-client.c
++++ b/drivers/mfd/intel-peci-client.c
+@@ -48,6 +48,12 @@ static const struct cpu_gen_info cpu_gen_info_table[] = {
+ 		.core_max      = CORE_MAX_ON_SKXD,
+ 		.chan_rank_max = CHAN_RANK_MAX_ON_SKXD,
+ 		.dimm_idx_max  = DIMM_IDX_MAX_ON_SKXD },
++	{ /* IceLake */
++		.family        = INTEL_FAM6,
++		.model         = INTEL_FAM6_ICELAKE_X,
++		.core_max      = CORE_MAX_ON_ICE,
++		.chan_rank_max = CHAN_RANK_MAX_ON_SKX,
++		.dimm_idx_max  = DIMM_IDX_MAX_ON_SKX },
+ };
+ 
+ static int peci_client_get_cpu_gen_info(struct peci_client_manager *priv)
+diff --git a/include/linux/mfd/intel-peci-client.h b/include/linux/mfd/intel-peci-client.h
+index 7668d0c..8d0a5ac 100644
+--- a/include/linux/mfd/intel-peci-client.h
++++ b/include/linux/mfd/intel-peci-client.h
+@@ -18,6 +18,7 @@
+ #define INTEL_FAM6_BROADWELL_X		0x4F
+ #define INTEL_FAM6_SKYLAKE_X		0x55
+ #define INTEL_FAM6_SKYLAKE_XD		0x56
++#define INTEL_FAM6_ICELAKE_X		0x6A
+ #endif
+ 
+ #define INTEL_FAM6             6 /* P6 (Pentium Pro and later) */
+@@ -38,6 +39,9 @@
+ #define CHAN_RANK_MAX_ON_SKXD  2  /* Max number of channel ranks on Skylake D */
+ #define DIMM_IDX_MAX_ON_SKXD   2  /* Max DIMM index per channel on Skylake D */
+ 
++#define CORE_MAX_ON_ICE        30 /* Max number of cores on Icelake */
++#define CHAN_RANK_MAX_ON_ICE   8  /* Max number of channel ranks on Icelake */
++
+ #define CORE_NUMS_MAX          CORE_MAX_ON_SKX
+ #define CHAN_RANK_MAX          CHAN_RANK_MAX_ON_HSX
+ #define DIMM_IDX_MAX           DIMM_IDX_MAX_ON_HSX
+-- 
+2.7.4
+

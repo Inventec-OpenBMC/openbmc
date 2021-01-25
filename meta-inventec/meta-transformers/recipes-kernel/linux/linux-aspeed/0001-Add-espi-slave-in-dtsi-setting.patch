@@ -1,0 +1,64 @@
+From 00251cdbd4a2ed600fffb2105f3d252c43869ac3 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Tue, 27 Oct 2020 20:42:05 -0400
+Subject: [PATCH 1/1] Add espi slave in dtsi setting
+
+---
+ arch/arm/boot/dts/aspeed-g6.dtsi | 20 ++++++++++++++++----
+ 1 file changed, 16 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm/boot/dts/aspeed-g6.dtsi b/arch/arm/boot/dts/aspeed-g6.dtsi
+index 843ca94..da2d8ab 100644
+--- a/arch/arm/boot/dts/aspeed-g6.dtsi
++++ b/arch/arm/boot/dts/aspeed-g6.dtsi
+@@ -619,8 +619,8 @@
+ 				interrupts = <GIC_SPI 46 IRQ_TYPE_LEVEL_HIGH>;
+ 				#io-channel-cells = <1>;
+ 				trim_locate = <0x5D0 0 0xf>;
+-				status = "disabled"; 
+-			}; 
++				status = "disabled";
++			};
+ 
+ 			adc1: adc@1e6e9100 {
+ 				compatible = "aspeed,ast2600-adc";
+@@ -634,6 +634,18 @@
+ 			};
+ 
+ 			espi: espi@1e6ee000 {
++				compatible = "aspeed,ast2600-espi-slave";
++				reg = <0x1e6ee000 0x200>;
++				interrupts-extended = <&gic GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>, <&gpio0 ASPEED_GPIO(W, 7) IRQ_TYPE_EDGE_FALLING>;
++				status = "disabled";
++				clocks = <&syscon ASPEED_CLK_GATE_ESPICLK>;
++				resets = <&syscon ASPEED_RESET_ESPI>;
++				pinctrl-names = "default";
++				pinctrl-0 = <&pinctrl_espi_default>,
++						<&pinctrl_espialt_default>;
++			};
++#if 0
++			espi: espi@1e6ee000 {
+ 				compatible = "aspeed,ast2600-espi", "simple-mfd", "syscon";
+ 				reg = <0x1e6ee000 0x200>;
+ 				reg-io-width = <4>;
+@@ -687,7 +699,7 @@
+ 				dma-mode;
+ 				status = "disabled";
+ 			};
+-
++#endif
+ 			video: video@1e700000 {
+ #if 0
+ 				compatible = "aspeed,ast2600-video-engine";
+@@ -1450,7 +1462,7 @@
+ 		interrupts = <GIC_SPI 38 IRQ_TYPE_LEVEL_HIGH>;
+ 		clocks = <&syscon ASPEED_CLK_GATE_REF1CLK>, <&syscon ASPEED_CLK_AHB>;
+ 		resets = <&syscon ASPEED_RESET_PECI>;
+-		clock-frequency = <25000000>; //target peci clk 
++		clock-frequency = <25000000>; //target peci clk
+ 		clk-div = <1>;
+ 		msg-timing = <3>;
+ 		addr-timing = <3>;
+-- 
+2.7.4
+

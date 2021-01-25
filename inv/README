@@ -1,0 +1,18 @@
+Docker usage:
+    1. get into inv/docker folder.
+    2. bash builder.sh [CONTAINER_NAME]
+
+QEMU usage:
+    1. get into inv folder.
+    2. bash start_qemu.sh [-m MACHINE] [-qm QEMU MACHINE]
+       or
+       bash start_qemu.sh --ref
+
+       i. MACHINE is the target you built, default is seahawk.
+       ii. QEMU MACHINE is the qemu target machine, default is ast2600-evb.
+       iii. --ref would run romulus directly.
+
+    3. Edit start_qemu.sh to change network config.
+       i. USER_NETWORK_OPTION is the user network setting for qemu.
+       ii. TAP_NETWORK_OPTION is the tap network setting, should use create_bridge_tap.sh first(need sudo).
+

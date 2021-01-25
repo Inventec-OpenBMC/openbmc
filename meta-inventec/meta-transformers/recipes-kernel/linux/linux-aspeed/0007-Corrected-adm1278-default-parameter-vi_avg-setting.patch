@@ -1,0 +1,28 @@
+From 255e91d332472846cb1cf40bdbc4abbbf895b06b Mon Sep 17 00:00:00 2001
+From: Neil Chen <Chen.NeilZX@inventec.com>
+Date: Thu, 28 Jan 2021 08:10:49 +0000
+Subject: [PATCH] [PATCH] Corrected adm1278 default parameter vi_avg setting.
+
+From git commit 47ec467e2ec61e12bafa60b31a42b1227f0a723b
+Type error parameter.
+Correct from pwr_avg to vi_avg.
+---
+ drivers/hwmon/pmbus/adm1275.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/hwmon/pmbus/adm1275.c b/drivers/hwmon/pmbus/adm1275.c
+index 782f923..7baf396 100644
+--- a/drivers/hwmon/pmbus/adm1275.c
++++ b/drivers/hwmon/pmbus/adm1275.c
+@@ -723,7 +723,7 @@ static int adm1275_probe(struct i2c_client *client,
+ 				pwr_avg  = pwr_avg << ADM1278_PWR_AVG_SHIFT;
+ 			}
+ 			else {
+-				pwr_avg = 0;
++				vi_avg = 0;
+ 			}
+ 			config &= ~(ADM1278_PWR_AVG_MASK);
+ 			config |= pwr_avg;
+-- 
+2.7.4
+

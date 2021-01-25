@@ -1,0 +1,22 @@
+{
+    "FRU": [
+        {
+            "ID": 0,
+            "Name": "motherboard",
+            "Bus": "3",
+            "Address": "0x50"
+        },
+        {
+            "ID": 1,
+            "Name": "runbmc",
+            "Bus": "8",
+            "Address": "0x51"
+        },
+        {
+            "ID": 2,
+            "Name": "scmbridge",
+            "Bus": "8",
+            "Address": "0x53"
+        }
+    ]
+}
