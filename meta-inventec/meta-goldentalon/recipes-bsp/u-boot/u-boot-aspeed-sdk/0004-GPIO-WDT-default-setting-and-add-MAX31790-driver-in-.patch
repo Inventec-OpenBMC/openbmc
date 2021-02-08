@@ -1,4 +1,4 @@
-From a356ac64ab4c8e63c23fe74c8ae7eda47e90a64e Mon Sep 17 00:00:00 2001
+From dee9d6d6acca2bc9a55f871609c62ea334a13ce5 Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Fri, 3 Jul 2020 23:19:59 -0400
 Subject: [PATCH 4/5] GPIO, WDT default setting and add MAX31790 driver in
@@ -9,9 +9,9 @@ Subject: [PATCH 4/5] GPIO, WDT default setting and add MAX31790 driver in
 
 %% original patch: 0004-GPIO-WDT-default-setting-and-add-MAX31790-driver-in-.patch
 ---
- arch/arm/dts/ast2600-goldentalon.dts            |  37 +++++++
+ arch/arm/dts/ast2600-goldentalon.dts        |  37 +++++++
  arch/arm/mach-aspeed/ast2600/board_common.c |  65 +++++++++++--
- configs/goldentalon-ast2600_defconfig           |   1 +
+ configs/goldentalon-ast2600_defconfig       |   1 +
  drivers/i2c/Kconfig                         |  10 ++
  drivers/i2c/Makefile                        |   1 +
  drivers/i2c/max31790_i2c.c                  | 143 ++++++++++++++++++++++++++++
@@ -219,10 +219,10 @@ index 2e881f2..e9e6b1e 100644
  	if (ret) {
  		debug("DRAM FAIL2\r\n");
 diff --git a/configs/goldentalon-ast2600_defconfig b/configs/goldentalon-ast2600_defconfig
-index a443b0b..8a23c01 100644
+index 66d0d7a..b7acae4 100644
 --- a/configs/goldentalon-ast2600_defconfig
 +++ b/configs/goldentalon-ast2600_defconfig
-@@ -73,3 +73,4 @@ CONFIG_DM_SPI=y
+@@ -75,3 +75,4 @@ CONFIG_DM_SPI=y
  CONFIG_SYSRESET=y
  CONFIG_WDT=y
  CONFIG_DM_I2C_COMPAT=y

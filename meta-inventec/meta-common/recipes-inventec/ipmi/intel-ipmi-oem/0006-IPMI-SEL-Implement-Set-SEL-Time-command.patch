@@ -1,27 +1,28 @@
-From c235acc8230e5fb9bd07373c705c64114f1049c4 Mon Sep 17 00:00:00 2001
+From 97477f9b7b6526ccbb32da3ef71f8b13ed114247 Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Tue, 4 Aug 2020 16:40:49 -0400
-Subject: [PATCH 06/11] Implement Set SEL Time command
+Subject: [PATCH] Implement Set SEL Time command
 
 Implement Set SEL Time command.
 Note: Time sync mode should be Manual to set.
 ---
- src/storagecommands.cpp | 70 ++++++++++++++++++++++++++++++++++++++++++++++---
- 1 file changed, 67 insertions(+), 3 deletions(-)
+ src/storagecommands.cpp | 71 ++++++++++++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 68 insertions(+), 3 deletions(-)
 
 diff --git a/src/storagecommands.cpp b/src/storagecommands.cpp
-index bd43a34..edd6646 100644
+index bd43a34..636dc7b 100644
 --- a/src/storagecommands.cpp
 +++ b/src/storagecommands.cpp
-@@ -26,6 +26,7 @@
+@@ -26,6 +26,8 @@
  #include <boost/process.hpp>
  #include <ipmid/api.hpp>
  #include <ipmid/message.hpp>
 +#include <ipmid/utils.hpp>
++#include <sys/time.h>
  #include <phosphor-ipmi-host/selutility.hpp>
  #include <phosphor-logging/log.hpp>
  #include <sdbusplus/message/types.hpp>
-@@ -39,6 +40,15 @@
+@@ -39,6 +41,15 @@
  
  static constexpr bool DEBUG = false;
  
@@ -37,7 +38,7 @@ index bd43a34..edd6646 100644
  namespace intel_oem::ipmi::sel
  {
  static const std::filesystem::path selLogDir = "/var/log";
-@@ -1208,10 +1218,64 @@ ipmi::RspType<uint32_t> ipmiStorageGetSELTime()
+@@ -1208,10 +1219,64 @@ ipmi::RspType<uint32_t> ipmiStorageGetSELTime()
      return ipmi::responseSuccess(selTime.tv_sec);
  }
  

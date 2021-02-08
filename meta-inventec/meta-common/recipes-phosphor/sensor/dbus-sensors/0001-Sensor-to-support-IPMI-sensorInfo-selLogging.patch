@@ -1,8 +1,8 @@
-From 6da16a8d104c9bd740247a85fa93c4a6868c39ba Mon Sep 17 00:00:00 2001
+From e192552751529610729e8066ce180ccc2166a980 Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Thu, 13 Aug 2020 15:46:36 -0400
-Subject: [PATCH 01/13] Subject: [PATCH] Subject: [PATCH][Sensor] Patch to
- support IPMI sensor info and add IPMI sel
+Subject: [PATCH] Subject: [PATCH] Subject: [PATCH][Sensor] Patch to support
+ IPMI sensor info and add IPMI sel
 
 - Support retrieving IPMI information from entity-manager inventory
 - Add the dbus-interface definitions of IPMI logging service in Utils.hpp for recording IPMI SEL.
@@ -13,8 +13,8 @@ Subject: [PATCH 01/13] Subject: [PATCH] Subject: [PATCH][Sensor] Patch to
  include/Utils.hpp    | 12 ++++++++
  include/sensor.hpp   |  7 +++++
  src/IpmiInfo.cpp     | 86 ++++++++++++++++++++++++++++++++++++++++++++++++++++
- src/Utils.cpp        | 13 ++++++++
- 6 files changed, 161 insertions(+), 9 deletions(-)
+ src/Utils.cpp        | 14 +++++++++
+ 6 files changed, 162 insertions(+), 9 deletions(-)
  create mode 100644 include/IpmiInfo.hpp
  create mode 100644 src/IpmiInfo.cpp
 
@@ -255,13 +255,13 @@ index 0000000..4187f68
 +
 +} // namespace ipmidata
 diff --git a/src/Utils.cpp b/src/Utils.cpp
-index 899ec98..03609e0 100644
+index 899ec98..48b55a3 100644
 --- a/src/Utils.cpp
 +++ b/src/Utils.cpp
-@@ -125,6 +125,17 @@ std::set<std::string> getPermitSet(const SensorBaseConfigMap& config)
-         }
+@@ -126,6 +126,18 @@ std::set<std::string> getPermitSet(const SensorBaseConfigMap& config)
      }
      return permitSet;
+ }
 +// Define a hook function pointer which can be used to do some action immediately once recieve dbus signal of power status match
 +static std::function<void(bool)> powerStatHookHandlr = [] (bool powerStatus) {};
 +void setupPowerStatHookHandlr(std::function<void(bool)> hookHandlr)
@@ -273,10 +273,11 @@ index 899ec98..03609e0 100644
 +        powerStatHookHandlr = std::move(hookHandlr);
 +        set = true;
 +    }
- }
++}
  
  bool getSensorConfiguration(
-@@ -319,6 +330,7 @@ void setupPowerMatch(const std::shared_ptr<sdbusplus::asio::connection>& conn)
+     const std::string& type,
+@@ -319,6 +331,7 @@ void setupPowerMatch(const std::shared_ptr<sdbusplus::asio::connection>& conn)
                  {
                      timer.cancel();
                      powerStatusOn = false;
@@ -284,7 +285,7 @@ index 899ec98..03609e0 100644
                      return;
                  }
                  // on comes too quickly
-@@ -334,6 +346,7 @@ void setupPowerMatch(const std::shared_ptr<sdbusplus::asio::connection>& conn)
+@@ -334,6 +347,7 @@ void setupPowerMatch(const std::shared_ptr<sdbusplus::asio::connection>& conn)
                          return;
                      }
                      powerStatusOn = true;

@@ -924,11 +924,7 @@
         }
     ],
     "Name": "GOLDENTALON",
-    "Probe": [
-            "xyz.openbmc_project.FruDevice({'BOARD_PRODUCT_NAME': '.*SCM*'})",
-            "OR",
-            "xyz.openbmc_project.FruDevice({'PRODUCT_PRODUCT_NAME': '.*SCM*'})"
-    ],
+    "Probe": "xyz.openbmc_project.FruDevice({'BUS': 3, 'ADDRESS': 84})",
     "Type": "Board",
     "xyz.openbmc_project.Inventory.Decorator.Asset": {
         "Manufacturer": "$BOARD_MANUFACTURER",

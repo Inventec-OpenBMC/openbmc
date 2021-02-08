@@ -1,4 +1,4 @@
-From e90aba84ce67550fa25f882f98b2665e5e8aac9c Mon Sep 17 00:00:00 2001
+From f52f42f364fb92378627be44b68d8652d3f11955 Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Wed, 1 Jul 2020 16:54:42 +0800
 Subject: [PATCH 3/5] Revise spi frequency in uboot
@@ -6,7 +6,7 @@ Subject: [PATCH 3/5] Revise spi frequency in uboot
 Revise spi frequency in uboot
 ---
  arch/arm/dts/ast2600-goldentalon.dts | 14 +++++++-------
- drivers/spi/aspeed_spi.c         |  2 +-
+ drivers/spi/aspeed_spi.c             |  2 +-
  2 files changed, 8 insertions(+), 8 deletions(-)
 
 diff --git a/arch/arm/dts/ast2600-goldentalon.dts b/arch/arm/dts/ast2600-goldentalon.dts

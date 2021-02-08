@@ -1,13 +1,13 @@
-From 244a0d96f1089d01eb4a96986938b98c2d4dc4ee Mon Sep 17 00:00:00 2001
+From 1ce9cb48790ff54a7d97453f2c05033eddbe34c4 Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Mon, 18 May 2020 20:06:14 -0400
 Subject: [PATCH] Initial-u-boot-fw-utility
 
 ---
- arch/arm/dts/Makefile             |  1 +
- configs/goldentalon-ast2600_defconfig | 74 +++++++++++++++++++++++++++++++++++++++
- include/configs/aspeed-common.h   |  5 ++-
- include/configs/evb_ast2600a0.h   |  5 +++
+ arch/arm/dts/Makefile                 |  1 +
+ configs/goldentalon-ast2600_defconfig | 76 +++++++++++++++++++++++++++++++++++
+ include/configs/aspeed-common.h       |  5 ++-
+ include/configs/evb_ast2600a0.h       |  3 ++
  4 files changed, 84 insertions(+), 1 deletion(-)
  create mode 100644 configs/goldentalon-ast2600_defconfig
 
@@ -25,15 +25,17 @@ index e9d9947..4c21dc2 100755
  	ast2600-slt.dtb \
 diff --git a/configs/goldentalon-ast2600_defconfig b/configs/goldentalon-ast2600_defconfig
 new file mode 100644
-index 0000000..9b6e585
+index 0000000..4e757f6
 --- /dev/null
 +++ b/configs/goldentalon-ast2600_defconfig
-@@ -0,0 +1,74 @@
+@@ -0,0 +1,76 @@
 +CONFIG_ARM=y
 +CONFIG_ARCH_ASPEED=y
 +CONFIG_SYS_TEXT_BASE=0x0
 +CONFIG_ASPEED_AST2600=y
 +CONFIG_SYS_MALLOC_F_LEN=0x2000
++CONFIG_ENV_SIZE=0x10000
++CONFIG_ENV_OFFSET=0xE0000
 +CONFIG_ARMV7_BOOT_SEC_DEFAULT=y
 +CONFIG_NR_DRAM_BANKS=1
 +CONFIG_FIT=y
@@ -127,16 +129,14 @@ index 8769587..67fe437 100755
  
  #define CONFIG_EXTRA_ENV_SETTINGS \
 diff --git a/include/configs/evb_ast2600a0.h b/include/configs/evb_ast2600a0.h
-index 4592c85..79eccbf 100644
+index 4592c85..f30bdc1 100644
 --- a/include/configs/evb_ast2600a0.h
 +++ b/include/configs/evb_ast2600a0.h
-@@ -16,4 +16,9 @@
+@@ -16,4 +16,7 @@
  /* Memory Info */
  #define CONFIG_SYS_LOAD_ADDR		0x83000000
  
 +/* Environment */
-+#define CONFIG_ENV_SIZE			0x10000
-+#define CONFIG_ENV_OFFSET		0xe0000
 +#define CONFIG_ENV_SECT_SIZE		(4 << 10)
 +
  #endif	/* __CONFIG_H */

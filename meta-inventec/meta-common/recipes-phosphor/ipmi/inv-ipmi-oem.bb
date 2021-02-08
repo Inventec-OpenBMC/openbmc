@@ -4,9 +4,15 @@ PR = "r0"
 LICENSE = "Apache-2.0"
 LIC_FILES_CHKSUM = "file://${COREBASE}/meta/files/common-licenses/Apache-2.0;md5=89aea4e17d99a7cacdbeed46a0096b10"
 
-SRC_URI = "file://inv-ipmi-oem/*.*"
+FILESEXTRAPATHS_prepend := "${THISDIR}:"
+SRC_URI = "file://${BPN}/CMakeLists.txt           \
+           file://${BPN}/include/commandutils.hpp \
+           file://${BPN}/include/oemcommands.hpp  \
+           file://${BPN}/LICENSE                  \
+           file://${BPN}/src/oemcommands.cpp      \
+"
 
-S = "${WORKDIR}/inv-ipmi-oem"
+S = "${WORKDIR}/${BPN}"
 
 DEPENDS = "boost phosphor-ipmi-host phosphor-logging systemd sdbusplus libpeci"
 DEPENDS += "nlohmann-json"

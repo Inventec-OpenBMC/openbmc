@@ -14,13 +14,15 @@ DEPENDS += "systemd"
 RDEPENDS_${PN} += "libsystemd"
 RDEPENDS_${PN} += "bash"
 
-S = "${WORKDIR}/gpiolib"
-SRC_URI = "file://gpiolib/*.*"
+FILESEXTRAPATHS_append := "${THISDIR}:"
+S = "${WORKDIR}/${BPN}"
+SRC_URI = "file://${BPN}/gpiolib.hpp \
+           file://${BPN}/gpioutil \
+          "
 
-FILESEXTRAPATHS_append := "${THISDIR}/gpiolib:"
 
 do_compile() {
-    ${CXX} -nostartfiles -Wl,-hash-style=${HASHSTYLE} -o gpiolib gpiolib.hpp
+    ${CXX} -nostartfiles -Wl,-hash-style=${HASHSTYLE} -o gpiolib ${S}/gpiolib.hpp
 }
 
 do_install() {

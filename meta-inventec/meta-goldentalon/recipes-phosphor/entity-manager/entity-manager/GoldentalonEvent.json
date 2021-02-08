@@ -119,10 +119,6 @@
         }
     ],
     "Name": "SCM_EVENT",
-    "Probe": [
-            "xyz.openbmc_project.FruDevice({'BOARD_PRODUCT_NAME': '.*SCM*'})",
-            "OR",
-            "xyz.openbmc_project.FruDevice({'PRODUCT_PRODUCT_NAME': '.*SCM*'})"
-    ],
+    "Probe": "Probe": "xyz.openbmc_project.FruDevice({'BUS': 3, 'ADDRESS': 84})",
     "Type": "Event"
 }

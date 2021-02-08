@@ -1,8 +1,5 @@
 FILESEXTRAPATHS_append := "${THISDIR}/${PN}:"
 
-SRCREV = "c7e956275ffeff2b3e8ea9cad90bdccec61b4945"
-
-
 DEPENDS += "inv-gpiolib"
 
 
@@ -23,10 +20,6 @@ SRC_URI += "file://0001-Sensor-to-support-IPMI-sensorInfo-selLogging.patch \
 
 
 EXTRA_OECMAKE += "-DDISABLE_MCUTEMP=ON -DDISABLE_INTRUSION=ON -DDISABLE_EXIT_AIR=ON"
-
-SYSTEMD_SERVICE_${PN}_remove += " xyz.openbmc_project.exitairsensor.service"
-SYSTEMD_SERVICE_${PN}_remove += " xyz.openbmc_project.intrusionsensor.service"
-SYSTEMD_SERVICE_${PN}_remove += " xyz.openbmc_project.mcutempsensor.service"
 
 SYSTEMD_SERVICE_${PN} += " xyz.openbmc_project.gpiosensor.service"
 SYSTEMD_SERVICE_${PN} += " xyz.openbmc_project.nmeventsensor.service"

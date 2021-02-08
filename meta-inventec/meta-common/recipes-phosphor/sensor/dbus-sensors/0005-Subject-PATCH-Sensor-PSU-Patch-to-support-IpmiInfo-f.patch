@@ -120,7 +120,7 @@ index 25cc5ad..35b9666 100644
              rawValue = std::stod(response);
              responseStream.clear();
              double nvalue = rawValue / sensorFactor;
-+            double nvalue = nvalue / rsenseValue;   // For HSC devic Rsense value
++            nvalue = nvalue / rsenseValue;   // For HSC devic Rsense value
 +
 +            if constexpr (DEBUG)
 +            {

@@ -1,6 +1,5 @@
 FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
 
-SRCREV = "a9804f465099882fdef0c5548dcc6fde50d04560"
 
 DISTRO_FEATURES += "ipmi-fru"
 
@@ -12,6 +11,7 @@ SRC_URI += "file://GoldentalonEvent.json"
 
 
 SRC_URI_append += " file://0001-Add-a-writable-dbus-interface.patch \
+                    file://0002-Fix-dbus-probe-conditions.patch\
                   "
 
 do_install_append() {

@@ -1,5 +1,5 @@
 FILESEXTRAPATHS_append := "${THISDIR}/${PN}:"
-SRC_URI_append = "  
+SRC_URI_append = "  \ 
                     file://0001-Initial-goldentalon-dts.patch \
                     file://0002-Correct-phy-led-with-speed-1Gbps-100Mbps-10Mbps.patch \
                     file://0003-Enable-kcs1-io-address.patch \

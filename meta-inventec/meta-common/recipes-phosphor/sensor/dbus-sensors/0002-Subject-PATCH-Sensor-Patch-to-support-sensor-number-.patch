@@ -1,15 +1,15 @@
-From f9b07422dfe8997aa7f40cf333f76f06f1a08b48 Mon Sep 17 00:00:00 2001
+From 9c069da5f581baf3d058a859a3640123748e4e98 Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Thu, 13 Aug 2020 19:01:10 +0800
-Subject: [PATCH 02/13] Subject: [PATCH] [Sensor] Patch to support sensor
- number, entity number and entity instance
+Subject: [PATCH] Subject: [PATCH] [Sensor] Patch to support sensor number,
+ entity number and entity instance
 
 Patch to support IPMI information from entity-manager inventory
 - IPMB PCH temperature sensor
 ---
  include/IpmbSensor.hpp |  2 ++
- src/IpmbSensor.cpp     | 35 +++++++++++++++++++++++++++++++++++
- 2 files changed, 37 insertions(+)
+ src/IpmbSensor.cpp     | 32 +++++++++++++++++++++++++++++++-
+ 2 files changed, 33 insertions(+), 1 deletion(-)
 
 diff --git a/include/IpmbSensor.hpp b/include/IpmbSensor.hpp
 index 4207d1c..c518e10 100644
@@ -31,7 +31,7 @@ index 4207d1c..c518e10 100644
                 std::string& sensorTypeName);
      ~IpmbSensor();
 diff --git a/src/IpmbSensor.cpp b/src/IpmbSensor.cpp
-index 29fd7f4..947e9c4 100644
+index 29fd7f4..06a27aa 100644
 --- a/src/IpmbSensor.cpp
 +++ b/src/IpmbSensor.cpp
 @@ -66,6 +66,7 @@ IpmbSensor::IpmbSensor(std::shared_ptr<sdbusplus::asio::connection>& conn,
@@ -92,20 +92,15 @@ index 29fd7f4..947e9c4 100644
                      uint8_t deviceAddress =
                          loadVariant<uint8_t>(entry.second, "Address");
  
-@@ -438,8 +468,13 @@ void createSensors(
+@@ -438,7 +468,7 @@ void createSensors(
                      auto& sensor = sensors[name];
                      sensor = std::make_unique<IpmbSensor>(
                          dbusConnection, io, name, pathPair.first, objectServer,
-+<<<<<<< HEAD
-                         std::move(sensorThresholds), deviceAddress,
-                         hostSMbusIndex, sensorTypeName);
-+=======
+-                        std::move(sensorThresholds), deviceAddress,
 +                        std::move(sensorThresholds), std::move(sensorIpmiConfig), deviceAddress,
-+                        sensorTypeName);
-+>>>>>>> ffffc21... Subject: [PATCH] [Sensor] Patch to support sensor number, entity number and entity instance
+                         hostSMbusIndex, sensorTypeName);
  
                      /* Initialize scale and offset value */
-                     sensor->scaleVal = 1;
 -- 
 2.7.4
 

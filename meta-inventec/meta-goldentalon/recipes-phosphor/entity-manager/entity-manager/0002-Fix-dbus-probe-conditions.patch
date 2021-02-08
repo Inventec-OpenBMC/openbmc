@@ -1,0 +1,27 @@
+From 231cf8f54124390ba9e8399fd3b27e6fa4096259 Mon Sep 17 00:00:00 2001
+From: "pj.chen" <chen.pj@inventec.com>
+Date: Fri, 19 Feb 2021 06:07:21 +0000
+Subject: [PATCH] Fix dbus probe conditions
+
+---
+ src/EntityManager.cpp | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/EntityManager.cpp b/src/EntityManager.cpp
+index 8392e1a..eda5e03 100644
+--- a/src/EntityManager.cpp
++++ b/src/EntityManager.cpp
+@@ -297,6 +297,10 @@ bool probeDbus(const std::string& interface,
+             if (deviceValue != device.end())
+             {
+                 deviceMatches = matchProbe(match.second, deviceValue->second);
++                if(!deviceMatches)
++                {
++                    break;
++                }
+             }
+             else
+             {
+-- 
+2.7.4
+

@@ -1,4 +1,4 @@
-From 55e11714e55a2705f5afeae78ed67770c9e5ce19 Mon Sep 17 00:00:00 2001
+From 69019523f2d3b6f93142bc384fdd356f6620873a Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Tue, 14 Jul 2020 23:58:27 -0400
 Subject: [PATCH 5/5] Subject: [PATCH] [Uboot] Patch diable hardware heartbeat

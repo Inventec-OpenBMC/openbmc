@@ -255,7 +255,7 @@ index 0000000..18232c2
 +    MonitorSettins& monitorSettins) :
 +    Sensor(boost::replace_all_copy(sensorName, " ", "_"),
 +           std::move(_thresholds), sensorConfiguration, objectType, maxReading,
-+           minReading, readState),
++           minReading, conn, readState),
 +    objServer(objectServer), conn(conn), inputDev(io), gpioObj(sensorName),
 +    waitTimer(io), errCount(0),
 +    monitorSettins(monitorSettins)

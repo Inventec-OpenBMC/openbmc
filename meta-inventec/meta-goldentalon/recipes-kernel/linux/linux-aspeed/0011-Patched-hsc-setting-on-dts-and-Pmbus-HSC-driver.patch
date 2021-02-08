@@ -170,7 +170,7 @@ index 4b058d3..82ffe0a 100644
  
 +		if ((info->func[0] & PMBUS_HAVE_STATUS_WORD) && (data->has_status_word))
 +			data->status[PB_STATUS_WORD_BASE]
-+			  = _pmbus_read_word_data(client, 0,
++			  = _pmbus_read_word_data(client, 0, 0xff,
 +						  PMBUS_STATUS_WORD);
 +
  		for (sensor = data->sensors; sensor; sensor = sensor->next) {
@@ -199,7 +199,7 @@ index 4b058d3..82ffe0a 100644
 +
 +	for (page = 0; page < info->pages; page++) {
 +		if (pmbus_add_sensor(data, "status", "input", index, page,
-+			PMBUS_STATUS_WORD, PSC_STATUS, true, true, false) == NULL)
++			0xff, PMBUS_STATUS_WORD, PSC_STATUS, true, true, false) == NULL)
 +			return -ENOMEM;
 +		index++;
 +	}

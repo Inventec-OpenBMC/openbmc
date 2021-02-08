@@ -1,8 +1,8 @@
-From 0e0a9432933c5d7e82b00ca0ca28486b4108f210 Mon Sep 17 00:00:00 2001
+From 509f2954fe9002b6997b112e10940f7a816cb5f8 Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Thu, 27 Aug 2020 09:44:43 +0800
-Subject: [PATCH 07/13] Subject: [Patch][dbus-sensors][Fan] Support I2C fan
- sensor max31790
+Subject: [PATCH] Subject: [Patch][dbus-sensors][Fan] Support I2C fan sensor
+ max31790
 
 - Support I2C fan sensor max31790
 - Support detect fan presence via GPIO or tach.
@@ -10,12 +10,12 @@ Subject: [PATCH 07/13] Subject: [Patch][dbus-sensors][Fan] Support I2C fan
 ---
  CMakeLists.txt         |   2 +-
  include/PwmSensor.hpp  |   4 +
- include/TachSensor.hpp |  87 ++++++++++++----
- src/FanMain.cpp        | 277 ++++++++++++++++++++++++++++++++++++++++++-------
+ include/TachSensor.hpp |  87 +++++++++++----
+ src/FanMain.cpp        | 281 ++++++++++++++++++++++++++++++++++++++++++-------
  src/PSUSensorMain.cpp  |   5 +-
  src/PwmSensor.cpp      |  32 ++++++
  src/TachSensor.cpp     | 276 ++++++++++++++++++++++++++++++++++++++++--------
- 7 files changed, 580 insertions(+), 103 deletions(-)
+ 7 files changed, 582 insertions(+), 105 deletions(-)
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
 index a38ea6e..9a309d4 100644
@@ -218,7 +218,7 @@ index 1e5347f..c197455 100644
 +                  "OpenBMC.0.1.FanRedundancyRegained", NULL);
  }
 diff --git a/src/FanMain.cpp b/src/FanMain.cpp
-index 1853bb8..aed4ae1 100644
+index 1853bb8..0f4f946 100644
 --- a/src/FanMain.cpp
 +++ b/src/FanMain.cpp
 @@ -44,8 +44,9 @@ static constexpr bool DEBUG = false;
@@ -463,60 +463,80 @@ index 1853bb8..aed4ae1 100644
  
                  constexpr double defaultMaxReading = 25000;
                  constexpr double defaultMinReading = 0;
-@@ -400,6 +508,19 @@ void createSensors(
+@@ -379,6 +487,17 @@ void createSensors(
+ 
+                         size_t pwm = std::visit(VariantToUnsignedIntVisitor(),
+                                                 findPwm->second);
++                        /* In order to parse IPMI sensorInfo of PWM sensor,
++                           we use Connector name to find the match PWM sensor.
++                        */
++                        auto findName = connector->second.find("Name");
++                        if (findName == connector->second.end())
++                        {
++                            std::cerr << "Connector Missing PWM!\n";
++                            continue;
++                        }
++                        std::string connectorName = std::visit(VariantToStringVisitor(),
++                                                            findName->second);
+                         /* use pwm name override if found in configuration else
+                          * use default */
+                         auto findOverride = connector->second.find("PwmName");
+@@ -392,7 +511,32 @@ void createSensors(
+                         {
+                             pwmName = "Pwm_" + std::to_string(pwm + 1);
+                         }
+-                        pwmNumbers.emplace_back(pwm, *interfacePath, pwmName);
++                    
++                        // The max31790 has both tach measuring and pwm functions,
++                        // and it can has up to 6 channels but uses the same pwm source.
++                        // To differ pwms, we use Connector Name as a match condition.
++                        if (fanType == FanTypes::max31790)
++                        {
++                            if (std::find(pwmCkList.begin(), pwmCkList.end(), connectorName)
++                                != pwmCkList.end())
++                            {
++                                // if it has already been in the list
++                                continue;
++                            }
++
++                            // To be efficient, put the pwm syspath to the container pwms
++                            fs::path pwmSysPath = directory / ("pwm" + std::to_string(pwm + 1));
++
++                            if (std::find(pwms.begin(), pwms.end(), pwmSysPath) != pwms.end())
++                            {
++                                // if it has already been in the list
++                                continue;
++                            }
++                            pwmCkList.emplace_back(connectorName);
++                            pwms.emplace_back(pwmSysPath);
++                        }
++
++                        pwmNumbers.emplace_back(pwm, *interfacePath, pwmName, connectorName, false);
+                     }
+                     else
+                     {
+@@ -400,6 +544,8 @@ void createSensors(
                                    << " missing pwm!\n";
                      }
  
-+                    /* In order to parse IPMI sensorInfo of PWM sensor,
-+                       we use Connector name to find the match PWM sensor.
-+                    */
-+                    auto findName = connector->second.find("Name");
-+                    if (findName == connector->second.end())
-+                    {
-+                        std::cerr << "Connector Missing PWM!\n";
-+                        continue;
-+                    }
-+                    std::string connectorName = std::visit(VariantToStringVisitor(),
-+                                                        findName->second);
 +
 +
                      auto findLED = connector->second.find("LED");
                      if (findLED != connector->second.end())
                      {
-@@ -415,6 +536,32 @@ void createSensors(
+@@ -415,22 +561,26 @@ void createSensors(
                              led = *ledName;
                          }
                      }
 +
-+                    // The max31790 has both tach measuring and pwm functions,
-+                    // and it can has up to 6 channels but uses the same pwm source.
-+                    // To differ pwms, we use Connector Name as a match condition.
-+                    if (fanType == FanTypes::max31790)
-+                    {
-+                        if (std::find(pwmCkList.begin(), pwmCkList.end(), connectorName)
-+                            != pwmCkList.end())
-+                        {
-+                            // if it has already been in the list
-+                            continue;
-+                        }
-+
-+                        // To be efficient, put the pwm syspath to the container pwms
-+                        fs::path pwmSysPath = directory / ("pwm" + std::to_string(pwm + 1));
-+
-+                        if (std::find(pwms.begin(), pwms.end(), pwmSysPath) != pwms.end())
-+                        {
-+                            // if it has already been in the list
-+                            continue;
-+                        }
-+                        pwmCkList.emplace_back(connectorName);
-+                        pwms.emplace_back(pwmSysPath);
-+                    }
-+
-+                    pwmNumbers.emplace_back(pwm, *interfacePath, pwmName, connectorName, false);
                  }
  
                  findLimits(limits, baseConfiguration);
-@@ -425,12 +572,15 @@ void createSensors(
+                 tachSensors[sensorName] = std::make_unique<TachSensor>(
+                     path.string(), baseType, objectServer, dbusConnection,
+                     std::move(presenceSensor), redundancy, io, sensorName,
+-                    std::move(sensorThresholds), *interfacePath, limits,
++                    std::move(sensorThresholds), std::move(sensorIpmiConfig), *interfacePath, limits,
                      powerState, led);
              }
              createRedundancySensor(tachSensors, dbusConnection, objectServer);
@@ -698,7 +718,7 @@ index 4824489..4c9a66a 100644
  
  void PwmSensor::setValue(uint32_t value)
 diff --git a/src/TachSensor.cpp b/src/TachSensor.cpp
-index 0490135..b8276b1 100644
+index 0490135..153fb75 100644
 --- a/src/TachSensor.cpp
 +++ b/src/TachSensor.cpp
 @@ -39,8 +39,11 @@
@@ -823,7 +843,7 @@ index 0490135..b8276b1 100644
                  responseStream.clear();
 -                updateValue(rawValue);
 +
-+                if (!preCheckTachVal(nvalue))
++                if (!preCheckTachVal(rawValue))
 +                {
 +                    goto nextTry;
 +                }
@@ -831,14 +851,14 @@ index 0490135..b8276b1 100644
 +                if (presence && presence->is_TheMethod(presenceMethod::tach))
 +                {
 +                    // check if it is under checking fan presence
-+                    if (!presence->checkPresent(nvalue))
++                    if (!presence->checkPresent(rawValue))
 +                    {
 +                        goto nextTry;
 +                    }
 +                }
 +                if (presence->getValue())
 +                {
-+                    updateValue(nvalue);
++                    updateValue(rawValue);
 +                }
              }
              catch (const std::invalid_argument&)

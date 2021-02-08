@@ -1,30 +1,30 @@
-From dc25ba8b9a82063656a16fc0d5953ac53034084a Mon Sep 17 00:00:00 2001
+From 52043c3c53bfb46849494c72220a45f6ccb2b775 Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Wed, 20 May 2020 02:28:36 -0400
-Subject: [PATCH 1/5] Initial-goldentalon-u-boot-dts
+Subject: [PATCH] Initial-goldentalon-u-boot-dts
 
 ---
  arch/arm/dts/Makefile                   |   1 +
- arch/arm/dts/ast2600-goldentalon.dts        | 204 ++++++++++++++++++++++++++++
+ arch/arm/dts/ast2600-goldentalon.dts    | 204 ++++++++++++++++++++++++++++
  arch/arm/dts/ast2600.dtsi               |  18 ++-
  arch/arm/mach-aspeed/ast2600/platform.S |  34 ++++-
- configs/goldentalon-ast2600_defconfig       |  75 +++++++++++
+ configs/goldentalon-ast2600_defconfig   |  78 +++++++++++
  drivers/net/ftgmac100.c                 | 230 +++++++++++++++++++++-----------
  include/configs/aspeed-common.h         |   6 +-
- include/configs/evb_ast2600a0.h         |   5 +
- 8 files changed, 487 insertions(+), 86 deletions(-)
+ include/configs/evb_ast2600a0.h         |   3 +
+ 8 files changed, 488 insertions(+), 86 deletions(-)
  create mode 100644 arch/arm/dts/ast2600-goldentalon.dts
  create mode 100644 configs/goldentalon-ast2600_defconfig
 
 diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
-index e9d9947..03a8f23 100755
+index e9d9947..cc620db 100755
 --- a/arch/arm/dts/Makefile
 +++ b/arch/arm/dts/Makefile
 @@ -679,6 +679,7 @@ dtb-$(CONFIG_ARCH_ASPEED) += \
  	ast2500-evb.dtb \
  	ast2600a0-evb.dtb \
  	ast2600a0-ncsi.dtb \
-+        ast2600-goldentalon.dtb
++        ast2600-goldentalon.dtb \
  	ast2600a1-evb.dtb \
  	ast2600a1-ncsi.dtb \
  	ast2600-fpga.dtb \
@@ -371,18 +371,21 @@ index f193c66..f54957f 100644
  	adrl	r0, mailbox_insn
 diff --git a/configs/goldentalon-ast2600_defconfig b/configs/goldentalon-ast2600_defconfig
 new file mode 100644
-index 0000000..a443b0b
+index 0000000..7c7a8b0
 --- /dev/null
 +++ b/configs/goldentalon-ast2600_defconfig
-@@ -0,0 +1,75 @@
+@@ -0,0 +1,78 @@
 +CONFIG_ARM=y
 +CONFIG_ARCH_ASPEED=y
 +CONFIG_SYS_TEXT_BASE=0x0
 +CONFIG_ASPEED_AST2600=y
 +CONFIG_SYS_MALLOC_F_LEN=0x2000
++CONFIG_ENV_SIZE=0x10000
++CONFIG_ENV_OFFSET=0xE0000
 +CONFIG_ARMV7_BOOT_SEC_DEFAULT=y
 +CONFIG_NR_DRAM_BANKS=1
 +CONFIG_FIT=y
++CONFIG_RAM=y
 +CONFIG_USE_BOOTARGS=y
 +CONFIG_BOOTARGS="console=ttyS4,115200n8 root=/dev/ram rw mem.devmem=1"
 +CONFIG_PRE_CONSOLE_BUFFER=y
@@ -957,16 +960,14 @@ index 8769587..e1b5b93 100755
  
  #define CONFIG_EXTRA_ENV_SETTINGS \
 diff --git a/include/configs/evb_ast2600a0.h b/include/configs/evb_ast2600a0.h
-index 4592c85..79eccbf 100644
+index 4592c85..f30bdc1 100644
 --- a/include/configs/evb_ast2600a0.h
 +++ b/include/configs/evb_ast2600a0.h
-@@ -16,4 +16,9 @@
+@@ -16,4 +16,7 @@
  /* Memory Info */
  #define CONFIG_SYS_LOAD_ADDR		0x83000000
  
 +/* Environment */
-+#define CONFIG_ENV_SIZE			0x10000
-+#define CONFIG_ENV_OFFSET		0xe0000
 +#define CONFIG_ENV_SECT_SIZE		(4 << 10)
 +
  #endif	/* __CONFIG_H */
