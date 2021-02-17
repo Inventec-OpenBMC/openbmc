@@ -45,5 +45,6 @@ SRC_URI_append += " file://0001-Removed-Get-Device-ID-command.patch \
                     file://0009-Fix-Get-Wrong-ObjPath-and-Enhance-the-performance.patch \
                     file://0010-PATCH-Modified-IPMI-Clear-SEL-function.patch \
                     file://0011-dont-register-mfg-filters.patch \
+                    file://0012-De-register-Get-and-Set-threshold.patch \
                   "
 

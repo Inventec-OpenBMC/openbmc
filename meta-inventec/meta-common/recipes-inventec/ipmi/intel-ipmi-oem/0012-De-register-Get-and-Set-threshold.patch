@@ -1,0 +1,49 @@
+From 16cd3c2a0dda688b98cf56d31b8dd206cabde9fc Mon Sep 17 00:00:00 2001
+From: "pj.chen" <chen.pj@inventec.com>
+Date: Mon, 8 Feb 2021 03:50:34 +0000
+Subject: [PATCH] De-register Get and Set threshold
+
+Comment out registration of Get and Set sensor threshold.
+We would implemet in phosphor-ipmi-host handler.
+---
+ src/sensorcommands.cpp | 21 ++++++++++++++-------
+ 1 file changed, 14 insertions(+), 7 deletions(-)
+
+diff --git a/src/sensorcommands.cpp b/src/sensorcommands.cpp
+index a81ef8d..940435d 100644
+--- a/src/sensorcommands.cpp
++++ b/src/sensorcommands.cpp
+@@ -1685,16 +1685,23 @@ void registerSensorFunctions()
+                           ipmi::sensor_event::cmdGetSensorReading,
+                           ipmi::Privilege::User, ipmiSenGetSensorReading);
+ 
++    /*
++    Inventec patch - [sensorcommands] De-register Get and Set threshold
++
++    Comment out registration of Get and Set sensor threshold.
++    We would implemet in phosphor-ipmi-host handler.
++
++    */
+     // <Get Sensor Threshold>
+-    ipmi::registerHandler(ipmi::prioOemBase, ipmi::netFnSensor,
+-                          ipmi::sensor_event::cmdGetSensorThreshold,
+-                          ipmi::Privilege::User, ipmiSenGetSensorThresholds);
++    //-ipmi::registerHandler(ipmi::prioOemBase, ipmi::netFnSensor,
++    //-                      ipmi::sensor_event::cmdGetSensorThreshold,
++    //-                      ipmi::Privilege::User, ipmiSenGetSensorThresholds);
+ 
+     // <Set Sensor Threshold>
+-    ipmi::registerHandler(ipmi::prioOemBase, ipmi::netFnSensor,
+-                          ipmi::sensor_event::cmdSetSensorThreshold,
+-                          ipmi::Privilege::Operator,
+-                          ipmiSenSetSensorThresholds);
++    //-ipmi::registerHandler(ipmi::prioOemBase, ipmi::netFnSensor,
++    //-                      ipmi::sensor_event::cmdSetSensorThreshold,
++    //-                      ipmi::Privilege::Operator,
++    //-                      ipmiSenSetSensorThresholds);
+ 
+     // <Get Sensor Event Enable>
+     ipmi::registerHandler(ipmi::prioOemBase, ipmi::netFnSensor,
+-- 
+2.7.4
+
