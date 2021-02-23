@@ -33,7 +33,6 @@ RUN groupadd -f -r -g $guid $user
 RUN useradd $user -l -u $uid -g $guid -d /home/$user -m -s /bin/bash
 # Add user to sudoers
 RUN  echo "$ACCOUNT ALL=(ALL) NOPASSWD:ALL" >>/etc/sudoers
-RUN export http_proxy=http://10.6.141.27:3128
 RUN apt-get update
 RUN apt-get install software-properties-common -y
 RUN add-apt-repository ppa:ubuntu-toolchain-r/test -y

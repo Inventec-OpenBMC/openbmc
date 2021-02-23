@@ -34,6 +34,7 @@ SRC_URI_append = " file://transformers.cfg \
 		   file://0002-inventec-transformers-Add-tmp468-driver.patch \
 		   file://0003-inventec-transformers-intel-asd-1.4.4-jtag-driver.patch \
 		   file://0004-inventec-transformers-Add-virtual-driver-to-simulate.patch \
+		   file://0005-inventec-transformers-KCS3-can-t-be-created-because.patch \
                  "
 
 do_add_overwrite_files () {
