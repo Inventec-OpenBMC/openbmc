@@ -78,7 +78,7 @@ rm -rf $GIT_CONF_FILE
 
 
 echo $CONTAINER_NAME
-DOCKER_RUN_ARGS="--privileged --rm --net host --name $CONTAINER_NAME --workdir $OPENBMC_DIR $PROXY_ENV_SETTING -v $TOPDIR:$OPENBMC_DIR $DOCKER_IMAGE"
+DOCKER_RUN_ARGS="--rm --net host --name $CONTAINER_NAME --workdir $OPENBMC_DIR $PROXY_ENV_SETTING -v $TOPDIR:$OPENBMC_DIR $DOCKER_IMAGE"
 
 if [ -z "$TARGET" ]
 then

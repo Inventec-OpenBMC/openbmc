@@ -50,7 +50,7 @@ sleep 2
 
 if [ -z $IMAGE_PATH ]
 then
-  IMAGE_PATH=$TOP_PATH/build/tmp/deploy/images/$MECHINE
+  IMAGE_PATH=$TOP_PATH/build/$MECHINE/tmp/deploy/images/$MECHINE
   echo $IMAGE_PATH
 fi
 
