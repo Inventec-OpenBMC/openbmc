@@ -2,7 +2,7 @@ inherit obmc-phosphor-systemd
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
 
-EEPROM_NAMES = "bmc"
+EEPROM_NAMES = "bmc pcie_riser"
 
 EEPROMFMT = "system/chassis/{0}"
 EEPROM_ESCAPEDFMT = "system-chassis-{0}"

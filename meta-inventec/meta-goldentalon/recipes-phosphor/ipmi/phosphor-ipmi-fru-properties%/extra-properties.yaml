@@ -1,0 +1,18 @@
+/system/chassis/motherboard/bmc:
+    xyz.openbmc_project.Inventory.Decorator.Replaceable:
+        FieldReplaceable: 'true'
+    xyz.openbmc_project.Inventory.Decorator.Cacheable:
+        Cached: 'true'
+    xyz.openbmc_project.Inventory.Item:
+        Present: 'true'
+        EepromPath: '"/sys/bus/i2c/devices/3-0054/eeprom"'
+        EepromService: '"obmc-read-eeprom@system-chassis-bmc.service"'
+/system/chassis/motherboard/pcie_riser:
+    xyz.openbmc_project.Inventory.Decorator.Replaceable:
+        FieldReplaceable: 'true'
+    xyz.openbmc_project.Inventory.Decorator.Cacheable:
+        Cached: 'true'
+    xyz.openbmc_project.Inventory.Item:
+        Present: 'true'
+        EepromPath: '"/sys/bus/i2c/devices/14-0050/eeprom"'
+        EepromService: '"obmc-read-eeprom@system-chassis-pcie_riser.service"'

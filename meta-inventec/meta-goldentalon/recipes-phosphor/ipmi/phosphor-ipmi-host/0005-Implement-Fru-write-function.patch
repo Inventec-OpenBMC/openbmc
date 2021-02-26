@@ -1,0 +1,202 @@
+From 4b2df8d9d9ec87e17fd352912c9afee571f3587f Mon Sep 17 00:00:00 2001
+From: cynthia <wu.cynthia@inventec.com>
+Date: Fri, 26 Feb 2021 09:57:13 +0800
+Subject: [PATCH] Implement Fru write function
+
+---
+ storagehandler.cpp | 137 ++++++++++++++++++++++++++++++++++++++++++++-
+ storagehandler.hpp |   4 ++
+ 2 files changed, 140 insertions(+), 1 deletion(-)
+
+diff --git a/storagehandler.cpp b/storagehandler.cpp
+index 74e5d65..0b29a9d 100644
+--- a/storagehandler.cpp
++++ b/storagehandler.cpp
+@@ -10,6 +10,10 @@
+ #include <mapper.h>
+ #include <systemd/sd-bus.h>
+ 
++#include <iostream>
++#include <fstream>
++#include <vector>
++
+ #include <algorithm>
+ #include <chrono>
+ #include <cstdio>
+@@ -62,6 +66,8 @@ ipmi::sel::ObjectPaths paths;
+ 
+ } // namespace cache
+ 
++#define IPMI_EIGHT_BYTE 8
++
+ using InternalFailure =
+     sdbusplus::xyz::openbmc_project::Common::Error::InternalFailure;
+ using namespace phosphor::logging;
+@@ -655,7 +661,6 @@ ipmi::RspType<uint16_t, // FRU Inventory area size in bytes,
+     {
+         return ipmi::responseSensorInvalid();
+     }
+-
+     try
+     {
+         return ipmi::responseSuccess(
+@@ -749,6 +754,131 @@ ipmi::RspType<uint8_t,  // SDR version
+                                  operationSupport);
+ }
+ 
++ipmi::RspType<uint8_t>
++    ipmiStorageWriteFruData(uint8_t fruDeviceId, uint16_t fruInventoryOffset,
++                            std::vector<uint8_t>& dataToWrite)
++{
++    sdbusplus::bus::bus bus{ipmid_get_sd_bus_connection()};
++    std::vector<char> file_data;
++    std::string result;
++    std::string service="";
++    std::string eeprom_path="";
++    std::string eeprom_service="";
++    size_t start = fruInventoryOffset & 0xFF;  // start offset is in 2 LS bytes, end offset is in 2 MS bytes
++    size_t end = fruInventoryOffset >> 8; // fruInventoryOffset/0x100
++    size_t writeLen = dataToWrite.size();
++    uint8_t crc = 0;
++    uint8_t area_last = -1;
++    uint8_t area_start= -1;
++    int lastWriteAddr = start + writeLen;
++    auto iter = frus.find(fruDeviceId);
++    if (iter == frus.end())
++    {
++        fprintf(stderr,"Unsupported fru id %x\n", fruDeviceId);
++        return ipmi::responseUnspecifiedError();
++    }
++
++    /*Get eeprom path with dbus interface*/
++    auto& instanceList = iter->second;
++    for (auto& instance : instanceList)
++    {
++        std::string objPath = invObjPath+instance.path;
++        service = ipmi::getService(bus, invItemInterface,objPath.c_str() );
++        
++        try
++        {
++            auto temp = ipmi::getDbusProperty(
++                bus, service, objPath, invItemInterface, "EepromPath");
++            eeprom_path =  std::get<std::string>(temp);
++            temp = ipmi::getDbusProperty(
++                bus, service, objPath, invItemInterface, "EepromService");
++            eeprom_service =  std::get<std::string>(temp);
++        }
++        catch (const sdbusplus::exception::SdBusError& e)
++        {
++            fprintf(stderr,"Error in reading property values");
++        }    
++    }
++    if(eeprom_path==""){
++        std::fprintf(stderr, "Failed to get the path for eeprom file for fru %x\n", fruDeviceId);
++        return ipmi::responseUnspecifiedError();    
++    }else if(eeprom_service==""){
++        std::fprintf(stderr, "Failed to get the service name for fru %x\n", fruDeviceId);
++        return ipmi::responseUnspecifiedError();     
++    }
++
++    try{
++        std::ifstream eeprom_file(eeprom_path, std::ios::binary | std::ios::ate);
++        const unsigned int file_length = eeprom_file.tellg();
++        file_data.resize(file_length);
++        eeprom_file.seekg(0);
++        if(!eeprom_file.read(&file_data[0], file_length)){
++            fprintf(stderr, "Read file %s failed\n", eeprom_path.c_str());
++            return ipmi::responseUnspecifiedError();
++        }     
++    }
++    catch (std::ios_base::failure& e) {
++        fprintf(stderr,"Failed to read eeprom file %s\n", eeprom_path.c_str());
++        return ipmi::responseUnspecifiedError();    
++    }
++
++    if(writeLen != end-start+1){
++        std::fprintf(stderr, "Data size %x doesn't match with the given start/end offset size(%x)\n", writeLen, end-start+1);
++        return ipmi::responseUnspecifiedError();    
++    }
++
++    if ((int)(file_data.size()) < lastWriteAddr)
++    {
++        file_data.resize(fruInventoryOffset + writeLen);
++    }
++
++    /*count checksum after data is changed
++      first 8 bytes: common header, with offsets of each area (starts with second byte)*/
++    for(int i=1; i<IPMI_EIGHT_BYTE; i++){
++        area_start = file_data[i]*IPMI_EIGHT_BYTE;
++        uint8_t size = file_data[area_start+1]*IPMI_EIGHT_BYTE;
++        if(size==0){
++            continue;
++        }
++        if( (int)(start)>=area_start&&(int)(end)< area_start+size-1){
++            area_last=area_start+size-1;
++            break;
++        }
++    }
++
++    if(area_start<0||area_last<0){
++        fprintf(stderr, "Can't modify different section at the same time!\n");
++        return ipmi::responseUnspecifiedError();
++    }
++
++    std::copy(dataToWrite.begin(), dataToWrite.begin() + writeLen, file_data.begin() + start);
++
++    for(int i=area_start; i<area_last; i++){
++        crc += file_data[i];
++    }
++    crc *= -1;
++    file_data[area_last] = crc; /*replace with new crc*/
++
++    /* write all data to eeprom file*/
++    int eeprom = open(eeprom_path.c_str(), O_RDWR | O_CLOEXEC);
++    write(eeprom, file_data.data(), file_data.size());
++    close(eeprom);
++
++    /* run service to parse and update new fru info*/
++    try{
++        auto method = bus.new_method_call(SYSTEMD_SERVICE, SYSTEMD_ROOT,
++                                              SYSTEMD_INTERFACE, "StartUnit");
++        method.append(eeprom_service, "replace");
++        bus.call_noreply(method);
++    }catch (const sdbusplus::exception::SdBusError& e)
++    {
++        fprintf(stderr,"Error in starting service %s\n", eeprom_service.c_str());
++        return ipmi::responseUnspecifiedError();
++    }  
++
++    return ipmi::responseSuccess();
++}
++
+ void register_netfn_storage_functions()
+ {
+     // <Get SEL Info>
+@@ -799,6 +929,11 @@ void register_netfn_storage_functions()
+                           ipmi::storage::cmdReadFruData,
+                           ipmi::Privilege::Operator, ipmiStorageReadFruData);
+ 
++    // <WRITE FRU Data>
++    ipmi::registerHandler(ipmi::prioOpenBmcBase, ipmi::netFnStorage,
++                          ipmi::storage::cmdWriteFruData,
++                          ipmi::Privilege::Operator, ipmiStorageWriteFruData);
++
+     // <Get Repository Info>
+     ipmi::registerHandler(ipmi::prioOpenBmcBase, ipmi::netFnStorage,
+                           ipmi::storage::cmdGetSdrRepositoryInfo,
+diff --git a/storagehandler.hpp b/storagehandler.hpp
+index 6c91905..1045f41 100644
+--- a/storagehandler.hpp
++++ b/storagehandler.hpp
+@@ -21,3 +21,7 @@ enum ipmi_netfn_storage_cmds
+     IPMI_CMD_SET_SEL_TIME = 0x49,
+ 
+ };
++
++constexpr auto SYSTEMD_SERVICE = "org.freedesktop.systemd1";
++constexpr auto SYSTEMD_ROOT = "/org/freedesktop/systemd1";
++constexpr auto SYSTEMD_INTERFACE = "org.freedesktop.systemd1.Manager";
+\ No newline at end of file
+-- 
+2.17.1
+
