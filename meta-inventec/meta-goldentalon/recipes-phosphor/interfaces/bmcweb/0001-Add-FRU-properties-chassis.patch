@@ -1,0 +1,18 @@
+diff --git a/redfish-core/lib/chassis.hpp b/redfish-core/lib/chassis.hpp
+index cd26849..8560bb7 100644
+--- a/redfish-core/lib/chassis.hpp
++++ b/redfish-core/lib/chassis.hpp
+@@ -338,6 +338,13 @@ class Chassis : public Node
+                                 if ((propertyName == "PartNumber") ||
+                                     (propertyName == "SerialNumber") ||
+                                     (propertyName == "Manufacturer") ||
++				    (propertyName == "BuildDate") ||
++				    (propertyName == "FruVersion") ||
++				    (propertyName == "ProductName") ||
++				    (propertyName == "ProductVersion") ||
++				    (propertyName == "ProductAssetTag") ||
++				    (propertyName == "ChassisPartNumber") ||
++				    (propertyName == "ChassisSerialNumber") ||
+                                     (propertyName == "Model"))
+                                 {
+                                     const std::string* value =

@@ -930,7 +930,14 @@
         "Manufacturer": "$BOARD_MANUFACTURER",
         "Model": "$BOARD_PRODUCT_NAME",
         "PartNumber": "$BOARD_PART_NUMBER",
-        "SerialNumber": "$BOARD_SERIAL_NUMBER"
+        "SerialNumber": "$BOARD_SERIAL_NUMBER",
+	"BuildDate": "$BOARD_MANUFACTURE_DATE",
+        "FruVersion": "$BOARD_FRU_VERSION_ID",
+        "ProductName": "$BOARD_PRODUCT_NAME",
+	"ProductVersion": "$PRODUCT_VERSION",
+	"ProductAssetTag": "$PRODUCT_ASSET_TAG",
+	"ChassisPartNumber": "$CHASSIS_PART_NUMBER",
+	"ChassisSerialNumber": "$CHASSIS_SERIAL_NUMBER"
     },
     "xyz.openbmc_project.Inventory.Decorator.AssetTag": {
         "AssetTag": "$PRODUCT_ASSET_TAG"
