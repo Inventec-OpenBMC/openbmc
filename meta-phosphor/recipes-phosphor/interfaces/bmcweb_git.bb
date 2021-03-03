@@ -33,7 +33,7 @@ FILES_${PN} += "${datadir}/** "
 
 inherit meson
 
-EXTRA_OEMESON = "--buildtype=minsize -Dtests=disabled -Dyocto-deps=enabled"
+EXTRA_OEMESON = "--buildtype=minsize -Dtests=disabled -Dyocto-deps=enabled -Dhttp-body-limit=50"
 
 SYSTEMD_SERVICE_${PN} += "bmcweb.service bmcweb.socket"
 
