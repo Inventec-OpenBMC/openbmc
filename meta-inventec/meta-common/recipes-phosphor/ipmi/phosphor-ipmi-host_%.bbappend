@@ -5,6 +5,8 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
 SRC_URI_append = " file://0001-sensorhandler-fix-get-threshold-error.patch \
                    file://0002-sensorhandler-Implement-SetSensorThreshold-command.patch \
                    file://0003-sensorhandler-Implement-GetSensorReadingFactors-comm.patch \
+		   file://0004-Implement-Fru-write-function.patch \
+		   file://0005-Modify-ipmiStorageWriteFruData-for-fru-write-command.patch \
 "
 
 

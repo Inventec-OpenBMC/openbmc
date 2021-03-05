@@ -1,0 +1,109 @@
+From 1ee572f3e78c2ed27703e7519a0ab9ff57823420 Mon Sep 17 00:00:00 2001
+From: cynthia <wu.cynthia@inventec.com>
+Date: Mon, 8 Mar 2021 14:23:05 +0800
+Subject: [PATCH] - Modify ipmiStorageWriteFruData for fru write command
+
+	Sympthon/Reason:
+		1.ipmitool fru write command can't write fru data
+		2.We shouldn't count fru checksum with ipmitool fru
+		  write command
+
+	Root Cause:
+		1. Error in offset parsing
+		2. N/A
+
+	Solution/Changes:
+		[phosphor-ipmi-host]
+		1. Change ways to parse offset under ipmiStorageWriteFruData
+		2. Remove parts to count checksum under ipmiStorageWriteFruData
+
+	Entry Test:
+		[ipmitool fru write]
+		sysadmin@goldentalon:~# ipmitool fru print
+		FRU Device Description : Builtin FRU Device (ID 0)
+		 Board Mfg Date        : Mon Apr  6 19:21:00 2020 UTC
+
+		FRU Device Description : pcie_riser (ID 5)
+		 Board Mfg Date        : Mon Apr  6 19:21:00 2020 UTC
+		sysadmin@goldentalon:~# ipmitool fru write 0 fru.bin
+		Fru Size         : 10208 bytes
+		Size to Write    : 216 bytes
+		sysadmin@goldentalon:~# ipmitool fru print
+
+		FRU Device Description : Builtin FRU Device (ID 0)
+		 Board Mfg Date        : Wed Dec  2 10:47:00 2020 UTC
+		 Product Manufacturer  : Super OEM Company
+		 Product Name          : Label-engineered Super Product
+
+		FRU Device Description : pcie_riser (ID 5)
+		 Board Mfg Date        : Mon Apr  6 19:21:00 2020 UTC
+---
+ storagehandler.cpp | 38 ++------------------------------------
+ 1 file changed, 2 insertions(+), 36 deletions(-)
+
+diff --git a/storagehandler.cpp b/storagehandler.cpp
+index 0b29a9d..f03eae3 100644
+--- a/storagehandler.cpp
++++ b/storagehandler.cpp
+@@ -764,13 +764,8 @@ ipmi::RspType<uint8_t>
+     std::string service="";
+     std::string eeprom_path="";
+     std::string eeprom_service="";
+-    size_t start = fruInventoryOffset & 0xFF;  // start offset is in 2 LS bytes, end offset is in 2 MS bytes
+-    size_t end = fruInventoryOffset >> 8; // fruInventoryOffset/0x100
+     size_t writeLen = dataToWrite.size();
+-    uint8_t crc = 0;
+-    uint8_t area_last = -1;
+-    uint8_t area_start= -1;
+-    int lastWriteAddr = start + writeLen;
++    int lastWriteAddr = fruInventoryOffset + writeLen;
+     auto iter = frus.find(fruDeviceId);
+     if (iter == frus.end())
+     {
+@@ -822,42 +817,13 @@ ipmi::RspType<uint8_t>
+         return ipmi::responseUnspecifiedError();    
+     }
+ 
+-    if(writeLen != end-start+1){
+-        std::fprintf(stderr, "Data size %x doesn't match with the given start/end offset size(%x)\n", writeLen, end-start+1);
+-        return ipmi::responseUnspecifiedError();    
+-    }
+ 
+     if ((int)(file_data.size()) < lastWriteAddr)
+     {
+         file_data.resize(fruInventoryOffset + writeLen);
+     }
+ 
+-    /*count checksum after data is changed
+-      first 8 bytes: common header, with offsets of each area (starts with second byte)*/
+-    for(int i=1; i<IPMI_EIGHT_BYTE; i++){
+-        area_start = file_data[i]*IPMI_EIGHT_BYTE;
+-        uint8_t size = file_data[area_start+1]*IPMI_EIGHT_BYTE;
+-        if(size==0){
+-            continue;
+-        }
+-        if( (int)(start)>=area_start&&(int)(end)< area_start+size-1){
+-            area_last=area_start+size-1;
+-            break;
+-        }
+-    }
+-
+-    if(area_start<0||area_last<0){
+-        fprintf(stderr, "Can't modify different section at the same time!\n");
+-        return ipmi::responseUnspecifiedError();
+-    }
+-
+-    std::copy(dataToWrite.begin(), dataToWrite.begin() + writeLen, file_data.begin() + start);
+-
+-    for(int i=area_start; i<area_last; i++){
+-        crc += file_data[i];
+-    }
+-    crc *= -1;
+-    file_data[area_last] = crc; /*replace with new crc*/
++    std::copy(dataToWrite.begin(), dataToWrite.begin() + writeLen, file_data.begin() + fruInventoryOffset);
+ 
+     /* write all data to eeprom file*/
+     int eeprom = open(eeprom_path.c_str(), O_RDWR | O_CLOEXEC);
+-- 
+2.17.1
+

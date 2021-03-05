@@ -20,7 +20,9 @@
         PartNumber:
           IPMIFruProperty: Part Number
           IPMIFruSection: Product
-
+        Model:
+          IPMIFruProperty: Model Number
+          IPMIFruSection: Product
 5:
   /system/chassis/motherboard/pcie_riser:
     entityID: 10
@@ -39,9 +41,11 @@
         PartNumber:
           IPMIFruProperty: Part Number
           IPMIFruSection: Product
+        Model:
+          IPMIFruProperty: Model Number
+          IPMIFruSection: Product
       xyz.openbmc_project.Inventory.Item:
         PrettyName:
           IPMIFruProperty: Name
           IPMIFruSection: Product
-
-
+      xyz.openbmc_project.Inventory.Item.System:

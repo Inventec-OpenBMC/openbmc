@@ -20,5 +20,3 @@ FMT = "../${TMPL}:${TGT}.wants/${INSTFMT}"
 SYSTEMD_LINK_${PN}_append := " ${@compose_list(d, 'FMT', 'EEPROMS_ESCAPED')}"
 SYSTEMD_SERVICE_${PN} += " eeprom-guid-sync.service"
 
-SRC_URI_append += " file://0001-Patched-to-check-Multi-Record-Area-first-record-head.patch \
-                  "

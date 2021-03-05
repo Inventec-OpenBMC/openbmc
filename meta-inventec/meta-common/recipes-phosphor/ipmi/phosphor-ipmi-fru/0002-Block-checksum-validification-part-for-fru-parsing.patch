@@ -1,0 +1,52 @@
+From d774a0332647ef521aac8cf2e79e1ff51d7e5c6e Mon Sep 17 00:00:00 2001
+From: cynthia <wu.cynthia@inventec.com>
+Date: Mon, 8 Mar 2021 14:46:13 +0800
+Subject: [PATCH] Block checksum validification part for fru parsing
+
+	Sympthom/Reason:
+		We shouldn't change fru checksum with fru write command
+
+	Root Cause:
+		N/A
+
+	Solution/Changes:
+		[writefrudata.cpp]
+		change validateCrc value to block checksum validification
+
+	Entry Test:
+		sysadmin@goldentalon:~# ipmitool fru print
+		FRU Device Description : Builtin FRU Device (ID 0)
+		 Board Mfg Date        : Wed Dec  2 10:47:00 2020 UTC
+		 Product Manufacturer  : Super OEM Company
+		 Product Name          : Label-engineered Super Product
+
+		FRU Device Description : pcie_riser (ID 5)
+		 Board Mfg Date        : Mon Apr  6 19:21:00 2020 UTC
+
+		sysadmin@goldentalon:~# ipmitool raw 0xa 0x12 0x0 0x7c 0x0 0x50 0x50
+
+		sysadmin@goldentalon:~# ipmitool fru print 0
+		 Board Mfg Date        : Wed Dec  2 10:47:00 2020 UTC
+		 Product Manufacturer  : PPper OEM Company
+		 Product Name          : Label-engineered Super Product
+---
+ writefrudata.cpp | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/writefrudata.cpp b/writefrudata.cpp
+index 8145f45..9755ffc 100644
+--- a/writefrudata.cpp
++++ b/writefrudata.cpp
+@@ -514,7 +514,8 @@ int ipmiPopulateFruAreas(uint8_t* fruData, const size_t dataLen,
+             // Validate the CRC, but not for the internal use area, since its
+             // contents beyond the first byte are not defined in the spec and
+             // it may not end with a CRC byte.
+-            bool validateCrc = fruEntry != IPMI_FRU_INTERNAL_OFFSET;
++            /*Inventec change:Block checksum validification*/
++            bool validateCrc = false;
+ 
+             if (fruEntry == IPMI_FRU_MULTI_OFFSET)
+             {
+-- 
+2.17.1
+
