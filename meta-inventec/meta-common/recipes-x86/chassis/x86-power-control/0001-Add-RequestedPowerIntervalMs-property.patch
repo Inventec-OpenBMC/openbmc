@@ -1,0 +1,106 @@
+From 90e0297e0763b918d85a4b239db178a1b8f07b71 Mon Sep 17 00:00:00 2001
+From: "Lin.TommySC" <lin.tommysc@inventec.com>
+Date: Fri, 5 Mar 2021 02:04:48 +0000
+Subject: [PATCH] Add RequestedPowerIntervalMs property
+
+Symptom/Reason:
+	To support Set Power Cycle Interval command.
+
+Root Cause:
+	N/A
+
+Solution/Change:
+	[phosphor-dbus-interfaces]
+	- Add RequestedPowerIntervalMs property
+	[x86-power-control]
+	- Implement RequestedPowerIntervalMs property set function
+	[inv-impi-oem]
+	- Register ipmiChassisSetPowerInterval command handler
+
+Entry Test:
+	sudo ipmitool raw 0x00 0x0b 0x03
+---
+ power-control-x86/src/power_control.cpp | 46 ++++++++++++++++++++++++++++++++-
+ 1 file changed, 45 insertions(+), 1 deletion(-)
+
+diff --git a/power-control-x86/src/power_control.cpp b/power-control-x86/src/power_control.cpp
+index ab704d8..fd5ae7d 100644
+--- a/power-control-x86/src/power_control.cpp
++++ b/power-control-x86/src/power_control.cpp
+@@ -129,6 +129,7 @@ static boost::asio::posix::stream_descriptor postCompleteEvent(io);
+ static gpiod::line nmiOutLine;
+ 
+ static constexpr uint8_t beepPowerFail = 8;
++static int powerCycleIntervalMs = powerCycleTimeMs;
+ 
+ static void beep(const uint8_t& beepPriority)
+ {
+@@ -1162,7 +1163,7 @@ static void gracefulPowerOffTimerStart()
+ static void powerCycleTimerStart()
+ {
+     std::cerr << "Power-cycle timer started\n";
+-    powerCycleTimer.expires_after(std::chrono::milliseconds(powerCycleTimeMs));
++    powerCycleTimer.expires_after(std::chrono::milliseconds(powerCycleIntervalMs));
+     powerCycleTimer.async_wait([](const boost::system::error_code ec) {
+         if (ec)
+         {
+@@ -2144,6 +2145,38 @@ static int loadConfigValues()
+         sioS5Name = data["SIOS5"];
+     }
+ 
++    if (data.contains("PowerCycleInterval"))
++    {
++        powerCycleIntervalMs = data["PowerCycleInterval"];
++        std::cerr << "powerCycleIntervalMs restored to: " << powerCycleIntervalMs << "\n";
++    }
++
++    return 0;
++}
++
++
++static int updateConfigValues(const std::string& name, auto val)
++{
++    const std::string configFilePath =
++        "/usr/share/x86-power-control/power-config-host" + power_control::node + ".json";
++    std::ifstream configFile(configFilePath.c_str());
++    if (!configFile.is_open())
++    {
++        std::cerr << "loadConfigValues : Cannot open config path\n ";
++        return -1;
++    }
++    auto data = nlohmann::json::parse(configFile, nullptr);
++
++    if (data.is_discarded())
++    {
++        std::cerr << "Power config readings JSON parser failure";
++        return -1;
++    }
++
++    data[name] = val;
++    std::ofstream configStream(configFilePath.c_str());
++    configStream << std::setw(4) << data << std::endl;
++
+     return 0;
+ }
+ 
+@@ -2436,6 +2469,17 @@ int main(int argc, char* argv[])
+             resp = requested;
+             return 1;
+         });
++
++    power_control::chassisIface->register_property(
++        "RequestedPowerIntervalMs",
++        power_control::powerCycleTimeMs,
++        [](const int requested, int& current) {
++            power_control::powerCycleIntervalMs = requested;
++            power_control::updateConfigValues("PowerCycleInterval", power_control::powerCycleIntervalMs);
++            current = requested;
++            return 1;
++        });
++
+     power_control::chassisIface->register_property(
+         "CurrentPowerState",
+         std::string(power_control::getChassisState(power_control::powerState)));
+-- 
+2.7.4
+

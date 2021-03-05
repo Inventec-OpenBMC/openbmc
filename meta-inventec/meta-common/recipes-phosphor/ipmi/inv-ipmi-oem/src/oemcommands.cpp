@@ -32,6 +32,9 @@
 
 using namespace std;
 
+static constexpr const char* chassisIntf =
+    "xyz.openbmc_project.State.Chassis";
+
 namespace ipmi
 {
 static void registerOEMFunctions() __attribute__((constructor));
@@ -64,10 +67,36 @@ ipmi::RspType<std::vector<uint8_t>>
     return ipmi::responseSuccess(rawResp);
 
 }
+
+ipmi::RspType<> ipmiChassisSetPowerInterval(uint8_t interval)
+{
+    try
+    {
+        sdbusplus::bus::bus bus(ipmid_get_sd_bus_connection());
+        ipmi::DbusObjectInfo chassisPowerObject =
+            ipmi::getDbusObject(bus, chassisIntf);
+        ipmi::setDbusProperty(bus, chassisPowerObject.second,
+                              chassisPowerObject.first, chassisIntf,
+                              "RequestedPowerIntervalMs", ((int)interval) * 1000);
+    }
+    catch (std::exception& e)
+    {
+        phosphor::logging::log<phosphor::logging::level::ERR>(
+                        "Fail to set RequestedPowerIntervalMs property",
+                        phosphor::logging::entry("ERROR=%s", e.what()));
+        return ipmi::responseUnspecifiedError();
+    }
+    return ipmi::responseSuccess();
+}
+
 static void registerOEMFunctions(void)
 {
     phosphor::logging::log<phosphor::logging::level::INFO>(
         "Registering INV OEM commands");
+
+    // Chassis command
+    registerOemCmdHandler(ipmi::netFnChassis, ipmi::chassis::cmdSetPowerCycleInterval,
+                            Privilege::Admin, ipmiChassisSetPowerInterval);
 
     /*This is an example of IPMI OEM command registration*/
 #if EXAMPLE
