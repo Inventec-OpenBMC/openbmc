@@ -1,5 +1,5 @@
-EXTRA_OECONF = "--disable-i2c-whitelist-check"
-
+EXTRA_OECONF_append = " --disable-i2c-whitelist-check"
+EXTRA_OECONF_append = " --disable-ipmi-whitelist"
 FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
 
 SRC_URI_append = " file://0001-sensorhandler-fix-get-threshold-error.patch \
