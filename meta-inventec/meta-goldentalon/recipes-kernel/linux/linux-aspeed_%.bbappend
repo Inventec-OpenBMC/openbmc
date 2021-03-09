@@ -19,8 +19,7 @@ SRC_URI_append = "  \
                     file://0017-Add-Intel-ASD-JTAG-driver.patch \
                     file://0018-Move-goldentalon-dts-to-the-openbmc-folder.patch \
                     file://0019-Add-virtual-driver-to-simulate-driver-behavier.patch \
-                    file://0020-Add-p2a-ctrl-driver-for-in-band-update.patch \
-                    file://0021-Enhance-p2a-ctrl-driver-security.patch \
+                    file://0020-Add-p2a-driver-support-on-AST2600.patch \
                  "
 
 SRC_URI_append = " file://goldentalon.cfg \

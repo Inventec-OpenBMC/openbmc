@@ -1,0 +1,159 @@
+From 5f10f25cc70304103f971e36031f353bebacfd7d Mon Sep 17 00:00:00 2001
+From: "Lin.TommySC" <lin.tommysc@inventec.com>
+Date: Mon, 8 Mar 2021 11:03:34 +0000
+Subject: [PATCH] Add p2a driver support on AST2600
+
+---
+ drivers/soc/aspeed/aspeed-p2a-ctrl.c | 68 ++++++++++++++----------------------
+ 1 file changed, 27 insertions(+), 41 deletions(-)
+
+diff --git a/drivers/soc/aspeed/aspeed-p2a-ctrl.c b/drivers/soc/aspeed/aspeed-p2a-ctrl.c
+index b60fbea..cb9a8d4 100644
+--- a/drivers/soc/aspeed/aspeed-p2a-ctrl.c
++++ b/drivers/soc/aspeed/aspeed-p2a-ctrl.c
+@@ -29,17 +29,22 @@
+ 
+ #define DEVICE_NAME	"aspeed-p2a-ctrl"
+ 
+-/* SCU2C is a Misc. Control Register. */
+-#define SCU2C 0x2c
+-/* SCU180 is the PCIe Configuration Setting Control Register. */
+-#define SCU180 0x180
++/* SCU0C0 is a Misc. Control Register. */
++#define SCU0C0 0x0c0
++/* SCU0C8 is a Debug Control Register. */
++#define SCU0C8 0x0c8
++/* Bit 0 controls the P2A bridge */
++#define SCU0C8_ENP2A BIT(0)
++
++/* SCUC20 is the PCIe Configuration Setting Control Register. */
++#define SCUC20 0xc20
+ /* Bit 1 controls the P2A bridge, while bit 0 controls the entire VGA device
+  * on the PCI bus.
+  */
+-#define SCU180_ENP2A BIT(1)
++#define SCUC20_ENP2A BIT(1)
+ 
+-/* The ast2400/2500 both have six ranges. */
+-#define P2A_REGION_COUNT 6
++/* The ast2600 both have only 1 restricted range. */
++#define P2A_REGION_COUNT 1
+ 
+ struct region {
+ 	u64 min;
+@@ -88,13 +93,15 @@ struct aspeed_p2a_user {
+ 
+ static void aspeed_p2a_enable_bridge(struct aspeed_p2a_ctrl *p2a_ctrl)
+ {
++	regmap_update_bits(p2a_ctrl->regmap, SCU0C8, SCU0C8_ENP2A, 0);
+ 	regmap_update_bits(p2a_ctrl->regmap,
+-		SCU180, SCU180_ENP2A, SCU180_ENP2A);
++		SCUC20, SCUC20_ENP2A, SCUC20_ENP2A);
+ }
+ 
+ static void aspeed_p2a_disable_bridge(struct aspeed_p2a_ctrl *p2a_ctrl)
+ {
+-	regmap_update_bits(p2a_ctrl->regmap, SCU180, SCU180_ENP2A, 0);
++	regmap_update_bits(p2a_ctrl->regmap, SCU0C8, SCU0C8_ENP2A, 1);
++	regmap_update_bits(p2a_ctrl->regmap, SCUC20, SCUC20_ENP2A, 0);
+ }
+ 
+ static int aspeed_p2a_mmap(struct file *file, struct vm_area_struct *vma)
+@@ -113,7 +120,7 @@ static int aspeed_p2a_mmap(struct file *file, struct vm_area_struct *vma)
+ 	if (vma->vm_pgoff + vsize > ctrl->mem_base + ctrl->mem_size)
+ 		return -EINVAL;
+ 
+-	/* ast2400/2500 AHB accesses are not cache coherent */
++	/* ast2600 AHB accesses is not cache coherent */
+ 	prot = pgprot_noncached(prot);
+ 
+ 	if (remap_pfn_range(vma, vma->vm_start,
+@@ -162,7 +169,7 @@ static bool aspeed_p2a_region_acquire(struct aspeed_p2a_user *priv,
+ 		priv->readwrite[i] += 1;
+ 
+ 		/* Enable the region as read-write. */
+-		regmap_update_bits(ctrl->regmap, SCU2C, curr->bit, 0);
++		regmap_update_bits(ctrl->regmap, SCU0C0, curr->bit, 0);
+ 		matched = true;
+ 	}
+ 
+@@ -291,7 +298,7 @@ static int aspeed_p2a_release(struct inode *inode, struct file *file)
+ 	 * and therefore can't grab either register mutex.
+ 	 * If another user is trying to close, they can't grab tracking either.
+ 	 */
+-	regmap_update_bits(priv->parent->regmap, SCU2C, bits, bits);
++	regmap_update_bits(priv->parent->regmap, SCU0C0, bits, bits);
+ 
+ 	/* If parent->readers is zero and open windows is 0, disable the
+ 	 * bridge.
+@@ -314,7 +321,7 @@ static const struct file_operations aspeed_p2a_ctrl_fops = {
+ 	.release = aspeed_p2a_release,
+ };
+ 
+-/* The regions are controlled by SCU2C */
++/* The regions are controlled by SCU0C0 */
+ static void aspeed_p2a_disable_all(struct aspeed_p2a_ctrl *p2a_ctrl)
+ {
+ 	int i;
+@@ -323,7 +330,7 @@ static void aspeed_p2a_disable_all(struct aspeed_p2a_ctrl *p2a_ctrl)
+ 	for (i = 0; i < P2A_REGION_COUNT; i++)
+ 		value |= p2a_ctrl->config->regions[i].bit;
+ 
+-	regmap_update_bits(p2a_ctrl->regmap, SCU2C, value, value);
++	regmap_update_bits(p2a_ctrl->regmap, SCU0C0, value, value);
+ 
+ 	/* Disable the bridge. */
+ 	aspeed_p2a_disable_bridge(p2a_ctrl);
+@@ -392,38 +399,17 @@ static int aspeed_p2a_ctrl_remove(struct platform_device *pdev)
+ 	return 0;
+ }
+ 
+-#define SCU2C_DRAM	BIT(25)
+-#define SCU2C_SPI	BIT(24)
+-#define SCU2C_SOC	BIT(23)
+-#define SCU2C_FLASH	BIT(22)
++#define SCU0C0_DRAM	BIT(25)
+ 
+-static const struct aspeed_p2a_model_data ast2400_model_data = {
++static const struct aspeed_p2a_model_data ast2600_model_data = {
+ 	.regions = {
+-		{0x00000000, 0x17FFFFFF, SCU2C_FLASH},
+-		{0x18000000, 0x1FFFFFFF, SCU2C_SOC},
+-		{0x20000000, 0x2FFFFFFF, SCU2C_FLASH},
+-		{0x30000000, 0x3FFFFFFF, SCU2C_SPI},
+-		{0x40000000, 0x5FFFFFFF, SCU2C_DRAM},
+-		{0x60000000, 0xFFFFFFFF, SCU2C_SOC},
+-	}
+-};
+-
+-static const struct aspeed_p2a_model_data ast2500_model_data = {
+-	.regions = {
+-		{0x00000000, 0x0FFFFFFF, SCU2C_FLASH},
+-		{0x10000000, 0x1FFFFFFF, SCU2C_SOC},
+-		{0x20000000, 0x3FFFFFFF, SCU2C_FLASH},
+-		{0x40000000, 0x5FFFFFFF, SCU2C_SOC},
+-		{0x60000000, 0x7FFFFFFF, SCU2C_SPI},
+-		{0x80000000, 0xFFFFFFFF, SCU2C_DRAM},
++		{0x9f7c0000, 0x9f7fffff, SCU0C0_DRAM},
+ 	}
+ };
+ 
+ static const struct of_device_id aspeed_p2a_ctrl_match[] = {
+-	{ .compatible = "aspeed,ast2400-p2a-ctrl",
+-	  .data = &ast2400_model_data },
+-	{ .compatible = "aspeed,ast2500-p2a-ctrl",
+-	  .data = &ast2500_model_data },
++	{ .compatible = "aspeed,ast2600-p2a-ctrl",
++	  .data = &ast2600_model_data },
+ 	{ },
+ };
+ 
+@@ -441,4 +427,4 @@ module_platform_driver(aspeed_p2a_ctrl_driver);
+ MODULE_DEVICE_TABLE(of, aspeed_p2a_ctrl_match);
+ MODULE_LICENSE("GPL");
+ MODULE_AUTHOR("Patrick Venture <venture@google.com>");
+-MODULE_DESCRIPTION("Control for aspeed 2400/2500 P2A VGA HOST to BMC mappings");
++MODULE_DESCRIPTION("Control for aspeed 2600 P2A VGA HOST to BMC mappings");
+-- 
+2.7.4
+

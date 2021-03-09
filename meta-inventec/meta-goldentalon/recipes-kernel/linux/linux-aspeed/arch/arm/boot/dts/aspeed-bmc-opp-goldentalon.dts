@@ -24,6 +24,17 @@
 		reg = <0x80000000 0x80000000>;
 	};
 
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		flash_memory: region@9f7c0000 {
+			no-map;
+			reg = <0x9f7c0000 0x00040000>; /* 256KB */
+		};
+	};
+
         leds {
                 compatible = "gpio-leds";
 
@@ -536,3 +547,10 @@
         status = "okay";
 };
 
+&syscon {
+	p2a: p2a-control {
+		compatible = "aspeed,ast2600-p2a-ctrl";
+		memory-region = <&flash_memory>;
+		status = "okay";
+	};
+};
