@@ -49,7 +49,7 @@ RDEPENDS_${PN}-system = " \
         bmcweb \
         entity-manager \
         dbus-sensors \
-        phosphor-webui \
+        webui-vue \
         phosphor-sel-logger \
         phosphor-gpio-monitor \
         phosphor-gpio-monitor-monitor \
