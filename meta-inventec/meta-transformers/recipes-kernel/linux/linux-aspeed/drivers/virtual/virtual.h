@@ -7,7 +7,7 @@
 
 #include <linux/kernel.h>
 
-#define VIRTUAL_EEPROM_SIZE		1024
+#define VIRTUAL_EEPROM_SIZE		10240
 
 
 typedef enum _virtual_hwmon_type_enum {
