@@ -23,6 +23,13 @@
         Model:
           IPMIFruProperty: Model Number
           IPMIFruSection: Product
+      xyz.openbmc_project.Common.UUID:
+        UUID:
+          IPMIFruProperty: Custom Field 1
+          IPMIFruSection: Board
+          IPMIFruValueDelimiter: 58
+      xyz.openbmc_project.Inventory.Item.Bmc:
+
 5:
   /system/chassis/motherboard/pcie_riser:
     entityID: 10
