@@ -1,0 +1,69 @@
+From 96ae09b409ef854357322a3c3a0c2464144307fd Mon Sep 17 00:00:00 2001
+From: Vic Ye <ye.vic@inventec.com>
+Date: Tue, 16 Mar 2021 01:55:57 +0000
+Subject: [PATCH]  Write MAC address to BMC EEPROM
+
+---
+ ethernet_interface.cpp | 39 ++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 38 insertions(+), 1 deletion(-)
+
+diff --git a/ethernet_interface.cpp b/ethernet_interface.cpp
+index 0c83fba..4964fc5 100644
+--- a/ethernet_interface.cpp
++++ b/ethernet_interface.cpp
+@@ -44,6 +44,43 @@ constexpr auto PROPERTY_INTERFACE = "org.freedesktop.DBus.Properties";
+ constexpr auto RESOLVED_SERVICE_PATH = "/org/freedesktop/resolve1/link/";
+ constexpr auto METHOD_GET = "Get";
+ 
++
++
++constexpr auto INVENTEC_MACADDR_EEPROM_OFFSET = 0x400;
++constexpr auto BMC_EEPROM_PATH = "/sys/bus/i2c/devices/3-0054/eeprom";
++
++static bool WriteMacToEeprom(const ether_addr& mac)
++{
++    bool rc = false;
++
++    try
++    {
++        FILE *fp;
++        fp = fopen(BMC_EEPROM_PATH, "r+b");
++
++        if (fp != 0)
++        {
++            fseek(fp, INVENTEC_MACADDR_EEPROM_OFFSET, SEEK_SET);
++            // Write  6 Bytes MAC address into EEPROM
++            if(fwrite(mac.ether_addr_octet, 1, 6, fp) != 6){
++	        log<level::ERR>("Write MAC to Eeprom fail");
++                return rc;
++	    }
++
++            fclose(fp);
++        }
++    }
++    catch (const InternalFailure& e)
++    {
++        log<level::ERR>("Failed in Writing MAC to Eeprom",
++                        entry("EXCEPTION=%s", e.what())
++                       );
++        return rc;
++    }
++
++    return rc;
++}
++
+ struct EthernetIntfSocket
+ {
+     EthernetIntfSocket(int domain, int type, int protocol)
+@@ -1040,7 +1077,7 @@ std::string EthernetInterface::mACAddress(std::string value)
+                 validMAC.c_str());
+     }
+ #endif // HAVE_UBOOT_ENV
+-
++    WriteMacToEeprom(newMAC); 
+     return value;
+ }
+ 
+-- 
+2.7.4
+
