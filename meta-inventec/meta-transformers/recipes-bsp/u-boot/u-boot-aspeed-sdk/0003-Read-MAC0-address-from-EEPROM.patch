@@ -1,4 +1,4 @@
-From b78ea7d21ea37c042fb2b717a630cdb848237b92 Mon Sep 17 00:00:00 2001
+From 929cb8d6d8e802b696e4548972c0bf7e0ff83b49 Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Thu, 22 Oct 2020 15:23:57 -0400
 Subject: [PATCH] Subject: [Patch][u-boot] Read MAC0 address from EEPROM
@@ -9,7 +9,7 @@ Subject: [PATCH] Subject: [Patch][u-boot] Read MAC0 address from EEPROM
  1 file changed, 56 insertions(+)
 
 diff --git a/drivers/net/ftgmac100.c b/drivers/net/ftgmac100.c
-index 999941d..8d5c92f3f 100644
+index 999941d..8f7959c 100644
 --- a/drivers/net/ftgmac100.c
 +++ b/drivers/net/ftgmac100.c
 @@ -19,6 +19,8 @@
@@ -79,7 +79,7 @@ index 999941d..8d5c92f3f 100644
  	priv->max_speed = pdata->max_speed;
  
 +	//-printf("\nBASE: 0x%X\n", priv->iobase);
-+	if (priv->iobase == 0x1e660000)
++	if (priv->iobase == EEPROM_ETH0_ADDR)
 +	{
 +		// For 1st MAC controller
 +		printf("\nUpdate eth MAC\n");

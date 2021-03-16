@@ -30,11 +30,12 @@ addtask copyfile after do_patch before do_configure
 
 include conf/machine/platform_configs.inc
 
-EEPROM_MAC_I2C_BUS ?= "14"
-EEPROM_MAC_I2C_ADDRESS ?= "0x50"
-EEPROM_MAC_OFFSET ?= "0x1000"
-EEPROM_MAC_I2C_DEV_SPEED ?= "100000"
-EEPROM_MAC_I2C_ADDR_LEN ?= "2"
+EEPROM_MAC_I2C_BUS = "8"
+EEPROM_MAC_I2C_ADDRESS = "0x51"
+EEPROM_MAC_OFFSET = "0x400"
+EEPROM_MAC_I2C_DEV_SPEED = "100000"
+EEPROM_MAC_I2C_ADDR_LEN = "2"
+EEPROM_ETH0_ADDR = "0x1e690000"
 
 do_patch_headerfile () {
   cat >${S}/include/configs/IECplatformConfigs.h <<EOF
@@ -47,6 +48,7 @@ do_patch_headerfile () {
 #define EEPROM_MAC_OFFSET (${EEPROM_MAC_OFFSET})
 #define EEPROM_MAC_I2C_DEV_SPEED (${EEPROM_MAC_I2C_DEV_SPEED})
 #define EEPROM_MAC_I2C_ADDR_LEN (${EEPROM_MAC_I2C_ADDR_LEN})
+#define EEPROM_ETH0_ADDR (${EEPROM_ETH0_ADDR})
 
 #endif /* __IEC_PLATFORM_CONFIGS_H__ */
 EOF
