@@ -1,0 +1,17 @@
+diff --git a/meson_options.txt b/meson_options.txt
+index eaad206..d180f00 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -8,10 +8,10 @@ option('rest', type : 'feature', value : 'enabled', description : '''Enable Phos
+ option('redfish', type : 'feature',value : 'enabled', description: 'Enable Redfish APIs.  Paths are under \'/redfish/v1/\'. See https://github.com/openbmc/bmcweb/blob/master/DEVELOPING.md#redfish.')
+ option('host-serial-socket', type : 'feature', value : 'enabled', description : 'Enable host serial console WebSocket. Path is \'/console0\'.  See https://github.com/openbmc/docs/blob/master/console.md.')
+ option('static-hosting', type : 'feature', value : 'enabled', description : 'Enable serving files from the \'/usr/share/www\' directory as paths under \'/\'.')
+-option('redfish-bmc-journal', type : 'feature', value : 'disabled', description : 'Enable BMC journal access through Redfish. Paths are under \'/redfish/v1/Managers/bmc/LogServices/Journal\'.')
++option('redfish-bmc-journal', type : 'feature', value : 'enabled', description : 'Enable BMC journal access through Redfish. Paths are under \'/redfish/v1/Managers/bmc/LogServices/Journal\'.')
+ option('redfish-raw-peci', type : 'feature', value : 'disabled', description : '''Enable PECI transactions through Redfish. Paths are under \/redfish/v1/Systems/system/LogServices/CpuLog/Actions/Oem/CpuLog.SendRawPeci\'.''')
+ option('redfish-cpu-log', type : 'feature', value : 'disabled', description : '''Enable CPU log service transactions through Redfish. Paths are under \'/redfish/v1/Systems/system/LogServices/Crashdump'.''')
+-option('redfish-dump-log', type : 'feature', value : 'disabled', description : 'Enable Dump log service transactions through Redfish. Paths are under \'/redfish/v1/Systems/system/LogServices/Dump\'and \'/redfish/v1/Managers/bmc/LogServices/Dump\'')
++option('redfish-dump-log', type : 'feature', value : 'enabled', description : 'Enable Dump log service transactions through Redfish. Paths are under \'/redfish/v1/Systems/system/LogServices/Dump\'and \'/redfish/v1/Managers/bmc/LogServices/Dump\'')
+ option('redfish-dbus-log', type : 'feature', value : 'disabled', description : 'Enable DBUS log service transactions through Redfish. Paths are under \'/redfish/v1/Systems/system/LogServices/EventLog/Entries\'')
+ option('redfish-provisioning-feature', type : 'feature', value : 'disabled', description : 'Enable provisioning feature support in redfish. Paths are under \'/redfish/v1/Systems/system/\'')
+ option('bmcweb-logging', type : 'feature', value : 'disabled', description : 'Enable output the extended debug logs')
