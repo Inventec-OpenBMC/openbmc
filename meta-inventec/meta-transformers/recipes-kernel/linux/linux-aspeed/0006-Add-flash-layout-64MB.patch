@@ -1,14 +1,14 @@
-From 8ee680dff9e42fee82fb2864b305749e62ac1d88 Mon Sep 17 00:00:00 2001
+From 02ec2c8fe89d4c7b01e598e7cc1ca70c7adbe6c9 Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Tue, 27 Oct 2020 20:35:35 -0400
-Subject: [PATCH 1/1] Add flash layout 64MB
+Subject: [PATCH] Add flash layout 64MB
 
 ---
  arch/arm/boot/dts/openbmc-flash-layout.dtsi | 18 +++++++++---------
  1 file changed, 9 insertions(+), 9 deletions(-)
 
 diff --git a/arch/arm/boot/dts/openbmc-flash-layout.dtsi b/arch/arm/boot/dts/openbmc-flash-layout.dtsi
-index 6c26524..3c73233 100644
+index 6c26524..639187e 100644
 --- a/arch/arm/boot/dts/openbmc-flash-layout.dtsi
 +++ b/arch/arm/boot/dts/openbmc-flash-layout.dtsi
 @@ -6,27 +6,27 @@ partitions {
@@ -22,7 +22,7 @@ index 6c26524..3c73233 100644
  
 -	u-boot-env@60000 {
 -		reg = <0x60000 0x20000>;
-+	u-boot-env@80000 {
++	u-boot-env@e0000 {
 +		reg = <0xe0000 0x20000>; // 128KB
  		label = "u-boot-env";
  	};
