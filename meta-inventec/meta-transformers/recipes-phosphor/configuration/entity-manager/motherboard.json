@@ -463,6 +463,6 @@
         }
     ],
     "Name": "Transformers MotherBoard",
-    "Probe": "xyz.openbmc_project.FruDevice({'BUS': '3', 'ADDRESS' : 80})",
+    "Probe": "xyz.openbmc_project.FruDevice({'BUS': 3, 'ADDRESS' : 80})",
     "Type": "Board"
 }

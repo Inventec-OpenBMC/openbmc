@@ -43,6 +43,6 @@
         }
     ],
     "Name": "Transformers runbmc",
-    "Probe": "xyz.openbmc_project.FruDevice({'BUS': '8', 'ADDRESS' : 81})",
+    "Probe": "xyz.openbmc_project.FruDevice({'BUS': 8, 'ADDRESS' : 81})",
     "Type": "Board"
 }

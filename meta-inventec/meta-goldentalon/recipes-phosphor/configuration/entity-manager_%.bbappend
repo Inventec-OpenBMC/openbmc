@@ -9,10 +9,6 @@ SRC_URI += "file://GoldentalonFan.json"
 SRC_URI += "file://GoldentalonEvent.json"
 
 
-SRC_URI_append += " file://0001-Add-a-writable-dbus-interface.patch \
-                    file://0002-Fix-dbus-probe-conditions.patch\
-                  "
-
 do_install_append() {
     install -d 0755 ${D}/usr/share/entity-manager/configurations
     rm  -rf ${D}/usr/share/entity-manager/configurations/*.json
