@@ -10,7 +10,8 @@ SRC_URI_append = " file://0001-sensorhandler-fix-get-threshold-error.patch \
                    file://0006-Save-the-pre-timeout-interrupt-in-dbus-property.patch \
                    file://0007-inventec-app-watchdog-Store-Don-t-log-flag-to-dbus.patch \
                    file://0008-Compose-Aux-Firmware-Rev-Info-in-Get-Device-Id-comma.patch \
-		   file://0009-Fix-Can-t-Set-FRU-data-by-raw-command-but-successful.patch \
+                   file://0009-Fix-Can-t-Set-FRU-data-by-raw-command-but-successful.patch \
+                   file://0010-Implement-LAN-Config-IPv6-Static-Hop-Limit.patch \
 "
 
 
