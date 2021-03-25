@@ -1,4 +1,4 @@
-From d774a0332647ef521aac8cf2e79e1ff51d7e5c6e Mon Sep 17 00:00:00 2001
+From 8d8eff96aa093f566be4a030d537003f30c99986 Mon Sep 17 00:00:00 2001
 From: cynthia <wu.cynthia@inventec.com>
 Date: Mon, 8 Mar 2021 14:46:13 +0800
 Subject: [PATCH] Block checksum validification part for fru parsing
@@ -30,11 +30,11 @@ Subject: [PATCH] Block checksum validification part for fru parsing
 		 Product Manufacturer  : PPper OEM Company
 		 Product Name          : Label-engineered Super Product
 ---
- writefrudata.cpp | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ writefrudata.cpp | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
 
 diff --git a/writefrudata.cpp b/writefrudata.cpp
-index 8145f45..9755ffc 100644
+index 8145f45..da743d6 100644
 --- a/writefrudata.cpp
 +++ b/writefrudata.cpp
 @@ -514,7 +514,8 @@ int ipmiPopulateFruAreas(uint8_t* fruData, const size_t dataLen,
@@ -47,6 +47,16 @@ index 8145f45..9755ffc 100644
  
              if (fruEntry == IPMI_FRU_MULTI_OFFSET)
              {
+@@ -586,7 +587,8 @@ int ipmiValidateCommonHeader(const uint8_t* fruData, const size_t dataLen)
+     }
+ 
+     // Verify the CRC and size
+-    rc = verifyFruData(commonHdr, sizeof(commonHdr), true);
++    /*Inventec change:Block checksum validification for common header*/
++    rc = verifyFruData(commonHdr, sizeof(commonHdr), false);
+     if (rc < 0)
+     {
+         log<level::ERR>("Failed to validate common header");
 -- 
 2.17.1
 
