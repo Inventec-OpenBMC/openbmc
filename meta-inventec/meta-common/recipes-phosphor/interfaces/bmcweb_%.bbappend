@@ -10,7 +10,7 @@ DEPENDS += " phosphor-dbus-interfaces"
 #EXTRA_OEMESON_remove = "--buildtype=minsize"
 #EXTRA_OEMESON += " --buildtype=debug -Dbmcweb-logging=enabled"
 
-EXTRA_OEMESON += "-Dhttp-body-limit=50 -Dinsecure-tftp-update=enabled"
+EXTRA_OEMESON += "-Dhttp-body-limit=512 -Dinsecure-tftp-update=enabled"
 
 #SRC_URI_append += " file://0001-Modify-firmware-update-mechanism.patch \
 #"
