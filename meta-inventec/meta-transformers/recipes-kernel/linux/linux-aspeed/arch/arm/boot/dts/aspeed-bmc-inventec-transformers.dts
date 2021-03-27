@@ -6,6 +6,8 @@
 #include "aspeed-g6.dtsi"
 #include "aspeed-g6-pinctrl.dtsi"
 #include <dt-bindings/i2c/i2c.h>
+#include <dt-bindings/gpio/aspeed-gpio.h>
+
 / {
 	model = "TRANSFORMER BMC";
 	compatible = "inventec,transformer-bmc", "aspeed,ast2600";
@@ -65,6 +67,22 @@
     		io-channels = <&adc0 0>, <&adc0 1>, <&adc0 2>, <&adc0 3>,
             <&adc0 4>;
     	};
+
+        leds {
+                compatible = "gpio-leds";
+
+                // UID led
+                uid {
+                    label = "UID_LED";
+                    gpios = <&gpio0 ASPEED_GPIO(V, 3) GPIO_ACTIVE_LOW>;
+                };
+
+                // Heart beat led
+                heartbeat {
+                    label = "HB_LED";
+                    gpios = <&gpio0 ASPEED_GPIO(P, 7) GPIO_ACTIVE_LOW>;
+                };
+        };
 };
 
 &mdio0 {
