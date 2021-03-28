@@ -23,6 +23,7 @@
         Model:
           IPMIFruProperty: Model Number
           IPMIFruSection: Product
+      xyz.openbmc_project.Inventory.Item.System:
 1:
   /system/chassis/runbmc/runbmc:
     entityID: 7
@@ -48,7 +49,7 @@
         PrettyName:
           IPMIFruProperty: Name
           IPMIFruSection: Product
-
+      xyz.openbmc_project.Inventory.Item.Bmc:
 2:
   /system/chassis/scmbridge/scmbridge:
     entityID: 7
