@@ -48,5 +48,6 @@ SRC_URI_append += " file://0001-Removed-Get-Device-ID-command.patch \
                     file://0012-De-register-Get-and-Set-threshold.patch \
 		            file://0013-Replace-Fru-read-write-and-read-inventory-data-with-.patch \
                     file://0014-disable-whitelist-filter.patch \
+                    file://0015-Disable-sel-log-clear-message.patch \
                   "
 
