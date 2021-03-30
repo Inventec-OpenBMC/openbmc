@@ -1,0 +1,47 @@
+From 3c8781eec3048a3db61b117a2f8177a7f0a80d76 Mon Sep 17 00:00:00 2001
+From: "Lin.TommySC" <lin.tommysc@inventec.com>
+Date: Tue, 30 Mar 2021 03:03:06 +0000
+Subject: [PATCH] Disable sel log clear message
+
+Symptom/Reason :
+    - One log remains after Clear SEL command
+
+Root Cause:
+    - SEL log clear message was written into sel log.
+
+Solution/Change:
+    [intel-ipmi-oem]
+        - Disable SEL log clear message
+
+Entry Test:
+    - Clear SEL log
+        ipmitool sel clear
+    - List SEL log
+        ipmitool sel list
+---
+ src/storagecommands.cpp | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/storagecommands.cpp b/src/storagecommands.cpp
+index 9ebfc75..4b3d4d3 100644
+--- a/src/storagecommands.cpp
++++ b/src/storagecommands.cpp
+@@ -1276,6 +1276,7 @@ ipmi::RspType<uint8_t> ipmiStorageClearSEL(ipmi::Context::ptr ctx,
+     clearMsg = clearTime + " 1,2,200004108A6F02FFFF,,,";
+ 
+     // Log Record 1 - Clear Log event
++    /* Disable clear message, Tommy.
+     std::ofstream outFile(ipmiSelFile, std::ofstream::out);
+     if (!outFile.good())
+     {
+@@ -1283,6 +1284,7 @@ ipmi::RspType<uint8_t> ipmiStorageClearSEL(ipmi::Context::ptr ctx,
+     }
+     outFile << clearMsg << std::endl;
+     outFile.close();
++    */
+ 
+     std::ofstream clrFile(ipmiClrSelFile, std::ofstream::out);
+     if (!clrFile.good())
+-- 
+2.7.4
+
