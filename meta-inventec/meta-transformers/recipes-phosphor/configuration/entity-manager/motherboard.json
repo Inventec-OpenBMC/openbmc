@@ -42,207 +42,207 @@
         {
             "Address": "0x48",
             "Bus": "6",
-            "Name":  "TEMP_90_1",
-            "Name1": "TEMP_90_2",
-            "Name2": "TEMP_90_3",
-            "Name3": "TEMP_90_4",
-            "Name4": "TEMP_90_5",
-            "Name5": "TEMP_90_6",
-            "Name6": "TEMP_90_7",
-            "Name7": "TEMP_90_8",
-            "Name8": "TEMP_90_9",
+            "Name":  "THERMAL_U95",
+            "Name1": "THERMAL_90_2",
+            "Name2": "THERMAL_Q89",
+            "Name3": "THERMAL_Q90",
+            "Name4": "THERMAL_Q93",
+            "Name5": "THERMAL_Q91",
+            "Name6": "THERMAL_Q94",
+            "Name7": "THERMAL_Q92",
+            "Name8": "THERMAL_90_9",
             "Thresholds": [
                 {
-                    "Label": "TEMP_90_1",
+                    "Label": "THERMAL_U95",
                     "Direction": "greater than",
                     "Name": "upper critical",
                     "Severity": 1,
                     "Value": 70
                 },
                 {
-                    "Label": "TEMP_90_1",
+                    "Label": "THERMAL_U95",
                     "Direction": "greater than",
                     "Name": "upper non critical",
                     "Severity": 0,
                     "Value": 65
                 },
                 {
-                    "Label": "TEMP_90_1",
+                    "Label": "THERMAL_U95",
                     "Direction": "less than",
                     "Name": "lower non critical",
                     "Severity": 0,
                     "Value": 10
                 },
                 {
-                    "Label": "TEMP_90_1",
+                    "Label": "THERMAL_U95",
                     "Direction": "less than",
                     "Name": "lower critical",
                     "Severity": 1,
                     "Value": 5
                 },
                 {
-                    "Label": "TEMP_90_3",
+                    "Label": "THERMAL_Q89",
                     "Direction": "greater than",
                     "Name": "upper critical",
                     "Severity": 1,
                     "Value": 70
                 },
                 {
-                    "Label": "TEMP_90_3",
+                    "Label": "THERMAL_Q89",
                     "Direction": "greater than",
                     "Name": "upper non critical",
                     "Severity": 0,
                     "Value": 65
                 },
                 {
-                    "Label": "TEMP_90_3",
+                    "Label": "THERMAL_Q89",
                     "Direction": "less than",
                     "Name": "lower non critical",
                     "Severity": 0,
                     "Value": 10
                 },
                 {
-                    "Label": "TEMP_90_3",
+                    "Label": "THERMAL_Q89",
                     "Direction": "less than",
                     "Name": "lower critical",
                     "Severity": 1,
                     "Value": 5
                 },
                 {
-                    "Label": "TEMP_90_4",
+                    "Label": "THERMAL_Q90",
                     "Direction": "greater than",
                     "Name": "upper critical",
                     "Severity": 1,
                     "Value": 70
                 },
                 {
-                    "Label": "TEMP_90_4",
+                    "Label": "THERMAL_Q90",
                     "Direction": "greater than",
                     "Name": "upper non critical",
                     "Severity": 0,
                     "Value": 65
                 },
                 {
-                    "Label": "TEMP_90_4",
+                    "Label": "THERMAL_Q90",
                     "Direction": "less than",
                     "Name": "lower non critical",
                     "Severity": 0,
                     "Value": 10
                 },
                 {
-                    "Label": "TEMP_90_4",
+                    "Label": "THERMAL_Q90",
                     "Direction": "less than",
                     "Name": "lower critical",
                     "Severity": 1,
                     "Value": 5
                 },
                 {
-                    "Label": "TEMP_90_5",
+                    "Label": "THERMAL_Q93",
                     "Direction": "greater than",
                     "Name": "upper critical",
                     "Severity": 1,
                     "Value": 70
                 },
                 {
-                    "Label": "TEMP_90_5",
+                    "Label": "THERMAL_Q93",
                     "Direction": "greater than",
                     "Name": "upper non critical",
                     "Severity": 0,
                     "Value": 65
                 },
                 {
-                    "Label": "TEMP_90_5",
+                    "Label": "THERMAL_Q93",
                     "Direction": "less than",
                     "Name": "lower non critical",
                     "Severity": 0,
                     "Value": 10
                 },
                 {
-                    "Label": "TEMP_90_5",
+                    "Label": "THERMAL_Q93",
                     "Direction": "less than",
                     "Name": "lower critical",
                     "Severity": 1,
                     "Value": 5
                 },
                 {
-                    "Label": "TEMP_90_6",
+                    "Label": "THERMAL_Q91",
                     "Direction": "greater than",
                     "Name": "upper critical",
                     "Severity": 1,
                     "Value": 70
                 },
                 {
-                    "Label": "TEMP_90_6",
+                    "Label": "THERMAL_Q91",
                     "Direction": "greater than",
                     "Name": "upper non critical",
                     "Severity": 0,
                     "Value": 65
                 },
                 {
-                    "Label": "TEMP_90_6",
+                    "Label": "THERMAL_Q91",
                     "Direction": "less than",
                     "Name": "lower non critical",
                     "Severity": 0,
                     "Value": 10
                 },
                 {
-                    "Label": "TEMP_90_6",
+                    "Label": "THERMAL_Q91",
                     "Direction": "less than",
                     "Name": "lower critical",
                     "Severity": 1,
                     "Value": 5
                 },
                 {
-                    "Label": "TEMP_90_7",
+                    "Label": "THERMAL_Q94",
                     "Direction": "greater than",
                     "Name": "upper critical",
                     "Severity": 1,
                     "Value": 70
                 },
                 {
-                    "Label": "TEMP_90_7",
+                    "Label": "THERMAL_Q94",
                     "Direction": "greater than",
                     "Name": "upper non critical",
                     "Severity": 0,
                     "Value": 65
                 },
                 {
-                    "Label": "TEMP_90_7",
+                    "Label": "THERMAL_Q94",
                     "Direction": "less than",
                     "Name": "lower non critical",
                     "Severity": 0,
                     "Value": 10
                 },
                 {
-                    "Label": "TEMP_90_7",
+                    "Label": "THERMAL_Q94",
                     "Direction": "less than",
                     "Name": "lower critical",
                     "Severity": 1,
                     "Value": 5
                 },
                 {
-                    "Label": "TEMP_90_8",
+                    "Label": "THERMAL_Q92",
                     "Direction": "greater than",
                     "Name": "upper critical",
                     "Severity": 1,
                     "Value": 70
                 },
                 {
-                    "Label": "TEMP_90_8",
+                    "Label": "THERMAL_Q92",
                     "Direction": "greater than",
                     "Name": "upper non critical",
                     "Severity": 0,
                     "Value": 65
                 },
                 {
-                    "Label": "TEMP_90_8",
+                    "Label": "THERMAL_Q92",
                     "Direction": "less than",
                     "Name": "lower non critical",
                     "Severity": 0,
                     "Value": 10
                 },
                 {
-                    "Label": "TEMP_90_8",
+                    "Label": "THERMAL_Q92",
                     "Direction": "less than",
                     "Name": "lower critical",
                     "Severity": 1,
@@ -251,49 +251,49 @@
             ],
             "SensorInfo": [
                 {
-                    "Label": "TEMP_90_1",
+                    "Label": "THERMAL_U95",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x60",
                     "EntityId": "0x07",
                     "EntityInstance": "0"
                 },
                 {
-                    "Label": "TEMP_90_3",
+                    "Label": "THERMAL_Q89",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x61",
                     "EntityId": "0x07",
                     "EntityInstance": "1"
                 },
                 {
-                    "Label": "TEMP_90_4",
+                    "Label": "THERMAL_Q90",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x62",
                     "EntityId": "0x07",
                     "EntityInstance": "2"
                 },
                 {
-                    "Label": "TEMP_90_5",
+                    "Label": "THERMAL_Q93",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x63",
                     "EntityId": "0x07",
                     "EntityInstance": "3"
                 },
                 {
-                    "Label": "TEMP_90_6",
+                    "Label": "THERMAL_Q91",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x64",
                     "EntityId": "0x07",
                     "EntityInstance": "4"
                 },
                 {
-                    "Label": "TEMP_90_7",
+                    "Label": "THERMAL_Q94",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x65",
                     "EntityId": "0x07",
                     "EntityInstance": "5"
                 },
                 {
-                    "Label": "TEMP_90_8",
+                    "Label": "THERMAL_Q92",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x66",
                     "EntityId": "0x07",

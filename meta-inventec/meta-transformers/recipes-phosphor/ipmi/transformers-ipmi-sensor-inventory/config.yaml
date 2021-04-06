@@ -639,7 +639,7 @@
 0x60:
     entityID: 7
     entityInstance: 0
-    path: /xyz/openbmc_project/sensors/temperature/TEMP_90_1
+    path: /xyz/openbmc_project/sensors/temperature/THERMAL_U95
     multiplierM: 1
     offsetB: 0
     bExp: 0
@@ -661,7 +661,7 @@
 0x61:
     entityID: 7
     entityInstance: 1
-    path: /xyz/openbmc_project/sensors/temperature/TEMP_90_3
+    path: /xyz/openbmc_project/sensors/temperature/THERMAL_Q89
     multiplierM: 1
     offsetB: 0
     bExp: 0
@@ -683,7 +683,7 @@
 0x62:
     entityID: 7
     entityInstance: 2
-    path: /xyz/openbmc_project/sensors/temperature/TEMP_90_4
+    path: /xyz/openbmc_project/sensors/temperature/THERMAL_Q90
     multiplierM: 1
     offsetB: 0
     bExp: 0
@@ -705,7 +705,7 @@
 0x63:
     entityID: 7
     entityInstance: 3
-    path: /xyz/openbmc_project/sensors/temperature/TEMP_90_5
+    path: /xyz/openbmc_project/sensors/temperature/THERMAL_Q93
     multiplierM: 1
     offsetB: 0
     bExp: 0
@@ -727,7 +727,7 @@
 0x64:
     entityID: 7
     entityInstance: 4
-    path: /xyz/openbmc_project/sensors/temperature/TEMP_90_6
+    path: /xyz/openbmc_project/sensors/temperature/THERMAL_Q91
     multiplierM: 1
     offsetB: 0
     bExp: 0
@@ -749,7 +749,7 @@
 0x65:
     entityID: 7
     entityInstance: 5
-    path: /xyz/openbmc_project/sensors/temperature/TEMP_90_7
+    path: /xyz/openbmc_project/sensors/temperature/THERMAL_Q94
     multiplierM: 1
     offsetB: 0
     bExp: 0
@@ -771,7 +771,7 @@
 0x66:
     entityID: 7
     entityInstance: 6
-    path: /xyz/openbmc_project/sensors/temperature/TEMP_90_8
+    path: /xyz/openbmc_project/sensors/temperature/THERMAL_Q92
     multiplierM: 1
     offsetB: 0
     bExp: 0
@@ -793,7 +793,7 @@
 0x67:
     entityID: 7
     entityInstance: 0
-    path: /xyz/openbmc_project/sensors/temperature/TEMP_9E
+    path: /xyz/openbmc_project/sensors/temperature/THERMAL_U8
     multiplierM: 1
     offsetB: 0
     bExp: 0
@@ -815,7 +815,7 @@
 0x68:
     entityID: 7
     entityInstance: 0
-    path: /xyz/openbmc_project/sensors/temperature/TEMP_92
+    path: /xyz/openbmc_project/sensors/temperature/THERMAL_U6
     multiplierM: 1
     offsetB: 0
     bExp: 0

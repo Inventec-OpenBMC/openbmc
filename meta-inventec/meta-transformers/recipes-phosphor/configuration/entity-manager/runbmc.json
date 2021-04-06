@@ -3,7 +3,7 @@
         {
             "Address": "0x49",
             "Bus": "6",
-            "Name": "TEMP_92",
+            "Name": "THERMAL_U6",
             "Thresholds": [
                 {
                     "Direction": "greater than",
@@ -32,7 +32,7 @@
             ],
             "SensorInfo": [
                 {
-                    "Label": "TEMP_92",
+                    "Label": "THERMAL_U6",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x68",
                     "EntityId": "0x07",
