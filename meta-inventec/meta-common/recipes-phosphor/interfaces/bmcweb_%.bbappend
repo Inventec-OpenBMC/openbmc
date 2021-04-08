@@ -15,4 +15,5 @@ EXTRA_OEMESON += "-Dhttp-body-limit=512 -Dinsecure-tftp-update=enabled"
 #SRC_URI_append += " file://0001-Modify-firmware-update-mechanism.patch \
 #"
 SRC_URI_append += " file://0003-Add-redfish-managers-serialInterfaces.patch \
+                    file://0001-Delete-event-log.patch \
 "
