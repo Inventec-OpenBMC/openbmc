@@ -1,0 +1,6 @@
+{
+  "NMIOut": "NMI_OUT",
+  "PwrOK": "PS_PWROK",
+  "PwrOut": "POWER_OUT",
+  "RstOut": "RESET_OUT"
+}

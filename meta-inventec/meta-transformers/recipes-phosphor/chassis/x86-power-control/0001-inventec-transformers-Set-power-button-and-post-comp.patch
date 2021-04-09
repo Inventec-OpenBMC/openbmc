@@ -1,0 +1,214 @@
+From 00ac40a264bcb54a2f2f1c2a4f9a0337c9f0ee19 Mon Sep 17 00:00:00 2001
+From: "pj.chen" <chen.pj@inventec.com>
+Date: Wed, 7 Apr 2021 07:24:58 +0000
+Subject: [PATCH] [inventec][transformers] - Set power button and post complete
+ to optional
+
+Symptom/Reason:
+    There's no power button and post complete design on Transformers.
+    This would cause x86-power-control cannot init.
+
+Root Cause:
+    N/A
+
+Solution/Change:
+    Check in the config files, if not define power button and post complete, do not return.
+
+Entry Test:
+Jan 01 00:05:47 transformers systemd[1]: Starting Intel Power Control...
+Jan 01 00:05:47 transformers power-control[894]: Start Chassis power control service...
+Jan 01 00:05:47 transformers systemd[1]: Started Intel Power Control.
+Jan 01 00:05:47 transformers power-control[894]: SIO control GPIOs not defined, disable SIO support.
+Jan 01 00:05:47 transformers power-control[894]: powerButton name not configured from json config file
+Jan 01 00:05:47 transformers power-control[894]: ResetButton not defined...
+Jan 01 00:05:47 transformers power-control[894]: postComplete name not configured from json config file
+Jan 01 00:05:47 transformers power-control[894]: NMI_OUT set to 0
+Jan 01 00:05:47 transformers power-control[894]: POWER_OUT set to 1
+Jan 01 00:05:47 transformers power-control[894]: RESET_OUT set to 1
+Jan 01 00:05:47 transformers power-control[894]:  NMI Source Property Monitor
+Jan 01 00:05:47 transformers power-control[894]: Host0: Moving to "Off" state
+Jan 01 00:05:47 transformers power-control[894]: Initializing power state. RestartCause set to xyz.openbmc_project.State.Host.RestartCause.Unknown
+---
+ power-control-x86/src/power_control.cpp | 121 +++++++++++++++++++++-----------
+ 1 file changed, 81 insertions(+), 40 deletions(-)
+
+diff --git a/power-control-x86/src/power_control.cpp b/power-control-x86/src/power_control.cpp
+index fd5ae7d..5cc2d17 100644
+--- a/power-control-x86/src/power_control.cpp
++++ b/power-control-x86/src/power_control.cpp
+@@ -1365,8 +1365,16 @@ static void currentHostStateMonitor()
+                 // 'OperatingSystemState' to stay at 'Standby', even though
+                 // system is OFF. Set 'OperatingSystemState' to 'Inactive'
+                 // if HostState is trurned to OFF.
+-                osIface->set_property("OperatingSystemState",
+-                                      std::string("Inactive"));
++                /*
++                    Inventec - Set post complete to optional.
++
++                    If the post complete not support, the OperatingSystemState would always 'Standby'
++                */
++                if (!power_control::postCompleteName.empty())
++                {
++                    osIface->set_property("OperatingSystemState",
++                                          std::string("Inactive"));
++                }
+ 
+                 // Set the restart cause set for this restart
+                 setRestartCause();
+@@ -2274,9 +2282,16 @@ int main(int argc, char* argv[])
+     }
+     else
+     {
++        /*
++            Inventec - set power button to optional.
++        */
++        #if 0
+         std::cerr
+             << "powerButton name should be configured from json config file\n";
+         return -1;
++        #endif
++        std::cerr
++            << "powerButton name not configured from json config file\n";
+     }
+ 
+     // Request RESET_BUTTON GPIO events
+@@ -2325,9 +2340,16 @@ int main(int argc, char* argv[])
+     }
+     else
+     {
++        /*
++            Inventec - Set post complete to optional.
++        */
++        #if 0
+         std::cerr
+             << "postComplete name should be configured from json config file\n";
+         return -1;
++        #endif
++        std::cerr
++            << "postComplete name not configured from json config file\n";
+     }
+ 
+     // initialize NMI_OUT GPIO.
+@@ -2527,52 +2549,60 @@ int main(int argc, char* argv[])
+     power_control::chassisSysIface->initialize();
+ #endif
+ 
++
+     // Buttons Service
+     sdbusplus::asio::object_server buttonsServer =
+         sdbusplus::asio::object_server(power_control::conn);
+ 
+-    // Power Button Interface
+-    power_control::powerButtonIface = buttonsServer.add_interface(
+-        "/xyz/openbmc_project/chassis/buttons/power",
+-        "xyz.openbmc_project.Chassis.Buttons");
++    /*
++        Inventec - set power button to optional.
++    */
++    if (!power_control::powerButtonName.empty())
++    {
+ 
+-    power_control::powerButtonIface->register_property(
+-        "ButtonMasked", false, [](const bool requested, bool& current) {
+-            if (requested)
+-            {
+-                if (power_control::powerButtonMask)
+-                {
+-                    return 1;
+-                }
+-                if (!power_control::setGPIOOutput(
+-                        power_control::powerOutName, 1,
+-                        power_control::powerButtonMask))
++        // Power Button Interface
++        power_control::powerButtonIface = buttonsServer.add_interface(
++            "/xyz/openbmc_project/chassis/buttons/power",
++            "xyz.openbmc_project.Chassis.Buttons");
++
++        power_control::powerButtonIface->register_property(
++            "ButtonMasked", false, [](const bool requested, bool& current) {
++                if (requested)
+                 {
+-                    throw std::runtime_error("Failed to request GPIO");
+-                    return 0;
++                    if (power_control::powerButtonMask)
++                    {
++                        return 1;
++                    }
++                    if (!power_control::setGPIOOutput(
++                            power_control::powerOutName, 1,
++                            power_control::powerButtonMask))
++                    {
++                        throw std::runtime_error("Failed to request GPIO");
++                        return 0;
++                    }
++                    std::cerr << "Power Button Masked.\n";
+                 }
+-                std::cerr << "Power Button Masked.\n";
+-            }
+-            else
+-            {
+-                if (!power_control::powerButtonMask)
++                else
+                 {
+-                    return 1;
++                    if (!power_control::powerButtonMask)
++                    {
++                        return 1;
++                    }
++                    std::cerr << "Power Button Un-masked\n";
++                    power_control::powerButtonMask.reset();
+                 }
+-                std::cerr << "Power Button Un-masked\n";
+-                power_control::powerButtonMask.reset();
+-            }
+-            // Update the mask setting
+-            current = requested;
+-            return 1;
+-        });
++                // Update the mask setting
++                current = requested;
++                return 1;
++            });
+ 
+-    // Check power button state
+-    bool powerButtonPressed = power_control::powerButtonLine.get_value() == 0;
+-    power_control::powerButtonIface->register_property("ButtonPressed",
+-                                                       powerButtonPressed);
++        // Check power button state
++        bool powerButtonPressed = power_control::powerButtonLine.get_value() == 0;
++        power_control::powerButtonIface->register_property("ButtonPressed",
++                                                           powerButtonPressed);
+ 
+-    power_control::powerButtonIface->initialize();
++        power_control::powerButtonIface->initialize();
++    }
+ 
+     // Reset Button Interface
+     if (!power_control::resetButtonName.empty())
+@@ -2700,9 +2730,20 @@ int main(int argc, char* argv[])
+     // Get the initial OS state based on POST complete
+     //      0: Asserted, OS state is "Standby" (ready to boot)
+     //      1: De-Asserted, OS state is "Inactive"
+-    std::string osState = power_control::postCompleteLine.get_value() > 0
+-                              ? "Inactive"
+-                              : "Standby";
++    /*
++        Inventec - Set post complete to optional
++    */
++    std::string osState;
++    if (!power_control::postCompleteName.empty())
++    {
++        osState = power_control::postCompleteLine.get_value() > 0
++                                  ? "Inactive"
++                                  : "Standby";
++    }
++    else
++    {
++        osState = "Standby";
++    }
+ 
+     power_control::osIface->register_property("OperatingSystemState",
+                                               std::string(osState));
+-- 
+2.7.4
+
