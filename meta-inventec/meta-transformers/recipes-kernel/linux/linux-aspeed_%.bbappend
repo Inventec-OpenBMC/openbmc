@@ -36,6 +36,7 @@ SRC_URI_append = " file://transformers.cfg \
                    file://0027-inventec-transformers-Add-virtual-driver-to-simulate.patch \
                    file://0028-inventec-transformers-KCS3-can-t-be-created-because.patch \
                    file://0029-inventec-transformers-Sync-sgpio-driver-with-aspeed-.patch \
+                   file://0030-Add-Aspeed-VHUB-dirver-support-on-Transformers.patch \
                  "
 
 do_add_overwrite_files () {
