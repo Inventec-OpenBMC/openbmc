@@ -16,4 +16,5 @@ EXTRA_OEMESON += "-Dhttp-body-limit=512 -Dinsecure-tftp-update=enabled"
 #"
 SRC_URI_append += " file://0003-Add-redfish-managers-serialInterfaces.patch \
                     file://0001-Delete-event-log.patch \
+                    file://0002-Empty-base-dn-error.patch \
 "
