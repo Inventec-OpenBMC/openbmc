@@ -128,10 +128,17 @@
 };
 
 &spi1 {
+	status = "okay";
+    pinctrl-names = "default";
+    pinctrl-0 = <&pinctrl_spi1_default>;
+    flash@0 {
         status = "okay";
-        compatible = "aspeed,ast2600-spi-master";
-        pinctrl-names = "default";
-        pinctrl-0 = <&pinctrl_spi1_default>;
+        m25p,fast-read;
+        label = "bios";
+        spi-max-frequency = <33000000>;
+        spi-tx-bus-width = <1>;
+        spi-rx-bus-width = <1>;
+    };
 };
 
 &wdt1 {
