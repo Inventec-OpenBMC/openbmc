@@ -14,5 +14,3 @@ DEPENDS += " phosphor-dbus-interfaces"
 #"
 SRC_URI_append += " file://0001-Add-FRU-properties-chassis.patch \
 "
-SRC_URI_append += " file://0002-enable-managers-logging-dump-journal.patch \
-"
