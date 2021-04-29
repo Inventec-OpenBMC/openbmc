@@ -1,0 +1,34 @@
+From 92e42c665ca9098b19b03ed28046696492b5ca19 Mon Sep 17 00:00:00 2001
+From: Ashwini Udupa <udupa.ashwini@inventec.com>
+Date: Tue, 13 Apr 2021 22:17:16 -0700
+Subject: [PATCH] Empty base dn error
+
+---
+ redfish-core/lib/account_service.hpp | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/redfish-core/lib/account_service.hpp b/redfish-core/lib/account_service.hpp
+index 5b06b37..df9f381 100644
+--- a/redfish-core/lib/account_service.hpp
++++ b/redfish-core/lib/account_service.hpp
+@@ -1030,6 +1030,17 @@ class AccountService : public Node
+                                                  "BaseDistinguishedNames");
+                 return;
+             }
++            else
++            {
++              std::string baseDNfront = (*baseDNList).front();
++              if ( baseDNfront.empty())
++              {
++                messages::propertyValueNotInList(asyncResp->res, "[""]",
++                                                 "BaseDistinguishedNames");
++                return;
++
++              }
++            }
+         }
+ 
+         // nothing to update, then return
+-- 
+2.7.4
+
