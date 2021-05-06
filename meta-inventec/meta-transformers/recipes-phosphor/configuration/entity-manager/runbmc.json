@@ -1,6 +1,6 @@
 {
     "Exposes": [
-        {
+       {
             "Address": "0x49",
             "Bus": "6",
             "Name": "THERMAL_U6",
@@ -44,5 +44,12 @@
     ],
     "Name": "Transformers runbmc",
     "Probe": "xyz.openbmc_project.FruDevice({'BUS': 8, 'ADDRESS' : 81})",
-    "Type": "Board"
+    "Type": "Board",
+    "xyz.openbmc_project.Inventory.Decorator.Asset": {
+        "Manufacturer": "$BOARD_MANUFACTURER",
+        "Model": "$BOARD_PRODUCT_NAME",
+        "PartNumber": "$BOARD_PART_NUMBER",
+        "SerialNumber": "$BOARD_SERIAL_NUMBER",
+        "BuildDate": "$BOARD_MANUFACTURE_DATE"
+    }
 }
