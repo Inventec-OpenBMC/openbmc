@@ -1,0 +1,162 @@
+From 2baacc700bb7e61584c5dcbc6bdfbb97e3f2f73e Mon Sep 17 00:00:00 2001
+From: "Lin.TommySC" <lin.tommysc@inventec.com>
+Date: Thu, 6 May 2021 03:05:16 +0000
+Subject: [PATCH] [inventec][common] - Implement LAN Config Primary RMCP Port
+
+Symptom/Reason :
+    - Implement LAN Config Primary RMCP Port
+
+Root Cause:
+    - N/A
+
+Solution/Change:
+    [phospher-ipmi-config]
+        - Add primary_rmcp_port config name with default value 623
+    [phospher-ipmi-host]
+        - Add entry for command handler and read/write fonfig value from/to lan_config.json
+        - Restart netipmid systemd service after RMCP port change
+    [phospher-ipmi-net]
+        - Reads primary_rmcp_port value from lan_config.json at Init
+        - Add getRmcpPort function to get RMCP port
+
+Entry Test:
+    - Get RMCP port
+        ipmitool raw 0x0c 0x02 0x01 0x08 0x00 0x00
+    - Set RMCP port
+        ipmitool raw 0x0c 0x01 0x01 0x08 0x50 0x02
+---
+ command/payload_cmds.cpp |  3 +++
+ command/sol_cmds.cpp     |  3 +++
+ main.cpp                 | 12 ++++++++++++
+ main.hpp                 | 43 +++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 61 insertions(+)
+
+diff --git a/command/payload_cmds.cpp b/command/payload_cmds.cpp
+index c8e682e..02d56f4 100644
+--- a/command/payload_cmds.cpp
++++ b/command/payload_cmds.cpp
+@@ -101,7 +101,10 @@ std::vector<uint8_t> activatePayload(const std::vector<uint8_t>& inPayload,
+ 
+     response->inPayloadSize = endian::to_ipmi<uint16_t>(MAX_PAYLOAD_SIZE);
+     response->outPayloadSize = endian::to_ipmi<uint16_t>(MAX_PAYLOAD_SIZE);
++    /* By Tommy. Add support for primary RMCP Port Number configuration
+     response->portNum = endian::to_ipmi<uint16_t>(IPMI_STD_PORT);
++    */
++    response->portNum = endian::to_ipmi<uint16_t>(getRmcpPort());
+ 
+     // VLAN addressing is not used
+     response->vlanNum = 0xFFFF;
+diff --git a/command/sol_cmds.cpp b/command/sol_cmds.cpp
+index fda3e91..7d52c3d 100644
+--- a/command/sol_cmds.cpp
++++ b/command/sol_cmds.cpp
+@@ -225,7 +225,10 @@ std::vector<uint8_t> getConfParams(const std::vector<uint8_t>& inPayload,
+         }
+         case Parameter::PORT:
+         {
++            /* By Tommy. Add support for primary RMCP Port Number configuration
+             auto port = endian::to_ipmi<uint16_t>(IPMI_STD_PORT);
++            */
++            auto port = endian::to_ipmi<uint16_t>(getRmcpPort());
+             auto buffer = reinterpret_cast<const uint8_t*>(&port);
+ 
+             std::copy_n(buffer, sizeof(port), std::back_inserter(outPayload));
+diff --git a/main.cpp b/main.cpp
+index 1d84c3c..10e143f 100644
+--- a/main.cpp
++++ b/main.cpp
+@@ -26,6 +26,8 @@ using namespace phosphor::logging;
+ 
+ // Tuple of Global Singletons
+ static auto io = std::make_shared<boost::asio::io_context>();
++static uint16_t rmcp_port = IPMI_STD_PORT;
++
+ session::Manager manager;
+ command::Table table;
+ eventloop::EventLoop loop(io);
+@@ -75,6 +77,11 @@ EInterfaceIndex getInterfaceIndex(void)
+     return currentInterfaceIndex;
+ }
+ 
++uint16_t getRmcpPort(void)
++{
++    return rmcp_port;
++}
++
+ int main(int argc, char* argv[])
+ {
+     CLI::App app("KCS RMCP+ bridge");
+@@ -114,7 +121,12 @@ int main(int argc, char* argv[])
+     sol::command::registerCommands();
+ 
+     auto& loop = std::get<eventloop::EventLoop&>(singletonPool);
++    /* By Tommy. Add support for primary RMCP Port Number configuration
+     if (loop.setupSocket(sdbusp, channel))
++    */
++    rmcp_port = IPMI_STD_PORT;
++    loadConfigValue<uint16_t>(LAN_CONFIG_PRI_RMCP_PORT, rmcp_port);
++    if (loop.setupSocket(sdbusp, channel, rmcp_port))
+     {
+         return EXIT_FAILURE;
+     }
+diff --git a/main.hpp b/main.hpp
+index 7c78554..250a709 100644
+--- a/main.hpp
++++ b/main.hpp
+@@ -9,6 +9,9 @@
+ #include <sdbusplus/asio/connection.hpp>
+ #include <sessions_manager.hpp>
+ #include <tuple>
++#include <fstream>
++#include <nlohmann/json.hpp>
++#include <phosphor-logging/log.hpp>
+ 
+ extern std::tuple<session::Manager&, command::Table&, eventloop::EventLoop&,
+                   sol::Manager&>
+@@ -18,6 +21,46 @@ extern std::tuple<session::Manager&, command::Table&, eventloop::EventLoop&,
+ static constexpr size_t SELECT_CALL_TIMEOUT = 30;
+ static const auto IPMI_STD_PORT = 623;
+ 
++// Config file for LAN Config Parameters
++constexpr auto LAN_CFG_FILE = "/usr/share/ipmi-providers/lan_config.json";
++// Config name for LAN Config Parameters
++constexpr auto LAN_CONFIG_PRI_RMCP_PORT = "primary_rmcp_port";
++
+ extern sd_bus* bus;
+ 
+ std::shared_ptr<sdbusplus::asio::connection> getSdBus();
++
++using namespace phosphor::logging;
++
++/** @brief get config value from LAN configuration file.
++ *  @param[in] name - config name.
++ *  @param[in] val - value of the given config name.
++ */
++template <typename T> void loadConfigValue(const std::string& name, T& val)
++{
++    std::ifstream configFile(LAN_CFG_FILE);
++    if (!configFile.is_open())
++    {
++        log<level::ERR>("loadConfigValue : Cannot open config path");
++        return;
++    }
++
++    auto data = nlohmann::json::parse(configFile, nullptr);
++
++    if (data.is_discarded())
++    {
++        log<level::ERR>("loadConfigValue JSON parser failure");
++        return;
++    }
++
++    if (data.contains(name))
++    {
++        val = (T)data[name];
++    }
++}
++
++/** @brief get RMCP port number
++ *
++ *  @return Response data for the command
++ */
++uint16_t getRmcpPort(void);

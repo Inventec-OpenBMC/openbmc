@@ -1,3 +1,4 @@
 {
+    "primary_rmcp_port": 623,
     "community_str": "public"
 }
