@@ -1,0 +1,47 @@
+From 18df43ceb5862a8a3c9da7920c920d24d85ad316 Mon Sep 17 00:00:00 2001
+From: Qiping Fang <fang.qiping@inventec.com>
+Date: Wed, 12 May 2021 12:42:28 -0700
+Subject: [PATCH] Fix ldap localRole invalid privilege causing internal server
+ error
+
+---
+ redfish-core/lib/account_service.hpp | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/redfish-core/lib/account_service.hpp b/redfish-core/lib/account_service.hpp
+index df9f381..78d7f65 100644
+--- a/redfish-core/lib/account_service.hpp
++++ b/redfish-core/lib/account_service.hpp
+@@ -296,6 +296,14 @@ inline void handleRoleMapPatch(
+                 // If "LocalRole" info is provided
+                 if (localRole)
+                 {
++                    if ((*localRole != "Administrator") && (*localRole != "Operator")
++                          && (*localRole != "ReadOnly") && (*localRole != "NoAccess"))
++                    {
++                        messages::propertyValueNotInList(asyncResp->res, *localRole,
++                                             "LocalRole");
++                        return;
++                    }
++
+                     crow::connections::systemBus->async_method_call(
+                         [asyncResp, roleMapObjData, serverType, index,
+                          localRole](const boost::system::error_code ec) {
+@@ -352,6 +360,14 @@ inline void handleRoleMapPatch(
+                 BMCWEB_LOG_DEBUG << "Remote Group=" << *remoteGroup
+                                  << ",LocalRole=" << *localRole;
+ 
++                if ((*localRole != "Administrator") && (*localRole != "Operator")
++                      && (*localRole != "ReadOnly") && (*localRole != "NoAccess"))
++                {
++                    messages::propertyValueNotInList(asyncResp->res, *localRole,
++                                         "LocalRole");
++                    return;
++                }
++
+                 crow::connections::systemBus->async_method_call(
+                     [asyncResp, serverType, localRole,
+                      remoteGroup](const boost::system::error_code ec) {
+-- 
+2.17.1
+
