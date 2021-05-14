@@ -16,6 +16,7 @@ SRC_URI_append = " file://0001-sensorhandler-fix-get-threshold-error.patch \
                    file://0012-inventec-common-Implement-LAN-Config-Primary-RMCP-Po.patch \
                    file://0013-inventec-common-DCMI-Power-Implement-DCMI-get-power-.patch \
                    file://0014-Implement-LAN-Config-Destination-Addresses.patch \
+                   file://0015-inventec-common-DCMI-Enhance-set-get-power-limit.patch \
 "
 
 
