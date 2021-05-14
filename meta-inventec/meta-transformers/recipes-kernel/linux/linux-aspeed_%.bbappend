@@ -38,6 +38,7 @@ SRC_URI_append = " file://transformers.cfg \
                    file://0029-inventec-transformers-Sync-sgpio-driver-with-aspeed-.patch \
                    file://0030-Add-Aspeed-VHUB-dirver-support-on-Transformers.patch \
                    file://0031-inventec-transformers-force-spi-to-run-at-single-mode.patch \
+		   file://0032-inventec-transformers-Modify-RGMII-TX-Clock-delay-an.patch \
                  "
 
 do_add_overwrite_files () {
