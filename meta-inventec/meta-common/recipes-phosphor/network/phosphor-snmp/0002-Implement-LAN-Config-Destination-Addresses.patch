@@ -1,0 +1,113 @@
+From 74483594bbed570d517bd0b593f6893de6ceef9e Mon Sep 17 00:00:00 2001
+From: "Lin.TommySC" <lin.tommysc@inventec.com>
+Date: Fri, 14 May 2021 06:10:09 +0000
+Subject: [PATCH] Implement LAN Config Destination Addresses
+
+Symptom/Reason :
+    - Implement LAN Config Destination Addresses
+
+Root Cause:
+    - N/A
+
+Solution/Change:
+    [phospher-ipmi-host]
+        - Use xyz.openbmc_project.Network.Client.Create interface to create new manager
+        - Use xyz.openbmc_project.Network.Client interface to get manager properties
+    [phospher-snmp]
+        - Modify xyz.openbmc_project.Network.Client.Create interface to allow destination selector
+        - Do not serialize manager when selector id is 0
+
+Entry Test:
+    - Get Destination Addresses
+        ipmitool raw 0x0c 0x02 0x01 0x13 0x01 0x00
+    - Set Destination Addresses
+        ipmitool raw 0x0c 0x01 0x01 0x13 0x00 0x00 0x00 0x0a 0x6 0x8d 0x21 0x7c 0xd3 0x0a 0xc4 0x90 0xe4
+---
+ snmp_conf_manager.cpp                                    | 6 ++++--
+ snmp_conf_manager.hpp                                    | 2 +-
+ snmp_serialize.cpp                                       | 5 +++++
+ xyz/openbmc_project/Network/Client/Create.interface.yaml | 4 ++++
+ 4 files changed, 14 insertions(+), 3 deletions(-)
+
+diff --git a/snmp_conf_manager.cpp b/snmp_conf_manager.cpp
+index 52f4678..9990cab 100644
+--- a/snmp_conf_manager.cpp
++++ b/snmp_conf_manager.cpp
+@@ -29,12 +29,12 @@ ConfManager::ConfManager(sdbusplus::bus::bus& bus, const char* objPath) :
+ {
+ }
+ 
+-std::string ConfManager::client(std::string address, uint16_t port)
++std::string ConfManager::client(std::string address, uint16_t port, uint8_t id)
+ {
+     // will throw exception if it is already configured.
+     checkClientConfigured(address, port);
+ 
+-    lastClientId++;
++    lastClientId = id;
+     try
+     {
+         // just to check whether given address is valid or not.
+@@ -66,6 +66,7 @@ std::string ConfManager::client(std::string address, uint16_t port)
+ void ConfManager::checkClientConfigured(const std::string& address,
+                                         uint16_t port)
+ {
++    /* By Tommy. Skip checking and force update.
+     if (address.empty())
+     {
+         log<level::ERR>("Invalid address");
+@@ -86,6 +87,7 @@ void ConfManager::checkClientConfigured(const std::string& address,
+                 Argument::ARGUMENT_VALUE("Client already exist."));
+         }
+     }
++    */
+ }
+ 
+ void ConfManager::deleteSNMPClient(Id id)
+diff --git a/snmp_conf_manager.hpp b/snmp_conf_manager.hpp
+index de9e486..45f796b 100644
+--- a/snmp_conf_manager.hpp
++++ b/snmp_conf_manager.hpp
+@@ -51,7 +51,7 @@ class ConfManager : public details::CreateIface
+      *  @param[in] port - network port.
+      *  @returns D-Bus object path
+      */
+-    std::string client(std::string address, uint16_t port) override;
++    std::string client(std::string address, uint16_t port, uint8_t id) override;
+ 
+     /* @brief delete the D-Bus object of the given ID.
+      * @param[in] id - client identifier.
+diff --git a/snmp_serialize.cpp b/snmp_serialize.cpp
+index 98aa97f..2e61fe5 100644
+--- a/snmp_serialize.cpp
++++ b/snmp_serialize.cpp
+@@ -56,6 +56,11 @@ void load(Archive& archive, Client& manager, const std::uint32_t version)
+ 
+ fs::path serialize(Id id, const Client& manager, const fs::path& dir)
+ {
++    // By Tommy. Do not serialize id 0 since it's volatile defined by spec.
++    if (id == 0)
++    {
++        return dir;
++    }
+     fs::path fileName = dir;
+     fs::create_directories(dir);
+     fileName /= std::to_string(id);
+diff --git a/xyz/openbmc_project/Network/Client/Create.interface.yaml b/xyz/openbmc_project/Network/Client/Create.interface.yaml
+index 77955d5..5ba6efa 100644
+--- a/xyz/openbmc_project/Network/Client/Create.interface.yaml
++++ b/xyz/openbmc_project/Network/Client/Create.interface.yaml
+@@ -12,6 +12,10 @@ methods:
+           type: uint16
+           description: >
+               Network port.
++        - name: Id
++          type: byte
++          description: >
++              Client Identifier.
+       errors:
+         - xyz.openbmc_project.Common.Error.InvalidArgument
+       returns:
+-- 
+2.7.4
+
