@@ -1,0 +1,82 @@
+From 90633669da38e9b18ebff4ec0cadc3909c91caf8 Mon Sep 17 00:00:00 2001
+From: "Alang.Huang" <Huang.Alang@inventec.com>
+Date: Tue, 6 Apr 2021 00:14:59 +0000
+Subject: [PATCH] add bios image upload flow
+
+---
+ activation.cpp                   | 20 +++++++++++++++++---
+ activation.hpp                   |  1 +
+ obmc-flash-host-bios@.service.in |  6 ++++--
+ 3 files changed, 22 insertions(+), 5 deletions(-)
+
+diff --git a/activation.cpp b/activation.cpp
+index af0fc98..d37becd 100644
+--- a/activation.cpp
++++ b/activation.cpp
+@@ -408,9 +408,23 @@ bool Activation::checkApplyTimeImmediate()
+ #ifdef HOST_BIOS_UPGRADE
+ void Activation::flashWriteHost()
+ {
++    std::string biosImagePath;
++    auto ret = getImagePath(biosImagePath);
++    if(ret!=0)
++    {
++        log<level::ERR>("Error in finding host bios path.");
++        report<InternalFailure>();
++        return;
++    }
++    log<level::INFO>("flashWriteBios start.");
++      /*when instance name is absolute file path need to replace / with -
++    other the service would be recognized*/
++    std::replace( biosImagePath.begin(), biosImagePath.end(), '/', '-');
++    biosImagePathNew.assign(biosImagePath);
++
+     auto method = bus.new_method_call(SYSTEMD_BUSNAME, SYSTEMD_PATH,
+                                       SYSTEMD_INTERFACE, "StartUnit");
+-    auto biosServiceFile = "obmc-flash-host-bios@" + versionId + ".service";
++    auto biosServiceFile = "obmc-flash-host-bios@" + biosImagePath + ".service";
+     method.append(biosServiceFile, "replace");
+     try
+     {
+@@ -433,8 +447,8 @@ void Activation::onStateChangesBios(sdbusplus::message::message& msg)
+     // Read the msg and populate each variable
+     msg.read(newStateID, newStateObjPath, newStateUnit, newStateResult);
+ 
+-    auto biosServiceFile = "obmc-flash-host-bios@" + versionId + ".service";
+-
++    auto biosServiceFile = "obmc-flash-host-bios@" + biosImagePathNew + ".service";
++    
+     if (newStateUnit == biosServiceFile)
+     {
+         // unsubscribe to systemd signals
+diff --git a/activation.hpp b/activation.hpp
+index 4e5659f..72b6047 100644
+--- a/activation.hpp
++++ b/activation.hpp
+@@ -241,6 +241,7 @@ class Activation : public ActivationInherit, public Flash
+ 
+     /** @brief Function that acts on Bios upgrade service file state changes */
+     void onStateChangesBios(sdbusplus::message::message&);
++    std::string biosImagePathNew;
+ #endif
+     int32_t getImagePath(std::string&);
+     /*@brief cpld upgrade*/
+diff --git a/obmc-flash-host-bios@.service.in b/obmc-flash-host-bios@.service.in
+index 13a01af..0b5ae2b 100644
+--- a/obmc-flash-host-bios@.service.in
++++ b/obmc-flash-host-bios@.service.in
+@@ -1,7 +1,9 @@
+ [Unit]
+-Description=Flash Host Bios image %I to Host
++Description=Flash Host Bios image-path %i to bios-rom
+ 
+ [Service]
+ Type=oneshot
+ RemainAfterExit=no
+-ExecStart=echo Please add custom command for flashing image /tmp/image/%i
++ExecStart=/usr/sbin/bios-update %i
++StandardOutput=journal+console
++
+-- 
+2.7.4
+
