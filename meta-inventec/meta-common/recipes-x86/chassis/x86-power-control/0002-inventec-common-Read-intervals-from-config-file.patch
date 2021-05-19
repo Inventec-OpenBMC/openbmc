@@ -1,0 +1,96 @@
+From 50d96a3300c3c2430a8f900364428b0a361a16c4 Mon Sep 17 00:00:00 2001
+From: "pj.chen" <chen.pj@inventec.com>
+Date: Wed, 19 May 2021 05:44:06 +0000
+Subject: [PATCH] [inventec][common] - Read intervals from config file
+
+Sympton/Reason:
+    Some of values are define in constant, need to be configurable.
+
+Root Cause:
+    N/A
+
+Solution/Change:
+    [power_control.cpp]
+        Modify the orginal value to default value.
+        Read the config value from json file if configured in the json file.
+
+Entry Test:
+
+May 19 05:26:29 transformers systemd[1]: Starting Intel Power Control...
+May 19 05:26:33 transformers power-control[226]: Start Chassis power control service...
+May 19 05:26:33 transformers power-control[226]: powerCycleIntervalMs restored to: 6000
+May 19 05:26:33 transformers power-control[226]: powerPulseTimeMs restored to: 6000
+May 19 05:26:33 transformers power-control[226]: resetPulseTimeMs restored to: 6000
+---
+ power-control-x86/src/power_control.cpp | 41 +++++++++++++++++++++++++++++----
+ 1 file changed, 37 insertions(+), 4 deletions(-)
+
+diff --git a/power-control-x86/src/power_control.cpp b/power-control-x86/src/power_control.cpp
+index 5cc2d17..68eb782 100644
+--- a/power-control-x86/src/power_control.cpp
++++ b/power-control-x86/src/power_control.cpp
+@@ -70,17 +70,25 @@ static gpiod::line powerButtonMask;
+ static gpiod::line resetButtonMask;
+ static bool nmiButtonMasked = false;
+ 
+-const static constexpr int powerPulseTimeMs = 200;
+-const static constexpr int forceOffPulseTimeMs = 15000;
+-const static constexpr int resetPulseTimeMs = 500;
++/* Bug 310 - [SW][inventec][common][x86-power-control] - Implement configuration for pulse time */
++const static constexpr int defaultPowerPulseTimeMs = 200;
++const static constexpr int defaultForceOffPulseTimeMs = 15000;
++const static constexpr int defaultResetPulseTimeMs = 500;
+ const static constexpr int powerCycleTimeMs = 5000;
+ const static constexpr int sioPowerGoodWatchdogTimeMs = 1000;
+ const static constexpr int psPowerOKWatchdogTimeMs = 8000;
+-const static constexpr int gracefulPowerOffTimeMs = 60000;
++const static constexpr int defaultGracefulPowerOffTimeMs = 60000;
+ const static constexpr int warmResetCheckTimeMs = 500;
+ const static constexpr int buttonMaskTimeMs = 60000;
+ const static constexpr int powerOffSaveTimeMs = 7000;
+ 
++/* Bug 310 - [SW][inventec][common][x86-power-control] - Implement configuration for pulse time */
++static int powerPulseTimeMs = defaultPowerPulseTimeMs;
++static int forceOffPulseTimeMs = defaultForceOffPulseTimeMs;
++static int resetPulseTimeMs = defaultResetPulseTimeMs;
++static int gracefulPowerOffTimeMs = defaultGracefulPowerOffTimeMs;
++
++
+ const static std::filesystem::path powerControlDir = "/var/lib/power-control";
+ const static constexpr std::string_view powerStateFile = "power-state";
+ 
+@@ -2159,6 +2167,31 @@ static int loadConfigValues()
+         std::cerr << "powerCycleIntervalMs restored to: " << powerCycleIntervalMs << "\n";
+     }
+ 
++    /* Bug 310 - [SW][inventec][common][x86-power-control] - Implement configuration for pulse time */
++    if (data.contains("PowerPulseTimeMs"))
++    {
++        powerPulseTimeMs = data["PowerPulseTimeMs"];
++        std::cerr << "powerPulseTimeMs restored to: " << powerPulseTimeMs << "\n";
++    }
++
++    if (data.contains("ForceOffPulseTimeMs"))
++    {
++        forceOffPulseTimeMs = data["ForceOffPulseTimeMs"];
++        std::cerr << "forceOffPulseTimeMs restored to: " << forceOffPulseTimeMs << "\n";
++    }
++
++    if (data.contains("ResetPulseTimeMs"))
++    {
++        resetPulseTimeMs = data["ResetPulseTimeMs"];
++        std::cerr << "resetPulseTimeMs restored to: " << resetPulseTimeMs << "\n";
++    }
++
++    if (data.contains("GracefulPowerOffTimeMs"))
++    {
++        gracefulPowerOffTimeMs = data["GracefulPowerOffTimeMs"];
++        std::cerr << "GracefulPowerOffTimeMs restored to: " << gracefulPowerOffTimeMs << "\n";
++    }
++
+     return 0;
+ }
+ 
+-- 
+2.7.4
+

@@ -2,5 +2,8 @@
   "NMIOut": "NMI_OUT",
   "PwrOK": "PS_PWROK",
   "PwrOut": "POWER_OUT",
-  "RstOut": "RESET_OUT"
+  "RstOut": "RESET_OUT",
+  "PowerCycleInterval":6000,
+  "PowerPulseTimeMs":6000,
+  "ResetPulseTimeMs":6000
 }
