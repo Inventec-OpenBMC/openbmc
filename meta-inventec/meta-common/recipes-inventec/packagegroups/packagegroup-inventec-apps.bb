@@ -50,6 +50,7 @@ RDEPENDS_${PN}-system = " \
         entity-manager \
         dbus-sensors \
         webui-vue \
+        phosphor-snmp \
         phosphor-sel-logger \
         phosphor-gpio-monitor \
         phosphor-gpio-monitor-monitor \
