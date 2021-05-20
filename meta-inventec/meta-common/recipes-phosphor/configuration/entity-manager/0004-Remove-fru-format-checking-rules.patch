@@ -1,0 +1,92 @@
+From 8f2227052e06290dc1d6eb42c441c5cb90374583 Mon Sep 17 00:00:00 2001
+From: cynthia <wu.cynthia@inventec.com>
+Date: Thu, 20 May 2021 22:00:56 +0800
+Subject: [PATCH] - Remove fru format checking rules
+
+[Symptom/Reason]
+	1. According to ipmi spec, we don't check fru format when
+	  read/write fru data
+[Root Cause]
+	N/A
+[Solition/Changes]
+	1.Remove fru format checking rules in FruDevice.cpp
+[Entry Test]
+
+sysadmin@transformers:~# busctl introspect xyz.openbmc_project.FruDevice /xyz/openbmc_project/FruDevice/TRANSFORMERS________
+NAME                                TYPE      SIGNATURE RESULT/VALUE                       FLAGS
+org.freedesktop.DBus.Introspectable interface -         -                                  -
+.Introspect                         method    -         s                                  -
+org.freedesktop.DBus.Peer           interface -         -                                  -
+.GetMachineId                       method    -         s                                  -
+.Ping                               method    -         -                                  -
+org.freedesktop.DBus.Properties     interface -         -                                  -
+.Get                                method    ss        v                                  -
+.GetAll                             method    s         a{sv}                              -
+.Set                                method    ssv       -                                  -
+.PropertiesChanged                  signal    sa{sv}as  -                                  -
+xyz.openbmc_project.FruDevice       interface -         -                                  -
+.ADDRESS                            property  u         80                                 emits-change
+.BOARD_FRU_VERSION_ID               property  s         "            "                     emits-change
+.BOARD_INFO_AM1                     property  s         " X02"                             emits-change
+.BOARD_LANGUAGE_CODE                property  s         "0"                                emits-change
+.BOARD_MANUFACTURER                 property  s         "Inventec            "             emits-change
+.BOARD_MANUFACTURE_DATE             property  s         "2021-01-13 - 09:51:00"            emits-change
+.BOARD_PART_NUMBER                  property  s         "1395A3194504        "             emits-change
+.BOARD_PRODUCT_NAME                 property  s         "TRANSFORMERS        "             emits-change
+.BOARD_SERIAL_NUMBER                property  s         "                    "             emits-change
+.BUS                                property  u         3                                  emits-change
+.CHASSIS_PART_NUMBER                property  s         "                        "         emits-change
+.CHASSIS_SERIAL_NUMBER              property  s         "                                " emits-change
+.CHASSIS_TYPE                       property  s         "23"                               emits-change
+.Common_Format_Version              property  s         "1"                                emits-change
+.PRODUCT_ASSET_TAG                  property  s         "                        "         emits-change writable
+.PRODUCT_FRU_VERSION_ID             property  s         "      "                           emits-change
+.PRODUCT_INFO_AM1                   property  s         "                        "         emits-change
+.PRODUCT_LANGUAGE_CODE              property  s         "0"                                emits-change
+.PRODUCT_MANUFACTURER               property  s         "Inventec        "                 emits-change
+.PRODUCT_PART_NUMBER                property  s         "                    "             emits-change
+.PRODUCT_PRODUCT_NAME               property  s         "TRANSFORMERS        "             emits-change
+.PRODUCT_SERIAL_NUMBER              property  s         "                        "         emits-change
+.PRODUCT_VERSION                    property  s         "        "                         emits-change
+
+%% original patch: 0004-Remove-fru-format-checking-rules.patch
+---
+ src/FruDevice.cpp | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/src/FruDevice.cpp b/src/FruDevice.cpp
+index 295c472..7ce286f 100644
+--- a/src/FruDevice.cpp
++++ b/src/FruDevice.cpp
+@@ -58,7 +58,7 @@ extern "C"
+ namespace fs = std::filesystem;
+ static constexpr bool DEBUG = false;
+ static size_t UNKNOWN_BUS_OBJECT_COUNT = 0;
+-constexpr size_t MAX_FRU_SIZE = 512;
++constexpr size_t MAX_FRU_SIZE = 0x800;
+ constexpr size_t MAX_EEPROM_PAGE_INDEX = 255;
+ constexpr size_t busTimeoutSeconds = 5;
+ constexpr size_t fruBlockSize = 8; // FRU areas are measured in 8-byte blocks
+@@ -1030,7 +1030,8 @@ resCodes formatFRU(const std::vector<uint8_t>& fruBytes,
+             fruBytes.begin() + offset + fruAreaSize - 1;
+         ++fruBytesIter;
+ 
+-        uint8_t fruComputedChecksum =
++        /*According to ipmi spec, we don't do any check when read/write fru data*/
++        /*uint8_t fruComputedChecksum =
+             calculateChecksum(fruBytes.begin() + offset, fruBytesIterEndArea);
+         if (fruComputedChecksum != *fruBytesIterEndArea)
+         {
+@@ -1043,8 +1044,7 @@ resCodes formatFRU(const std::vector<uint8_t>& fruBytes,
+                << static_cast<int>(*fruBytesIterEndArea) << "\n";
+             std::cerr << ss.str();
+             ret = resCodes::resWarn;
+-        }
+-
++        }*/
+         switch (area)
+         {
+             case fruAreas::fruAreaChassis:
+-- 
+2.17.1
+

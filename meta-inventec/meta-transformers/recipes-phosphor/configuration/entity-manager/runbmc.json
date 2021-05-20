@@ -4,6 +4,10 @@
             "Address": "0x49",
             "Bus": "6",
             "Name": "THERMAL_U6",
+            "SensorModel": "Threshold",
+            "SensorNum": "0x68",
+            "EntityId": "0x07",
+            "EntityInstance": "0",
             "Thresholds": [
                 {
                     "Direction": "greater than",
@@ -51,5 +55,13 @@
         "PartNumber": "$BOARD_PART_NUMBER",
         "SerialNumber": "$BOARD_SERIAL_NUMBER",
         "BuildDate": "$BOARD_MANUFACTURE_DATE"
+    },
+        "xyz.openbmc_project.Inventory.Decorator.FruDevice":{
+        "Bus":8,
+        "Address":81
+    },
+    "xyz.openbmc_project.Inventory.Decorator.Ipmi": {
+        "EntityId": "0x07",
+        "EntityInstance": 1
     }
 }
