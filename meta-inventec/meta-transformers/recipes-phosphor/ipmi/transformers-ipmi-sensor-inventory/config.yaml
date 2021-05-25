@@ -919,3 +919,49 @@
                 Offsets:
                     255:
                         type: int64_t
+
+0x78:
+    entityID: 19
+    entityInstance: 0
+    path: /xyz/openbmc_project/sensors/discrete_05h/power_unit/DCMI_Power_Threshold
+    multiplierM: 1
+    offsetB: 0
+    bExp: 0
+    rExp: 0
+    readingType: readingAssertion
+    scale: 0
+    sensorNamePattern: nameLeaf
+    sensorReadingType: 5
+    sensorType: 9
+    serviceInterface: org.freedesktop.DBus.Properties
+    unit: xyz.openbmc_project.Sensor.Value.Unit.DegreesC
+    interfaces:
+        xyz.openbmc_project.Sensor.Value:
+            Value:
+                Offsets:
+                    255:
+                        type: int64_t
+
+0xB0:
+    entityID: 7
+    entityInstance: 0
+    path: /xyz/openbmc_project/sensors/discrete_0ah/system_event/DCMI_Power_Off
+    multiplierM: 1
+    offsetB: 0
+    bExp: 0
+    rExp: 0
+    readingType: readingAssertion
+    scale: 0
+    sensorNamePattern: nameLeaf
+    sensorReadingType: 10
+    sensorType: 18
+    serviceInterface: org.freedesktop.DBus.Properties
+    unit: xyz.openbmc_project.Sensor.Value.Unit.DegreesC
+    interfaces:
+        xyz.openbmc_project.Sensor.Value:
+            Value:
+                Offsets:
+                    255:
+                        type: int64_t
+
+

@@ -16,6 +16,7 @@ SRC_URI += "file://0001-Sensor-to-support-IPMI-sensorInfo-selLogging.patch \
             file://0011-inventec-HwmonTemp-Add-tmp468-support-and-Label-sear.patch \
             file://0012-Add-support-for-inventec-virtual-driver.patch \
             file://0013-Fix-index-for-fan0-and-pwm0.patch \
+            file://0014-inventec-common-EventSensor-Create-EventSensor-to-se.patch \
             "
 
 
@@ -25,4 +26,5 @@ SYSTEMD_SERVICE_${PN} += " xyz.openbmc_project.gpiosensor.service"
 SYSTEMD_SERVICE_${PN} += " xyz.openbmc_project.nmeventsensor.service"
 SYSTEMD_SERVICE_${PN} += " xyz.openbmc_project.bioseventsensor.service"
 SYSTEMD_SERVICE_${PN} += " xyz.openbmc_project.wdtsensor.service"
+SYSTEMD_SERVICE_${PN} += " xyz.openbmc_project.eventsensor.service"
 

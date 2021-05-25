@@ -460,6 +460,36 @@
                 }
             ],
             "Type": "ADM1278"
+        },
+        {
+            "Name": "DCMI_Power_Threshold",
+            "ReadingType": "discrete_05h",
+            "SensorType": "power_unit",
+            "SensorInfo": [
+                {
+                    "Label": "DCMI_Power_Threshold",
+                    "SensorModel": "Event",
+                    "SensorNum": "0x78",
+                    "EntityId": "0x13",
+                    "EntityInstance": "0"
+                }
+            ],
+            "Type": "EventSensor"
+        },
+        {
+            "Name": "DCMI_Power_Off",
+            "ReadingType": "discrete_0ah",
+            "SensorType": "system_event",
+            "SensorInfo": [
+                {
+                    "Label": "DCMI_Power_Off",
+                    "SensorModel": "Event",
+                    "SensorNum": "0xB0",
+                    "EntityId": "0x7",
+                    "EntityInstance": "0"
+                }
+            ],
+            "Type": "EventSensor"
         }
     ],
     "Name": "Transformers MotherBoard",
