@@ -8,4 +8,5 @@ SRC_URI_append = " \
     file://0005-inventec-common-Add-RequestedPowerIntervalMs-propert.patch \
     file://0006-Implement-LAN-Config-IPv6-Static-Hop-Limit.patch \
     file://0007-inventec-common-Modify-power-capability-for-DCMI.patch \
+    file://0008-Implement-LAN-Config-VLAN-Priority.patch \
 "
