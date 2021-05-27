@@ -395,13 +395,6 @@
             "Thresholds": [
                 {
                     "Direction": "greater than",
-                    "Label": "pin",
-                    "Name": "upper critical",
-                    "Severity": 1,
-                    "Value": 20
-                },
-                {
-                    "Direction": "greater than",
                     "Label": "vin",
                     "Name": "upper critical",
                     "Severity": 1,
