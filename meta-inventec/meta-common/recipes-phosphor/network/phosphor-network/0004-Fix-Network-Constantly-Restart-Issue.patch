@@ -1,0 +1,85 @@
+From 6573df78f856f8c44f84741515cedc62c1800985 Mon Sep 17 00:00:00 2001
+From: "Lin.TommySC" <lin.tommysc@inventec.com>
+Date: Fri, 28 May 2021 03:20:01 +0000
+Subject: [PATCH] Fix Network Constantly Restart Issue
+
+Symptom/Reason :
+    - systemd-networkd service was constantly restarted
+
+Root Cause:
+    - Glitch of 16cb196cbfafa31639e0e5b54fdea73992d21978 commit
+      which could accidently restart systemd-networkd when setting
+      hop limit value at init
+
+Solution/Change:
+    [phospher-network]
+        - Do not call EthernetInterface::iPv6HopLimit when constructing EthernetInterface
+        - Close output stream after editing to release resource
+
+Entry Test:
+    - Check if network service was restarted constantly
+        journalctl -u xyz.openbmc_project.Network
+---
+ ethernet_interface.cpp | 1 +
+ network_manager.cpp    | 2 --
+ util.cpp               | 2 +-
+ util.hpp               | 1 +
+ 4 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/ethernet_interface.cpp b/ethernet_interface.cpp
+index 578bd38..abd13ab 100644
+--- a/ethernet_interface.cpp
++++ b/ethernet_interface.cpp
+@@ -84,6 +84,7 @@ EthernetInterface::EthernetInterface(sdbusplus::bus::bus& bus,
+     interfaceName(intfName);
+     EthernetInterfaceIntf::dHCPEnabled(dhcpEnabled);
+     EthernetInterfaceIntf::iPv6AcceptRA(getIPv6AcceptRAFromConf());
++    EthernetInterfaceIntf::iPv6HopLimit(getIPv6HopValue(manager.getConfDir(), intfName));
+     // Don't get the mac address from the system as the mac address
+     // would be same as parent interface.
+     if (intfName.find(".") == std::string::npos)
+diff --git a/network_manager.cpp b/network_manager.cpp
+index 5b20a82..c55c9bb 100644
+--- a/network_manager.cpp
++++ b/network_manager.cpp
+@@ -147,12 +147,10 @@ void Manager::createInterfaces()
+         objPath /= interface;
+ 
+         auto dhcp = getDHCPValue(confDir, interface);
+-        auto hopLimit = getIPv6HopValue(confDir, interface);
+ 
+         auto intf = std::make_shared<phosphor::network::EthernetInterface>(
+             bus, objPath.string(), dhcp, *this);
+ 
+-        intf->iPv6HopLimit(hopLimit);
+         intf->createIPAddressObjects();
+         intf->createStaticNeighborObjects();
+         intf->loadNameServers();
+diff --git a/util.cpp b/util.cpp
+index 654f75e..b469ecb 100644
+--- a/util.cpp
++++ b/util.cpp
+@@ -473,7 +473,7 @@ uint8_t getIPv6HopValue(const std::string& confDir, const std::string& intf)
+         return hopLimit;
+     }
+     // There will be only single value for IPv6HopLimit key.
+-    hopLimit = std::stoi(values[0]);
++    hopLimit = (uint8_t)(std::stoi(values[0]) & 0xff);
+     return hopLimit;
+ }
+ 
+diff --git a/util.hpp b/util.hpp
+index 660885b..d0b221f 100644
+--- a/util.hpp
++++ b/util.hpp
+@@ -250,6 +250,7 @@ template <typename T> int updateConfigValue(const std::string& name, T val)
+     data[name] = val;
+     std::ofstream configStream(LAN_CFG_FILE);
+     configStream << std::setw(4) << data << std::endl;
++    configStream.close();
+     return 0;
+ }
+ 
+-- 
+2.7.4
+

@@ -1,0 +1,36 @@
+From 37730b91a22274ba70f89b38983f4ccf443d226d Mon Sep 17 00:00:00 2001
+From: "Lin.TommySC" <lin.tommysc@inventec.com>
+Date: Fri, 28 May 2021 02:45:35 +0000
+Subject: [PATCH] Fix resource not released after update config
+
+Symptom/Reason :
+    - Resource not released after update config
+
+Root Cause:
+    - Output stream not closed after editing
+
+Solution/Change:
+    [phospher-ipmi-host]
+        - Close output stream after editing to release resource
+
+Entry Test:
+    - N/A
+---
+ transporthandler.hpp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/transporthandler.hpp b/transporthandler.hpp
+index eff0e0e..a434665 100644
+--- a/transporthandler.hpp
++++ b/transporthandler.hpp
+@@ -181,6 +181,7 @@ template <typename T> int updateConfigValue(const std::string& name, T val)
+     data[name] = val;
+     std::ofstream configStream(LAN_CFG_FILE);
+     configStream << std::setw(4) << data << std::endl;
++    configStream.close();
+     return 0;
+ }
+ 
+-- 
+2.7.4
+

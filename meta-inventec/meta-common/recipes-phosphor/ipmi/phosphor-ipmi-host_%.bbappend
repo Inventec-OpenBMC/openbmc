@@ -18,6 +18,7 @@ SRC_URI_append = " file://0001-sensorhandler-fix-get-threshold-error.patch \
                    file://0014-Implement-LAN-Config-Destination-Addresses.patch \
                    file://0015-inventec-common-DCMI-Enhance-set-get-power-limit.patch \
                    file://0016-Implement-LAN-Config-VLAN-Priority.patch \
+                   file://0017-Fix-resource-not-released-after-update-config.patch \
 "
 
 
