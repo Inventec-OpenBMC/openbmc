@@ -1,4 +1,4 @@
-From ffaf5ce16ca0410a40a0007379e19fed4499806c Mon Sep 17 00:00:00 2001
+From d8d0e3b45b3c88636f3f96e372654faedff34fc6 Mon Sep 17 00:00:00 2001
 From: "pj.chen" <chen.pj@inventec.com>
 Date: Wed, 19 May 2021 07:06:55 +0000
 Subject: [PATCH] [inventec][common][EventSensor] - Create EventSensor to setup
@@ -59,12 +59,33 @@ sysadmin@transformers:~# busctl tree xyz.openbmc_project.EventSensor
       `-/xyz/openbmc_project/sensors/specific
         `-/xyz/openbmc_project/sensors/specific/processor
           `-/xyz/openbmc_project/sensors/specific/processor/CPU_HOT
+
+sysadmin@transformers:~# busctl introspect xyz.openbmc_project.EventSensor /xyz/openbmc_project/sensors/discrete_05h/power_unit/DCMI_Power_Threshold
+NAME                                        TYPE      SIGNATURE RESULT/VALUE                             FLAGS
+org.freedesktop.DBus.Introspectable         interface -         -                                        -
+.Introspect                                 method    -         s                                        -
+org.freedesktop.DBus.Peer                   interface -         -                                        -
+.GetMachineId                               method    -         s                                        -
+.Ping                                       method    -         -                                        -
+org.freedesktop.DBus.Properties             interface -         -                                        -
+.Get                                        method    ss        v                                        -
+.GetAll                                     method    s         a{sv}                                    -
+.Set                                        method    ssv       -                                        -
+.PropertiesChanged                          signal    sa{sv}as  -                                        -
+xyz.openbmc_project.Association.Definitions interface -         -                                        -
+.Associations                               property  a(sss)    1 "chassis" "all_sensors" "/xyz/openb... emits-change
+xyz.openbmc_project.Sensor.IpmiSensor       interface -         -                                        -
+.entityID                                   property  t         19                                       emits-change
+.entityInstance                             property  t         0                                        emits-change
+.sensorNumber                               property  t         120                                      emits-change
+xyz.openbmc_project.Sensor.Value            interface -         -                                        -
+.Value                                      property  d         0                                        emits-change
 ---
  CMakeLists.txt                                     |  17 ++
- include/EventSensor.hpp                            |  27 ++
+ include/EventSensor.hpp                            |  30 ++
  .../xyz.openbmc_project.eventsensor.service        |  12 +
- src/EventSensor.cpp                                | 292 +++++++++++++++++++++
- 4 files changed, 348 insertions(+)
+ src/EventSensor.cpp                                | 309 +++++++++++++++++++++
+ 4 files changed, 368 insertions(+)
  create mode 100644 include/EventSensor.hpp
  create mode 100644 service_files/xyz.openbmc_project.eventsensor.service
  create mode 100644 src/EventSensor.cpp
@@ -124,10 +145,10 @@ index 206bc5a..e6195d9 100644
 +
 diff --git a/include/EventSensor.hpp b/include/EventSensor.hpp
 new file mode 100644
-index 0000000..8209c49
+index 0000000..12b755b
 --- /dev/null
 +++ b/include/EventSensor.hpp
-@@ -0,0 +1,27 @@
+@@ -0,0 +1,30 @@
 +#pragma once
 +
 +#include "IpmiInfo.hpp"
@@ -146,12 +167,15 @@ index 0000000..8209c49
 +                std::shared_ptr<sdbusplus::asio::connection>& conn,
 +                boost::asio::io_service& io, const std::string& eventName,
 +                const std::string& readingType, const std::string& sensorType,
++                const std::string& configurationPath,
 +                std::vector<ipmidata::IpmiConfig>&& ipmiinfo);
 +    ~EventSensor();
 +
 +  private:
 +    sdbusplus::asio::object_server& objServer;
++    std::string configurationPath;
 +    std::shared_ptr<sdbusplus::asio::connection> conn;
++    std::shared_ptr<sdbusplus::asio::dbus_interface> association;
 +    std::shared_ptr<sdbusplus::asio::dbus_interface> sensorInterface;
 +    std::shared_ptr<sdbusplus::asio::dbus_interface> ipmiInterface;
 +};
@@ -176,10 +200,10 @@ index 0000000..2bc9fc9
 \ No newline at end of file
 diff --git a/src/EventSensor.cpp b/src/EventSensor.cpp
 new file mode 100644
-index 0000000..5787c64
+index 0000000..744ddbd
 --- /dev/null
 +++ b/src/EventSensor.cpp
-@@ -0,0 +1,292 @@
+@@ -0,0 +1,309 @@
 +#include "EventSensor.hpp"
 +#include "Utils.hpp"
 +
@@ -220,6 +244,7 @@ index 0000000..5787c64
 +                    const std::string& eventName,
 +                    const std::string& readingType,
 +                    const std::string& sensorType,
++                    const std::string& configurationPath,
 +                    std::vector<ipmidata::IpmiConfig>&& ipmiinfo):
 +                    objServer(objectServer), conn(conn)
 +{
@@ -231,6 +256,12 @@ index 0000000..5787c64
 +        std::cerr << "Connection not created\n";
 +        return;
 +    }
++
++    association = objectServer.add_interface(
++        sensorPathPrefix + readingType +"/"+ sensorType + "/" + eventName,
++        association::interface);
++
++    createAssociation(association, configurationPath);
 +
 +    sensorInterface = objectServer.add_interface(
 +        dbusPath, "xyz.openbmc_project.Sensor.Value");
@@ -289,6 +320,7 @@ index 0000000..5787c64
 +            {
 +                const SensorData *sensorData = nullptr;
 +                const char *eventSensorType = nullptr;
++                const std::string *interfacePath = nullptr;
 +                const std::pair<std::string,
 +                    boost::container::flat_map<std::string, BasicVariantType>>*
 +                    baseConfiguration = nullptr;
@@ -371,8 +403,16 @@ index 0000000..5787c64
 +                }
 +
 +                sensorData = &(sensorConf.second);
++                interfacePath = &(sensorConf.first.str);
 +
 +                if (sensorData == nullptr)
++                {
++                    std::cerr << "failed to find match for " << sensorName
++                              << "\n";
++                    continue;
++                }
++
++                if (interfacePath == nullptr)
 +                {
 +                    std::cerr << "failed to find match for " << sensorName
 +                              << "\n";
@@ -391,7 +431,8 @@ index 0000000..5787c64
 +                {
 +                    std::cerr <<"SensorName: " << sensorName << '\n'
 +                        << "ReadingType: " << readingType << '\n'
-+                        << "SensorType: " << sensorType << '\n';
++                        << "SensorType: " << sensorType << '\n'
++                        << "Interface:" << *interfacePath << '\n';
 +                }
 +
 +                // Make up Sensor DBUS interface
@@ -399,7 +440,7 @@ index 0000000..5787c64
 +                sensor = nullptr;
 +                sensor = std::make_unique<EventSensor>(
 +                    eventSensorType, objectServer, dbusConnection, io, 
-+                    sensorName, readingType, sensorType,
++                    sensorName, readingType, sensorType, *interfacePath,
 +                    std::move(sensorIpmiConfig));
 +            }
 +        }));
