@@ -1,0 +1,24 @@
+From 1a13fcdeac2017e18b1337b573d2aa1ee12e8392 Mon Sep 17 00:00:00 2001
+From: Vic Ye <ye.vic@inventec.com>
+Date: Sun, 30 May 2021 02:39:48 +0000
+Subject: [PATCH]  Fix bug : virtural UART device node cannot be created.
+
+---
+ drivers/tty/serial/8250/8250_aspeed_vuart.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/tty/serial/8250/8250_aspeed_vuart.c b/drivers/tty/serial/8250/8250_aspeed_vuart.c
+index c33e02c..f137683 100644
+--- a/drivers/tty/serial/8250/8250_aspeed_vuart.c
++++ b/drivers/tty/serial/8250/8250_aspeed_vuart.c
+@@ -512,6 +512,7 @@ static int aspeed_vuart_remove(struct platform_device *pdev)
+ static const struct of_device_id aspeed_vuart_table[] = {
+ 	{ .compatible = "aspeed,ast2400-vuart" },
+ 	{ .compatible = "aspeed,ast2500-vuart" },
++	{ .compatible = "aspeed,ast2600-vuart" },
+ 	{ },
+ };
+ 
+-- 
+2.7.4
+

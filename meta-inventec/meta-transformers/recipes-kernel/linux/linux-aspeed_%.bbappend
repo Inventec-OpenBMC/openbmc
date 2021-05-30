@@ -39,6 +39,7 @@ SRC_URI_append = " file://transformers.cfg \
                    file://0030-Add-Aspeed-VHUB-dirver-support-on-Transformers.patch \
                    file://0031-inventec-transformers-force-spi-to-run-at-single-mode.patch \
 		   file://0032-inventec-transformers-Modify-RGMII-TX-Clock-delay-an.patch \
+                   file://0033-Fix-bug-virtural-UART-device-node-cannot-be-created.patch \
                  "
 
 do_add_overwrite_files () {
