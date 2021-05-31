@@ -1,0 +1,51 @@
+From a2a26b7fff7997c721e3a09e68735a29104a9947 Mon Sep 17 00:00:00 2001
+From: "Lin.TommySC" <lin.tommysc@inventec.com>
+Date: Mon, 31 May 2021 02:20:56 +0000
+Subject: [PATCH] Add session state checking before execution
+
+Symptom/Reason :
+    - Session is still working after close session command
+
+Root Cause:
+    - Glitch of OpenBMC's original design
+
+Solution/Change:
+    [phospher-ipmi-net]
+        - Add session state checking before execution
+
+Entry Test:
+    - Open session with IPMI shell
+        ipmitool -I lanplus -C 17 -p 2623 -U root -P 0penBmc -H 172.17.0.2 shell
+    - Close session using session id captured by wireshark
+        ipmitool> raw 0x06 0x3c 0xf2 0xd9 0x92 0x3
+    - Issue another IPMI command and see if it can work
+        ipmitool> raw 0x06 0x01
+---
+ command_table.cpp | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/command_table.cpp b/command_table.cpp
+index 3dc531a..2c05fff 100644
+--- a/command_table.cpp
++++ b/command_table.cpp
+@@ -62,6 +62,17 @@ void Table::executeCommand(uint32_t inCommand,
+         std::shared_ptr<session::Session> session =
+             std::get<session::Manager&>(singletonPool)
+                 .getSession(handler->sessionID);
++
++        // By Tommy. Add session state checking before execution
++        if (!session->isSessionActive(session->state()))
++        {
++            log<level::ERR>("IPMI session expired");
++            std::vector<uint8_t> errResponse = {IPMI_CC_UNSPECIFIED_ERROR};
++            handler->outPayload = errResponse;
++            return;
++        }
++        // By Tommy. [End]
++
+         std::map<std::string, ipmi::Value> options = {
+             {"userId", ipmi::Value(static_cast<int>(
+                            ipmi::ipmiUserGetUserId(session->userName)))},
+-- 
+2.7.4
+
