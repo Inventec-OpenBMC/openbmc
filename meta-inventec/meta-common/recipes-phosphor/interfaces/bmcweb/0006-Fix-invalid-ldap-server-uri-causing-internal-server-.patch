@@ -1,0 +1,44 @@
+From db9250838895a9a3966b245df1d0fc49a72b37c1 Mon Sep 17 00:00:00 2001
+From: Qiping Fang <fang.qiping@inventec.com>
+Date: Thu, 3 Jun 2021 22:07:55 -0700
+Subject: [PATCH] Fix invalid ldap server uri causing internal server error
+
+---
+ redfish-core/lib/account_service.hpp | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+
+diff --git a/redfish-core/lib/account_service.hpp b/redfish-core/lib/account_service.hpp
+index 78d7f65..8ffbaf3 100644
+--- a/redfish-core/lib/account_service.hpp
++++ b/redfish-core/lib/account_service.hpp
+@@ -24,6 +24,12 @@
+ 
+ #include <variant>
+ 
++#define STR_LEN(s)              (sizeof(s)-1)
++#define LDAP_URL_PREFIX         "ldap://"
++#define LDAP_URL_PREFIX_LEN     STR_LEN(LDAP_URL_PREFIX)
++#define LDAPS_URL_PREFIX        "ldaps://"
++#define LDAPS_URL_PREFIX_LEN    STR_LEN(LDAPS_URL_PREFIX)
++
+ namespace redfish
+ {
+ 
+@@ -668,6 +674,14 @@ class AccountService : public Node
+         const std::string& ldapServerElementName,
+         const std::string& ldapConfigObject)
+     {
++        std::string serviceAddressFront = serviceAddressList.front();
++        if ((strncasecmp(serviceAddressFront.c_str(), LDAP_URL_PREFIX, LDAP_URL_PREFIX_LEN) != 0)
++             && (strncasecmp(serviceAddressFront.c_str(), LDAPS_URL_PREFIX, LDAPS_URL_PREFIX_LEN) != 0))
++        {
++             messages::propertyValueNotInList(asyncResp->res, serviceAddressFront, "ServiceAddresses");
++             return;
++        }
++
+         crow::connections::systemBus->async_method_call(
+             [asyncResp, ldapServerElementName,
+              serviceAddressList](const boost::system::error_code ec) {
+-- 
+2.17.1
+

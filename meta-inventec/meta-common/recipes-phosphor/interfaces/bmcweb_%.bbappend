@@ -14,9 +14,10 @@ EXTRA_OEMESON += "-Dhttp-body-limit=512 -Dinsecure-tftp-update=enabled"
 
 #SRC_URI_append += " file://0001-Modify-firmware-update-mechanism.patch \
 #"
-SRC_URI_append += " file://0001-Delete-event-log.patch \
+SRC_URI_append =  " file://0001-Delete-event-log.patch \
                     file://0002-Empty-base-dn-error.patch \
                     file://0002-enable-managers-logging-dump-journal.patch \
                     file://0003-Add-redfish-managers-serialInterfaces.patch \
                     file://0005-Fix-ldap-localRole-invalid-privilege-causing-interna.patch \
+                    file://0006-Fix-invalid-ldap-server-uri-causing-internal-server-.patch \
 "
