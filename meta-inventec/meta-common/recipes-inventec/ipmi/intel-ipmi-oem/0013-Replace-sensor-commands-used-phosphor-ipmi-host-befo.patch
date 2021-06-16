@@ -1,4 +1,4 @@
-From a78a27819d5a444ec6773dcdfd5bbd707ce9cbd2 Mon Sep 17 00:00:00 2001
+From e2d386e4dbbf226ae66bbd36baaae0d411f53f56 Mon Sep 17 00:00:00 2001
 From: cynthia <wu.cynthia@inventec.com>
 Date: Thu, 20 May 2021 21:20:09 +0800
 Subject: [PATCH] - Replace sensor commands ( used phosphor-ipmi-host before )
@@ -161,8 +161,8 @@ sysadmin@transformers:~# ipmitool fru print 1
 ---
  include/sdrutils.hpp    |  3 +-
  src/sensorcommands.cpp  | 60 ++++++++++++++--------------
- src/storagecommands.cpp | 86 ++++++++++++++++++++++++++++++++++-------
- 3 files changed, 103 insertions(+), 46 deletions(-)
+ src/storagecommands.cpp | 87 ++++++++++++++++++++++++++++++++++-------
+ 3 files changed, 104 insertions(+), 46 deletions(-)
 
 diff --git a/include/sdrutils.hpp b/include/sdrutils.hpp
 index 6f48402..7d6b698 100644
@@ -268,7 +268,7 @@ index 940435d..8c90e29 100644
  }
  } // namespace ipmi
 diff --git a/src/storagecommands.cpp b/src/storagecommands.cpp
-index 2ed3423..5c5c875 100644
+index 2ed3423..bdd3136 100644
 --- a/src/storagecommands.cpp
 +++ b/src/storagecommands.cpp
 @@ -33,6 +33,8 @@
@@ -293,7 +293,16 @@ index 2ed3423..5c5c875 100644
  ManagedObjectType frus;
  
  // we unfortunately have to build a map of hashes in case there is a
-@@ -209,7 +215,7 @@ void recalculateHashes()
+@@ -159,6 +165,8 @@ bool writeFru()
+         // todo: log sel?
+         phosphor::logging::log<phosphor::logging::level::ERR>(
+             "error writing fru");
++        lastDevId = 0xFF;
++        fruCache.clear();
+         return false;
+     }
+     writeBus = 0xFF;
+@@ -209,7 +217,7 @@ void recalculateHashes()
          uint8_t fruHash = 0;
          if (chassisType.compare(chassisTypeRackMount) != 0)
          {
@@ -302,7 +311,7 @@ index 2ed3423..5c5c875 100644
              // can't be 0xFF based on spec, and 0 is reserved for baseboard
              if (fruHash == 0 || fruHash == 0xFF)
              {
-@@ -291,7 +297,7 @@ ipmi::Cc getFru(ipmi::Context::ptr ctx, uint8_t devId)
+@@ -291,7 +299,7 @@ ipmi::Cc getFru(ipmi::Context::ptr ctx, uint8_t devId)
          cacheAddr = 0xFF;
          return ipmi::ccResponseError;
      }
@@ -311,7 +320,7 @@ index 2ed3423..5c5c875 100644
      lastDevId = devId;
      return ipmi::ccSuccess;
  }
-@@ -393,6 +399,16 @@ ipmi::RspType<uint8_t,             // Count
+@@ -393,6 +401,15 @@ ipmi::RspType<uint8_t,             // Count
          return ipmi::responseInvalidFieldRequest();
      }
  
@@ -319,8 +328,7 @@ index 2ed3423..5c5c875 100644
 +        writeTimer->stop();
 +        if (!writeFru())
 +        {
-+            fprintf(stderr, "Failed to update fru before read\n");
-+            return ipmi::responseInvalidFieldRequest();
++            fprintf(stderr, "Failed to update fru before read %x %x\n", writeBus, writeAddr);
 +        }
 +        usleep(500000);
 +    }
@@ -328,7 +336,7 @@ index 2ed3423..5c5c875 100644
      ipmi::Cc status = getFru(ctx, fruDeviceId);
  
      if (status != ipmi::ccSuccess)
-@@ -443,17 +459,13 @@ ipmi::RspType<uint8_t>
+@@ -443,17 +460,13 @@ ipmi::RspType<uint8_t>
      }
  
      size_t writeLen = dataToWrite.size();
@@ -347,7 +355,7 @@ index 2ed3423..5c5c875 100644
  
      std::copy(dataToWrite.begin(), dataToWrite.begin() + writeLen,
                fruCache.begin() + fruInventoryOffset);
-@@ -502,7 +514,7 @@ ipmi::RspType<uint8_t>
+@@ -502,7 +515,7 @@ ipmi::RspType<uint8_t>
                  areaLength *= 8; // it is in multiples of 8 bytes
              }
          }
@@ -356,7 +364,7 @@ index 2ed3423..5c5c875 100644
          {
              atEnd = true;
          }
-@@ -549,16 +561,10 @@ ipmi::RspType<uint16_t, // inventorySize
+@@ -549,16 +562,10 @@ ipmi::RspType<uint16_t, // inventorySize
          return ipmi::responseInvalidFieldRequest();
      }
  
@@ -374,7 +382,7 @@ index 2ed3423..5c5c875 100644
  }
  
  ipmi_ret_t getFruSdrCount(ipmi::Context::ptr ctx, size_t& count)
-@@ -1468,15 +1474,65 @@ std::vector<uint8_t> getNMDiscoverySDR(uint16_t index, uint16_t recordId)
+@@ -1468,15 +1475,65 @@ std::vector<uint8_t> getNMDiscoverySDR(uint16_t index, uint16_t recordId)
      return resp;
  }
  
