@@ -15,17 +15,17 @@ SRC_URI += "file://0001-Subject-PATCH-Subject-PATCH-Sensor-Patch-to-support-.pat
             file://0010-Create-EventSensor-to-setup-event-only-sensor-on-dbu.patch \
             file://0011-Add-totalThresholdNumber-when-HwmonTempSensor-create.patch \
             file://0012-Skip-sub-sensor-if-sensorInfo-not-config.patch \
+            file://0013-inventec-common-ExitAirTemp-Patch-to-support-sensor-.patch \
             "
 
 PACKAGECONFIG_append ="gpiosensor nmeventsensor bioseventsensor wdtsensor eventsensor"
-PACKAGECONFIG_remove ="mcutempsensor intrusionsensor exitairtempsensor"
+PACKAGECONFIG_remove ="mcutempsensor intrusionsensor"
 
 PACKAGECONFIG[gpiosensor] = "-Dgpio=enabled, -Dgpio=disabled"
 PACKAGECONFIG[nmeventsensor] = "-Dnm=enabled, -Dnm=disabled"
 PACKAGECONFIG[bioseventsensor] = "-Dbios=enabled, -Dbios=disabled"
 PACKAGECONFIG[wdtsensor] = "-Dwdt=enabled, -Dwdt=disabled"
 PACKAGECONFIG[eventsensor] = "-Devent=enabled, -Devent=disabled"
-
 
 SYSTEMD_SERVICE_${PN} += " xyz.openbmc_project.gpiosensor.service"
 SYSTEMD_SERVICE_${PN} += " xyz.openbmc_project.nmeventsensor.service"

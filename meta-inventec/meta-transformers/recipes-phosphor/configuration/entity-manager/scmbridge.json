@@ -51,7 +51,7 @@
                 ]
             },
             "Index": 0,
-            "MaxReading": 60000,
+            "MaxReading": 11000,
             "Name": "FAN1_TACH1",
             "Presence": {
                 "Method": "tach",
@@ -92,7 +92,7 @@
                 ]
             },
             "Index": 1,
-            "MaxReading": 60000,
+            "MaxReading": 15000,
             "Name": "FAN1_TACH2",
             "Presence": {
                 "Method": "tach",
@@ -133,7 +133,7 @@
                 ]
             },
             "Index": 2,
-            "MaxReading": 60000,
+            "MaxReading": 11000,
             "Name": "FAN2_TACH1",
             "Presence": {
                 "Method": "tach",
@@ -175,7 +175,7 @@
                 ]
             },
             "Index": 3,
-            "MaxReading": 60000,
+            "MaxReading": 15000,
             "Name": "FAN2_TACH2",
             "Presence": {
                 "Method": "tach",
@@ -216,7 +216,7 @@
                 ]
             },
             "Index": 4,
-            "MaxReading": 60000,
+            "MaxReading": 11000,
             "Name": "FAN3_TACH1",
             "Presence": {
                 "Method": "tach",
@@ -257,7 +257,7 @@
                 ]
             },
             "Index": 5,
-            "MaxReading": 60000,
+            "MaxReading": 15000,
             "Name": "FAN3_TACH2",
             "Presence": {
                 "Method": "tach",
@@ -298,7 +298,7 @@
                 ]
             },
             "Index": 6,
-            "MaxReading": 60000,
+            "MaxReading": 11000,
             "Name": "FAN4_TACH1",
             "Presence": {
                 "Method": "tach",
@@ -339,7 +339,7 @@
                 ]
             },
             "Index": 7,
-            "MaxReading": 60000,
+            "MaxReading": 15000,
             "Name": "FAN4_TACH2",
             "Presence": {
                 "Method": "tach",
@@ -380,7 +380,7 @@
                 ]
             },
             "Index": 8,
-            "MaxReading": 60000,
+            "MaxReading": 11000,
             "Name": "FAN5_TACH1",
             "Presence": {
                 "Method": "tach",
@@ -421,7 +421,7 @@
                 ]
             },
             "Index": 9,
-            "MaxReading": 60000,
+            "MaxReading": 15000,
             "Name": "FAN5_TACH2",
             "Presence": {
                 "Method": "tach",
@@ -462,7 +462,7 @@
                 ]
             },
             "Index": 10,
-            "MaxReading": 60000,
+            "MaxReading": 11000,
             "Name": "FAN6_TACH1",
             "Presence": {
                 "Method": "tach",
@@ -503,7 +503,7 @@
                 ]
             },
             "Index": 11,
-            "MaxReading": 60000,
+            "MaxReading": 15000,
             "Name": "FAN6_TACH2",
             "Presence": {
                 "Method": "tach",
@@ -544,7 +544,7 @@
                 ]
             },
             "Index": 12,
-            "MaxReading": 60000,
+            "MaxReading": 11000,
             "Name": "FAN7_TACH1",
             "Presence": {
                 "Method": "tach",
@@ -585,7 +585,7 @@
                 ]
             },
             "Index": 13,
-            "MaxReading": 60000,
+            "MaxReading": 15000,
             "Name": "FAN7_TACH2",
             "Presence": {
                 "Method": "tach",
@@ -626,7 +626,7 @@
                 ]
             },
             "Index": 14,
-            "MaxReading": 60000,
+            "MaxReading": 11000,
             "Name": "FAN8_TACH1",
             "Presence": {
                 "Method": "tach",
@@ -667,7 +667,7 @@
                 ]
             },
             "Index": 15,
-            "MaxReading": 60000,
+            "MaxReading": 15000,
             "Name": "FAN8_TACH2",
             "Presence": {
                 "Method": "tach",
@@ -802,6 +802,34 @@
                 }
             ],
             "Type": "AspeedFan"
+        },
+        {
+            "Name": "System_Airflow",
+            "TachMaxPercent": 100,
+            "TachMinPercent": 20,
+            "MaxCFM": 17.5,
+            "C1": 110.5,
+            "C2": 100,
+            "SensorInfo": [
+                {
+                    "Label": "System_Airflow",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x48",
+                    "EntityId": "0x1D",
+                    "EntityInstance": "24"
+                }
+            ],
+            "Tachs": [
+                "FAN1_TACH2",
+                "FAN2_TACH2",
+                "FAN3_TACH2",
+                "FAN4_TACH2",
+                "FAN5_TACH2",
+                "FAN6_TACH2",
+                "FAN7_TACH2",
+                "FAN8_TACH2"
+            ],
+            "Type": "CFMSensor"
         }
     ],
     "Name": "Transformers scmbridge",

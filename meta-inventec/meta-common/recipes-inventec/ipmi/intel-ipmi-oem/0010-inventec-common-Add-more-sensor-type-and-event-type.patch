@@ -1,7 +1,7 @@
-From c4c55fcee9215b4a6536bc6b205a6c675067f4e1 Mon Sep 17 00:00:00 2001
+From 5f23653347a9152f95f29355f51c9229514b12b6 Mon Sep 17 00:00:00 2001
 From: "pj.chen" <chen.pj@inventec.com>
 Date: Thu, 20 May 2021 02:32:45 +0000
-Subject: [PATCH 10/10] - Add more sensor type and event type
+Subject: [PATCH] [inventec][common] - Add more sensor type and event type
 
 Symtom/Reason:
     In intel-ipmi-oem, sensor type and event type are get from dbus path name.
@@ -23,14 +23,16 @@ busctl call "xyz.openbmc_project.Logging.IPMI" "/xyz/openbmc_project/Logging/IPM
 sysadmin@transformers:~# ipmitool sel elist
    1 |  Pre-Init  |0000000815| System Event DCMI_Power_Off | Transition to Power Off | Asserted
 ---
- include/sdrutils.hpp | 26 ++++++++++++++++++++++++--
- 1 file changed, 24 insertions(+), 2 deletions(-)
+ include/sdrutils.hpp        | 27 +++++++++++++++++++++++++--
+ include/storagecommands.hpp |  1 +
+ src/sensorcommands.cpp      |  1 +
+ 3 files changed, 27 insertions(+), 2 deletions(-)
 
 diff --git a/include/sdrutils.hpp b/include/sdrutils.hpp
-index 59e2b1d..4125245 100644
+index 824a1bd..0f3c997 100644
 --- a/include/sdrutils.hpp
 +++ b/include/sdrutils.hpp
-@@ -568,7 +568,12 @@ enum class SensorTypeCodes : uint8_t
+@@ -409,7 +409,12 @@ enum class SensorTypeCodes : uint8_t
      voltage = 0x2,
      current = 0x3,
      fan = 0x4,
@@ -43,7 +45,7 @@ index 59e2b1d..4125245 100644
      oem = 0xC0,
  };
  
-@@ -579,7 +584,13 @@ const static boost::container::flat_map<const char*, SensorTypeCodes, CmpStr>
+@@ -420,7 +425,14 @@ const static boost::container::flat_map<const char*, SensorTypeCodes, CmpStr>
                   {"current", SensorTypeCodes::current},
                   {"fan_tach", SensorTypeCodes::fan},
                   {"fan_pwm", SensorTypeCodes::fan},
@@ -52,13 +54,14 @@ index 59e2b1d..4125245 100644
 +                 {"power_supply", SensorTypeCodes::power_supply},
 +                 {"power_unit", SensorTypeCodes::power_unit},
 +                 {"power", SensorTypeCodes::other},
++                 {"cfm", SensorTypeCodes::other},
 +                 {"memory", SensorTypeCodes::memory},
 +                 {"system_event", SensorTypeCodes::system_event}
 +                 }};
  
  inline static std::string getSensorTypeStringFromPath(const std::string& path)
  {
-@@ -646,6 +657,8 @@ enum class EventTypeCodes : uint8_t
+@@ -487,6 +499,8 @@ enum class EventTypeCodes : uint8_t
      unspecific = 0x00,
      threshold = 0x01,
      discrete = 0x03,
@@ -67,7 +70,7 @@ index 59e2b1d..4125245 100644
      specific = 0x6F,
      oem = 0x70,
  };
-@@ -654,7 +667,16 @@ inline static uint8_t getEventTypeStringFromPath(const std::string& path)
+@@ -495,7 +509,16 @@ inline static uint8_t getEventTypeStringFromPath(const std::string& path)
  {
      uint8_t eventType = 0xFF;
  
@@ -85,6 +88,30 @@ index 59e2b1d..4125245 100644
      {
          eventType = (uint8_t)EventTypeCodes::discrete;
      }
+diff --git a/include/storagecommands.hpp b/include/storagecommands.hpp
+index c9e2bd2..173f936 100644
+--- a/include/storagecommands.hpp
++++ b/include/storagecommands.hpp
+@@ -70,6 +70,7 @@ enum class SensorUnits : uint8_t
+     volts = 0x4,
+     amps = 0x5,
+     watts = 0x6,
++    cfm = 0x11,
+     rpm = 0x12,
+ };
+ 
+diff --git a/src/sensorcommands.cpp b/src/sensorcommands.cpp
+index 8c90e29..e775d6b 100644
+--- a/src/sensorcommands.cpp
++++ b/src/sensorcommands.cpp
+@@ -81,6 +81,7 @@ const static boost::container::flat_map<const char*, SensorUnits, CmpStr>
+     sensorUnits{{{"temperature", SensorUnits::degreesC},
+                  {"voltage", SensorUnits::volts},
+                  {"current", SensorUnits::amps},
++                 {"cfm", SensorUnits::cfm},
+                  {"fan_tach", SensorUnits::rpm},
+                  {"power", SensorUnits::watts}}};
+ 
 -- 
 2.7.4
 
