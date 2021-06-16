@@ -4,10 +4,6 @@
             "Address": "0x49",
             "Bus": "6",
             "Name": "THERMAL_U6",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x68",
-            "EntityId": "0x07",
-            "EntityInstance": "0",
             "Thresholds": [
                 {
                     "Direction": "greater than",

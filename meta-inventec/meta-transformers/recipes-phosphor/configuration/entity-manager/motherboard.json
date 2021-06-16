@@ -42,10 +42,6 @@
         {
             "CpuID": 0,
             "Name": "DTS_CPU0",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x10",
-            "EntityId": "3",
-            "EntityInstance": "0",
             "SensorInfo": [
                 {
                     "Label": "DTS_CPU0",
@@ -60,10 +56,6 @@
         {
             "CpuID": 0,
             "Name": "Die_CPU0",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x11",
-            "EntityId": "3",
-            "EntityInstance": "1",
             "SensorInfo": [
                 {
                     "Label": "Die_CPU0",
@@ -87,9 +79,6 @@
             "Name6": "THERMAL_Q94",
             "Name7": "THERMAL_Q92",
             "Name8": "THERMAL_90_9",
-            "SensorNum": "0x60",
-            "EntityId": "0x07",
-            "EntityInstance": "0",
             "Thresholds": [
                 {
                     "Label": "THERMAL_U95",
@@ -343,9 +332,6 @@
         },
         {
             "Name": "THERMAL_Q89",
-            "SensorNum": "0x61",
-            "EntityId": "0x07",
-            "EntityInstance": "1",
             "SensorInfo": [
                 {
                     "Label": "THERMAL_Q89",
@@ -359,9 +345,6 @@
         },
         {
             "Name": "THERMAL_Q90",
-            "SensorNum": "0x62",
-            "EntityId": "0x07",
-            "EntityInstance": "2",
             "SensorInfo": [
                 {
                     "Label": "THERMAL_Q90",
@@ -375,9 +358,6 @@
         },
         {
             "Name": "THERMAL_Q93",
-            "SensorNum": "0x63",
-            "EntityId": "0x07",
-            "EntityInstance": "3",
             "SensorInfo": [
                 {
                     "Label": "THERMAL_Q93",
@@ -391,9 +371,6 @@
         },
         {
             "Name": "THERMAL_Q91",
-            "SensorNum": "0x64",
-            "EntityId": "0x07",
-            "EntityInstance": "4",
             "SensorInfo": [
                 {
                     "Label": "THERMAL_Q91",
@@ -407,9 +384,6 @@
         },
         {
             "Name": "THERMAL_Q94",
-            "SensorNum": "0x65",
-            "EntityId": "0x07",
-            "EntityInstance": "5",
             "SensorInfo": [
                 {
                     "Label": "THERMAL_Q94",
@@ -423,9 +397,6 @@
         },
         {
             "Name": "THERMAL_Q92",
-            "SensorNum": "0x66",
-            "EntityId": "0x07",
-            "EntityInstance": "6",
             "SensorInfo": [
                 {
                     "Label": "THERMAL_Q92",
@@ -438,10 +409,6 @@
             "Type": "TMP468"
         },
         {
-            "SensorModel": "Event",
-            "SensorNum": "0x50",
-            "EntityId": "0x07",
-            "EntityInstance": "0",       
             "Class": "Gpio",
             "Name": "I2C_HSC_ALERT",
             "PowerState": "On",
@@ -493,10 +460,6 @@
             "Class": "Gpio",
             "Name": "PCH_THERMTRIP",
             "PowerState": "On",
-            "SensorModel": "Event",
-            "SensorNum": "0x52",
-            "EntityId": "0x06",
-            "EntityInstance": "0",
             "SensorInfo": [
                 {
                     "Label": "PCH_THERMTRIP",
@@ -519,10 +482,6 @@
         },
         {
             "Name": "HSC_VIN",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x74",
-            "EntityId": "0x0A",
-            "EntityInstance": "0",
             "SensorInfo": [
                 {
                     "Label": "vin",
@@ -536,10 +495,6 @@
         },
         {
             "Name": "HSC_PIN",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x76",
-            "EntityId": "0x0A",
-            "EntityInstance": "2",
             "SensorInfo": [
                 {
                     "Label": "pin",
@@ -553,10 +508,6 @@
         },
         {
             "Name": "HSC_VOUT",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x75",
-            "EntityId": "0x0A",
-            "EntityInstance": "1",
             "SensorInfo": [
                 {
                     "Label": "vout1",
@@ -570,10 +521,6 @@
         },
         {
            "Name": "HSC_IOUT",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x77",
-            "EntityId": "0x0A",            
-            "EntityInstance": "3",
             "SensorInfo": [
                 {
                     "Label": "iout1",
@@ -669,10 +616,6 @@
             "Name": "DCMI_Power_Threshold",
             "ReadingType": "discrete_05h",
             "SensorType": "power_unit",
-            "SensorModel": "Event",
-            "SensorNum": "0x78",
-            "EntityId": "0x13",
-            "EntityInstance": "0",
             "SensorInfo": [
                 {
                     "Label": "DCMI_Power_Threshold",
@@ -688,10 +631,6 @@
             "Name": "DCMI_Power_Off",
             "ReadingType": "discrete_0ah",
             "SensorType": "system_event",
-            "SensorModel": "Event",
-            "SensorNum": "0xB0",
-            "EntityId": "0x7",
-            "EntityInstance": "0",
             "SensorInfo": [
                 {
                     "Label": "DCMI_Power_Off",

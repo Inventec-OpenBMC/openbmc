@@ -4,10 +4,6 @@
             "Address": "0x4F",
             "Bus": "6",
             "Name": "THERMAL_U8",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x67",
-            "EntityId": "0x07",
-            "EntityInstance": "0",            
             "Thresholds": [
                 {
                     "Direction": "greater than",
@@ -57,10 +53,6 @@
             "Index": 0,
             "MaxReading": 60000,
             "Name": "FAN1_TACH1",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x30",
-            "EntityId": "0x1D",
-            "EntityInstance": "0",
             "Presence": {
                 "Method": "tach",
                 "TachVal": 600,
@@ -102,10 +94,6 @@
             "Index": 1,
             "MaxReading": 60000,
             "Name": "FAN1_TACH2",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x31",
-            "EntityId": "0x1D",
-            "EntityInstance": "1",          
             "Presence": {
                 "Method": "tach",
                 "TachVal": 600,
@@ -147,10 +135,6 @@
             "Index": 2,
             "MaxReading": 60000,
             "Name": "FAN2_TACH1",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x32",
-            "EntityId": "0x1D",
-            "EntityInstance": "2",
             "Presence": {
                 "Method": "tach",
                 "TachVal": 600,
@@ -193,10 +177,6 @@
             "Index": 3,
             "MaxReading": 60000,
             "Name": "FAN2_TACH2",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x33",
-            "EntityId": "0x1D",
-            "EntityInstance": "3",
             "Presence": {
                 "Method": "tach",
                 "TachVal": 600,
@@ -238,10 +218,6 @@
             "Index": 4,
             "MaxReading": 60000,
             "Name": "FAN3_TACH1",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x34",
-            "EntityId": "0x1D",
-            "EntityInstance": "4",
             "Presence": {
                 "Method": "tach",
                 "TachVal": 600,
@@ -283,10 +259,6 @@
             "Index": 5,
             "MaxReading": 60000,
             "Name": "FAN3_TACH2",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x35",
-            "EntityId": "0x1D",
-            "EntityInstance": "5",
             "Presence": {
                 "Method": "tach",
                 "TachVal": 600,
@@ -328,10 +300,6 @@
             "Index": 6,
             "MaxReading": 60000,
             "Name": "FAN4_TACH1",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x36",
-            "EntityId": "0x1D",
-            "EntityInstance": "6",
             "Presence": {
                 "Method": "tach",
                 "TachVal": 600,
@@ -373,10 +341,6 @@
             "Index": 7,
             "MaxReading": 60000,
             "Name": "FAN4_TACH2",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x37",
-            "EntityId": "0x1D",
-            "EntityInstance": "7",
             "Presence": {
                 "Method": "tach",
                 "TachVal": 600,
@@ -418,10 +382,6 @@
             "Index": 8,
             "MaxReading": 60000,
             "Name": "FAN5_TACH1",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x38",
-            "EntityId": "0x1D",
-            "EntityInstance": "8",
             "Presence": {
                 "Method": "tach",
                 "TachVal": 600,
@@ -463,10 +423,6 @@
             "Index": 9,
             "MaxReading": 60000,
             "Name": "FAN5_TACH2",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x39",
-            "EntityId": "0x1D",
-            "EntityInstance": "9",
             "Presence": {
                 "Method": "tach",
                 "TachVal": 600,
@@ -508,10 +464,6 @@
             "Index": 10,
             "MaxReading": 60000,
             "Name": "FAN6_TACH1",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x3A",
-            "EntityId": "0x1D",
-            "EntityInstance": "10",
             "Presence": {
                 "Method": "tach",
                 "TachVal": 600,
@@ -553,10 +505,6 @@
             "Index": 11,
             "MaxReading": 60000,
             "Name": "FAN6_TACH2",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x3B",
-            "EntityId": "0x1D",
-            "EntityInstance": "11",
             "Presence": {
                 "Method": "tach",
                 "TachVal": 600,
@@ -598,10 +546,6 @@
             "Index": 12,
             "MaxReading": 60000,
             "Name": "FAN7_TACH1",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x3C",
-            "EntityId": "0x1D",
-            "EntityInstance": "12",
             "Presence": {
                 "Method": "tach",
                 "TachVal": 600,
@@ -643,10 +587,6 @@
             "Index": 13,
             "MaxReading": 60000,
             "Name": "FAN7_TACH2",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x3D",
-            "EntityId": "0x1D",
-            "EntityInstance": "13",
             "Presence": {
                 "Method": "tach",
                 "TachVal": 600,
@@ -688,10 +628,6 @@
             "Index": 14,
             "MaxReading": 60000,
             "Name": "FAN8_TACH1",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x3E",
-            "EntityId": "0x1D",
-            "EntityInstance": "14",
             "Presence": {
                 "Method": "tach",
                 "TachVal": 600,
@@ -733,10 +669,6 @@
             "Index": 15,
             "MaxReading": 60000,
             "Name": "FAN8_TACH2",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x3F",
-            "EntityId": "0x1D",
-            "EntityInstance": "15",
             "Presence": {
                 "Method": "tach",
                 "TachVal": 600,
@@ -769,9 +701,6 @@
         {
             "Name": "FAN_PWM_1",
             "SensorModel": "Threshold",
-            "SensorNum": "0x40",
-            "EntityId": "0x1D",
-            "EntityInstance": "16",
             "SensorInfo": [
                 {
                     "Label": "FAN_PWM_1",
@@ -785,10 +714,6 @@
         },
         {
             "Name": "FAN_PWM_2",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x41",
-            "EntityId": "0x1D",
-            "EntityInstance": "17",
             "SensorInfo": [
                 {
                     "Label": "FAN_PWM_2",
@@ -802,10 +727,6 @@
         },
         {
             "Name": "FAN_PWM_3",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x42",
-            "EntityId": "0x1D",
-            "EntityInstance": "18",
             "SensorInfo": [
                 {
                     "Label": "FAN_PWM_3",
@@ -819,10 +740,6 @@
         },
         {
             "Name": "FAN_PWM_4",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x43",
-            "EntityId": "0x1D",
-            "EntityInstance": "19",
             "SensorInfo": [
                 {
                     "Label": "FAN_PWM_4",
@@ -836,10 +753,6 @@
         },
         {
             "Name": "FAN_PWM_5",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x44",
-            "EntityId": "0x1D",
-            "EntityInstance": "20",
             "SensorInfo": [
                 {
                     "Label": "FAN_PWM_5",
@@ -853,10 +766,6 @@
         },
         {
             "Name": "FAN_PWM_6",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x45",
-            "EntityId": "0x1D",
-            "EntityInstance": "21",
             "SensorInfo": [
                 {
                     "Label": "FAN_PWM_6",
@@ -870,10 +779,6 @@
         },
         {
             "Name": "FAN_PWM_7",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x46",
-            "EntityId": "0x1D",
-            "EntityInstance": "22",
             "SensorInfo": [
                 {
                     "Label": "FAN_PWM_7",
@@ -887,10 +792,6 @@
         },
         {
             "Name": "FAN_PWM_8",
-            "SensorModel": "Threshold",
-            "SensorNum": "0x47",
-            "EntityId": "0x1D",
-            "EntityInstance": "23",
             "SensorInfo": [
                 {
                     "Label": "FAN_PWM_8",

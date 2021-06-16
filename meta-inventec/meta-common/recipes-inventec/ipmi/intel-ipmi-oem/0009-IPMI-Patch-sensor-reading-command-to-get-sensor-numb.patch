@@ -1,4 +1,4 @@
-From 2a34c8e206bbe8e37cffe58a6d867b05278d2c36 Mon Sep 17 00:00:00 2001
+From 010d59e1af61adc9ae23f471afd7f392ac291f72 Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Wed, 15 Jul 2020 15:47:10 -0400
 Subject: [PATCH] -Patched to get match snesor number from event dbus path.
@@ -8,12 +8,12 @@ Subject: [PATCH] -Patched to get match snesor number from event dbus path.
  should include below string and detect to report correct byte.
 
 ---
- include/sdrutils.hpp   | 381 ++++++++++++++++++++++++++++++++++++-----
+ include/sdrutils.hpp   | 440 +++++++++++++++++++++++++++++++++++++----
  src/sensorcommands.cpp |   8 +-
- 2 files changed, 343 insertions(+), 46 deletions(-)
+ 2 files changed, 402 insertions(+), 46 deletions(-)
 
 diff --git a/include/sdrutils.hpp b/include/sdrutils.hpp
-index 7154312..24b9baf 100644
+index 7154312..6eab0c1 100644
 --- a/include/sdrutils.hpp
 +++ b/include/sdrutils.hpp
 @@ -55,6 +55,10 @@ static constexpr uint16_t lun1Sensor0 = 0x100;
@@ -229,21 +229,21 @@ index 7154312..24b9baf 100644
  
 -    sensorNumMapPtr = std::make_shared<SensorNumMap>();
 +    sdbusplus::bus::bus dbus(bus);
-+
-+    if (!s_sensorNumMap)
-+    {
-+        s_sensorNumMap = std::make_shared<SensorNumMap>();
-+    }
  
 -    uint16_t sensorNum = 0;
 -    uint16_t sensorIndex = 0;
 -    for (const auto& sensor : *sensorTree)
-+    if (option == sensorNumMapOption::update_ByPath)
++    if (!s_sensorNumMap)
      {
 -        sensorNumMapPtr->insert(
 -            SensorNumMap::value_type(sensorNum, sensor.first));
 -        sensorIndex++;
 -        if (sensorIndex == maxSensorsPerLUN)
++        s_sensorNumMap = std::make_shared<SensorNumMap>();
++    }
++
++    if (option == sensorNumMapOption::update_ByPath)
++    {
 +        auto found = sensorTree->find(objPath);
 +        if (found != sensorTree->end())
          {
@@ -411,11 +411,11 @@ index 7154312..24b9baf 100644
 +    else if (path.find("specific") != std::string::npos)
 +    {
 +        eventType = (uint8_t)EventTypeCodes::specific;
-     }
++    }
 +    else if (path.find("oem") != std::string::npos)
 +    {
 +        eventType = (uint8_t)EventTypeCodes::oem;
-+    }
+     }
 +    
 +    return eventType;
  }
@@ -473,7 +473,35 @@ index 7154312..24b9baf 100644
      }
  }
  
-@@ -543,7 +833,7 @@ static inline const std::string* getSensorConfigurationInterface(
+@@ -538,12 +828,35 @@ static inline const std::string* getSensorConfigurationInterface(
+     return nullptr;
+ }
+ 
++/* Inventec path - get sensorInfo interface*/
++static inline const std::string* getSensorInfoInterface(
++    const std::map<std::string, std::vector<std::string>>&
++        sensorInterfacesResponse)
++{
++    auto entityManagerService =
++        sensorInterfacesResponse.find("xyz.openbmc_project.EntityManager");
++    if (entityManagerService == sensorInterfacesResponse.end())
++    {
++        return nullptr;
++    }
++
++    for (const auto& entry : entityManagerService->second)
++    {
++        if (boost::algorithm::ends_with(entry, ".SensorInfo0"))
++        {
++            return &entry;
++        }
++    }
++
++    return nullptr;
++}
++
+ // Follow Association properties for Sensor back to the Board dbus object to
+ // check for an EntityId and EntityInstance property.
  static inline void updateIpmiFromAssociation(const std::string& path,
                                               const SensorMap& sensorMap,
                                               uint8_t& entityId,
@@ -482,7 +510,7 @@ index 7154312..24b9baf 100644
  {
      namespace fs = std::filesystem;
  
-@@ -648,6 +938,7 @@ static inline void updateIpmiFromAssociation(const std::string& path,
+@@ -648,6 +961,7 @@ static inline void updateIpmiFromAssociation(const std::string& path,
  
          entityIdProp = configurationProperties.find("EntityId");
          entityInstanceProp = configurationProperties.find("EntityInstance");
@@ -490,7 +518,7 @@ index 7154312..24b9baf 100644
          if (entityIdProp != configurationProperties.end())
          {
              entityId =
-@@ -658,6 +949,11 @@ static inline void updateIpmiFromAssociation(const std::string& path,
+@@ -658,6 +972,47 @@ static inline void updateIpmiFromAssociation(const std::string& path,
              entityInstance = static_cast<uint8_t>(
                  std::get<uint64_t>(entityInstanceProp->second));
          }
@@ -499,10 +527,46 @@ index 7154312..24b9baf 100644
 +            sensorNumber = static_cast<uint8_t>(
 +                std::get<uint64_t>(sensorNumberProp->second));
 +        }
++
++        /* Inventec patch - Get sensor information from sensorInfo interface*/
++        const std::string* sensorInfoInterface =
++            getSensorInfoInterface(sensorInterfacesResponse);
++
++        // We didnt' find a configuration interface for this sensor, but we
++        // followed the Association property to get here, so we're done
++        // searching.
++        if (!sensorInfoInterface)
++        {
++            std::fprintf(stderr,"cannot get sensorInfo interface\n");
++            break;
++        }
++        // We found a sensorInfo interface.
++        std::map<std::string, DbusVariant>sensorInfoProperties =
++            getEntityManagerProperties(sensorConfigPath.c_str(),
++                                       sensorInfoInterface->c_str());
++
++        entityIdProp = sensorInfoProperties.find("EntityId");
++        entityInstanceProp = sensorInfoProperties.find("EntityInstance");
++        sensorNumberProp = sensorInfoProperties.find("SensorNum");
++        if (entityIdProp != sensorInfoProperties.end())
++        {
++            entityId =
++                static_cast<uint8_t>(std::get<uint64_t>(entityIdProp->second));
++        }
++        if (entityInstanceProp != sensorInfoProperties.end())
++        {
++            entityInstance = static_cast<uint8_t>(
++                std::get<uint64_t>(entityInstanceProp->second));
++        }
++        if (sensorNumberProp != sensorInfoProperties.end())
++        {
++            sensorNumber = static_cast<uint8_t>(
++                std::get<uint64_t>(sensorNumberProp->second));
++        }
  
          // stop searching Association records.
          break;
-@@ -665,8 +961,9 @@ static inline void updateIpmiFromAssociation(const std::string& path,
+@@ -665,8 +1020,9 @@ static inline void updateIpmiFromAssociation(const std::string& path,
  
      if constexpr (debug)
      {
@@ -554,3 +618,6 @@ index e618ba6..01a3c73 100644
      if (name.size() > FULL_RECORD_ID_STR_MAX_LENGTH)
      {
          // try to not truncate by replacing common words
+-- 
+2.17.1
+
