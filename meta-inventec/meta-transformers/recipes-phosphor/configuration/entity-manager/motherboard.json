@@ -525,10 +525,8 @@
             "EntityInstance": "0",
             "SensorInfo": [
                 {
-                    "Label": "vin",
-                    "SensorModel": "Threshold",
                     "SensorNum": "0x74",
-                    "EntityId": "0x0A",
+                    "EntityId": "0x15",
                     "EntityInstance": "0"
                 }
             ],
@@ -542,10 +540,8 @@
             "EntityInstance": "2",
             "SensorInfo": [
                 {
-                    "Label": "pin",
-                    "SensorModel": "Threshold",
                     "SensorNum": "0x76",
-                    "EntityId": "0x0A",
+                    "EntityId": "0x15",
                     "EntityInstance": "2"
                 }
             ],
@@ -559,10 +555,8 @@
             "EntityInstance": "1",
             "SensorInfo": [
                 {
-                    "Label": "vout1",
-                    "SensorModel": "Threshold",
                     "SensorNum": "0x75",
-                    "EntityId": "0x0A",
+                    "EntityId": "0x15",
                     "EntityInstance": "1"                
                 }
             ],
@@ -576,10 +570,8 @@
             "EntityInstance": "3",
             "SensorInfo": [
                 {
-                    "Label": "iout1",
-                    "SensorModel": "Threshold",
                     "SensorNum": "0x77",
-                    "EntityId": "0x0A",
+                    "EntityId": "0x15",
                    "EntityInstance": "3"
                 }
             ],
@@ -638,32 +630,253 @@
                     "Label": "vin",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x74",
-                    "EntityId": "0x0A",
+                    "EntityId": "0x15",
                     "EntityInstance": "0"
                 },
                 {
                     "Label": "vout1",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x75",
-                    "EntityId": "0x0A",
+                    "EntityId": "0x15",
                     "EntityInstance": "1"
                 },
                 {
                     "Label": "pin",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x76",
-                    "EntityId": "0x0A",
+                    "EntityId": "0x15",
                     "EntityInstance": "2"
                 },
                 {
                     "Label": "iout1",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x77",
-                    "EntityId": "0x0A",
+                    "EntityId": "0x15",
                     "EntityInstance": "3"
                 }
             ],
             "Type": "ADM1278"
+        },
+        {
+            "Name": "PSU1_VIN",
+            "SensorInfo": [
+                {
+                    "SensorNum": "0x70",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "0"
+                 }
+             ],
+             "Type": "pmbus"
+        },
+        {
+            "Name": "PSU1_VOUT",
+            "SensorInfo": [
+                {
+                    "SensorNum": "0x71",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "1"
+                 }
+             ],
+             "Type": "pmbus"
+        },
+        {
+            "Name": "PSU1_Input_Power",
+            "SensorInfo": [
+                {
+                    "SensorNum": "0x72",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "2"
+                 }
+             ],
+             "Type": "pmbus"
+        },
+        {
+            "Name": "PSU1_Output_Power",
+            "SensorInfo": [
+                {
+                    "SensorNum": "0x73",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "3"
+                 }
+             ],
+             "Type": "pmbus"
+        },
+        {
+            "Name": "PSU1_IIN",
+            "SensorInfo": [
+                {
+                    "SensorNum": "0x79",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "4"
+                 }
+             ],
+             "Type": "pmbus"
+        },
+        {
+            "Name": "PSU1_IOUT",
+            "SensorInfo": [
+                {
+                    "SensorNum": "0x7A",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "5"
+                 }
+             ],
+             "Type": "pmbus"
+        },
+        {
+            "Name": "PSU1_Fan1",
+            "SensorInfo": [
+                {
+                    "SensorNum": "0x7B",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "6"
+                 }
+             ],
+             "Type": "pmbus"
+        },
+        {
+            "Name": "PSU1_Temp1",
+            "SensorInfo": [
+                {
+                    "SensorNum": "0x7C",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "7"
+                 }
+             ],
+             "Type": "pmbus"
+        },
+        {
+            "Name": "PSU1_Temp2",
+            "SensorInfo": [
+                {
+                    "SensorNum": "0x7D",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "8"
+                 }
+             ],
+             "Type": "pmbus"
+        },
+        {
+            "Name": "PSU1_Temp3",
+            "SensorInfo": [
+                {
+                    "SensorNum": "0x7E",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "9"
+                 }
+             ],
+             "Type": "pmbus"
+        },
+        {
+            "Address": "0x58",
+            "Bus": "12",
+            "Labels": [
+                "vin",
+                "vout1",
+                "pin",
+                "pout1",
+                "iin",
+                "iout1",
+                "temp1",
+                "temp2",
+                "temp3",
+                "fan1"
+            ],
+            "vin_Scale" : 1000,
+            "vout1_Scale" : 1000,
+            "pin_Scale" : 1000000,
+            "pin_Name" : "PSU1_Input_Power",
+            "pout1_Scale" : 1000000,
+            "pout1_Max" : 1760,
+            "pout1_Name" : "PSU1_Output_Power",
+            "iin_Scale" : 1000,
+            "iin_Max" : 11.703,
+            "iout1_Scale" : 1000,
+            "iout1_Max" : 146,
+            "temp1_Scale" : 1000,
+            "temp1_Max" : 95,
+            "temp1_Name" : "PSU1_Temp1",
+            "temp2_Scale" : 1000,
+            "temp2_Max" : 95,
+            "temp2_Name" : "PSU1_Temp2",
+            "temp3_Scale" : 1000,
+            "temp3_Max" : 95,
+            "temp3_Name" : "PSU1_Temp3",
+            "fan1_Name" : "PSU1_Fan1",
+            "Name": "PSU1",
+            "SensorInfo": [
+                {
+                    "Label": "vin",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x70",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "0"
+                },
+                {
+                    "Label": "vout1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x71",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "1"
+                },
+                {
+                    "Label": "pin",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x72",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "2"
+                },
+                {
+                    "Label": "pout1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x73",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "3"
+                },
+                {
+                    "Label": "iin",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x79",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "4"
+                },
+                {
+                    "Label": "iout1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x7A",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "5"
+                },
+                {
+                    "Label": "fan1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x7B",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "6"
+                },
+                {
+                    "Label": "temp1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x7C",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "7"
+                },
+                {
+                    "Label": "temp2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x7D",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "8"
+                },
+                {
+                    "Label": "temp3",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x7E",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "9"
+                }
+            ],
+            "Type": "pmbus"
         },
         {
             "Name": "DCMI_Power_Threshold",
