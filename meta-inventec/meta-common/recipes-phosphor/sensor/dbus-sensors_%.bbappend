@@ -18,6 +18,7 @@ SRC_URI += "file://0001-Sensor-to-support-IPMI-sensorInfo-selLogging.patch \
             file://0013-Fix-index-for-fan0-and-pwm0.patch \
             file://0014-inventec-common-EventSensor-Create-EventSensor-to-se.patch \
             file://0015-inventec-common-HwmonTempSensor-Add-totalThresholdNu.patch \
+            file://0016-inventec-common-HwmonTempSensor-Skip-sub-sensor-if-s.patch \
             "
 
 
