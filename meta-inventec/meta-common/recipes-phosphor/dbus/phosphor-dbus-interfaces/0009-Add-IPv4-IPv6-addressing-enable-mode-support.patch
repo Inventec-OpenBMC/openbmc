@@ -1,0 +1,58 @@
+From 44f3d0bc99427c500ca4aef2c397b9a2b5e4c95c Mon Sep 17 00:00:00 2001
+From: "Lin.TommySC" <lin.tommysc@inventec.com>
+Date: Fri, 18 Jun 2021 07:30:26 +0000
+Subject: [PATCH] Add IPv4 IPv6 addressing enable mode support
+
+Symptom/Reason :
+    - Enable IPv6 and disable IPv4 in raw command does not work
+
+Root Cause:
+    - OpenBMC's implementation supports only IPv4/IPv6 dual mode
+
+Solution/Change:
+    [phosphor-dbus-interfaces]
+        - Add IPFamily property in EthernetInterface
+    [phosphor-ipmi-host]
+        - Add function call to get/set IPFamily property
+    [phosphor-network]
+        - Implementation of get/set IPFamily property
+
+Entry Test:
+    - Set to IPv6 only mode
+        ipmitool raw 0x0c 0x01 0x01 0x33 0x01
+    - Get current IP addressing mode
+        ipmitool raw 0x0c 0x02 0x01 0x33 0x00 0x00
+---
+ xyz/openbmc_project/Network/EthernetInterface.interface.yaml | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/xyz/openbmc_project/Network/EthernetInterface.interface.yaml b/xyz/openbmc_project/Network/EthernetInterface.interface.yaml
+index fa50d9b..77a7d71 100644
+--- a/xyz/openbmc_project/Network/EthernetInterface.interface.yaml
++++ b/xyz/openbmc_project/Network/EthernetInterface.interface.yaml
+@@ -92,6 +92,10 @@ properties:
+           IPv6 header static hop limit.
+       errors:
+         - xyz.openbmc_project.Common.Error.InvalidArgument
++    - name: IPFamily
++      type: enum[self.IPFamilyConf]
++      description: >
++          IPv4/IPv6 Addressing supported of the ethernet interface.
+ 
+ enumerations:
+     - name: LinkLocalConf
+@@ -112,3 +116,11 @@ enumerations:
+         - name: v4
+         - name: v6
+         - name: none
++
++    - name: IPFamilyConf
++      description: >
++          A list of the permitted IPFamily settings used by systemd.
++      values:
++        - name: both
++        - name: v4
++        - name: v6
+-- 
+2.7.4
+
