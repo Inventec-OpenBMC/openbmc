@@ -74,7 +74,7 @@
                 // UID led
                 uid {
                     label = "UID_LED";
-                    gpios = <&gpio0 ASPEED_GPIO(V, 3) GPIO_ACTIVE_LOW>;
+                    gpios = <&gpio0 ASPEED_GPIO(X, 0) GPIO_ACTIVE_LOW>;
                 };
 
                 // Heart beat led
