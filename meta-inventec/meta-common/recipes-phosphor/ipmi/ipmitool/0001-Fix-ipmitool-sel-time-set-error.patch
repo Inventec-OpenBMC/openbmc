@@ -1,0 +1,48 @@
+From 8c6a54490a90e122ca5934fa62920d1633523d1a Mon Sep 17 00:00:00 2001
+From: cynthia <wu.cynthia@inventec.com>
+Date: Tue, 22 Jun 2021 10:31:08 +0800
+Subject: [PATCH] - Fix ipmitool sel time set error
+
+Symptom/Reason:
+	The time set with 'ipmitool sel time set' will be wrong
+
+Root Cause:
+	The format for strptime() is wrong
+
+Solution/Change:
+	[ipmi_sel.c]
+	Change time format to %m/%d/%Y %H:%M:%S" in ipmi_sel_set_time
+
+Entry Test:
+	1. ipmitool sel time set
+	ex: ipmitool sel time set ipmitool sel time set "06/22/2021 10:00:00"
+	2. ipmitool sel time get
+---
+ lib/ipmi_sel.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/lib/ipmi_sel.c b/lib/ipmi_sel.c
+index b6b8da1..6f6482c 100644
+--- a/lib/ipmi_sel.c
++++ b/lib/ipmi_sel.c
+@@ -2745,7 +2745,7 @@ ipmi_sel_set_time(struct ipmi_intf * intf, const char * time_string)
+ 	struct tm tm = {0};
+ 	uint8_t msg_data[4] = {0};
+ 	time_t t;
+-	const char *time_format = "%x %X"; /* Use locale-defined format */
++	const char *time_format = "%m/%d/%Y %H:%M:%S"; /* Use locale-defined format */
+ 
+ 	memset(&req, 0, sizeof(req));
+ 	req.msg.netfn    = IPMI_NETFN_STORAGE;
+@@ -2762,7 +2762,7 @@ ipmi_sel_set_time(struct ipmi_intf * intf, const char * time_string)
+ 	else {
+ 		bool error = true; /* Assume the string is invalid */
+ 		/* Now let's extract time_t from the supplied string */
+-		if (!strptime(time_string, time_format, &tm)) {
++		if ( strptime(time_string, time_format, &tm)!=NULL ) {
+ 			tm.tm_isdst = (-1); /* look up DST information */
+ 			t = mktime(&tm);
+ 			if (t >= 0) {
+-- 
+2.17.1
+
