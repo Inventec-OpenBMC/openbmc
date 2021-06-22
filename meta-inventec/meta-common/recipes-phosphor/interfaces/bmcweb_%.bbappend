@@ -20,4 +20,5 @@ SRC_URI_append =  " file://0001-Delete-event-log.patch \
                     file://0003-Add-redfish-managers-serialInterfaces.patch \
                     file://0005-Fix-ldap-localRole-invalid-privilege-causing-interna.patch \
                     file://0006-Fix-invalid-ldap-server-uri-causing-internal-server-.patch \
+                    file://0007-static-ip-fix.patch \
 "
