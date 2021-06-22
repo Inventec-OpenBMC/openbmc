@@ -1,0 +1,31 @@
+diff --git a/redfish-core/lib/ethernet.hpp b/redfish-core/lib/ethernet.hpp
+index fa85a34..5ae238d 100644
+--- a/redfish-core/lib/ethernet.hpp
++++ b/redfish-core/lib/ethernet.hpp
+@@ -1445,14 +1445,15 @@ class EthernetInterface : public Node
+                 const std::string* gw = nullptr;
+                 uint8_t prefixLength = 0;
+                 bool errorInEntry = false;
++                uint8_t firstbyte = 1, i = 0;
++                char* endPtr;
++
+                 if (address)
+                 {
+                     if (ipv4VerifyIpAndGetBitcount(*address))
+                     {
+                         addr = &(*address);
+                         BMCWEB_LOG_DEBUG << "IPv4 address - " << *addr;
+-                        int firstbyte=1,i=0;
+-                        char* endPtr;
+                         std::vector<std::string> bytesInMask;
+                         boost::split(bytesInMask, (*addr), boost::is_any_of("."));
+                         for (const std::string& byte : bytesInMask)
+@@ -1474,7 +1475,7 @@ class EthernetInterface : public Node
+                              firstbyte =0;
+                            }
+                            i++;
+-                           if ( i==4 && value == 255)      //checking for broadcast IP
++                           if ( i == 4 && (value == 255 || value == 0))      //checking for network & broadcast IP
+                            {
+                                messages::propertyValueTypeError(asyncResp->res, *address, pathString + "/Address");
+                                errorInEntry = true;
