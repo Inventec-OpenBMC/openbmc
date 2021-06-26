@@ -1,0 +1,90 @@
+From c4c55fcee9215b4a6536bc6b205a6c675067f4e1 Mon Sep 17 00:00:00 2001
+From: "pj.chen" <chen.pj@inventec.com>
+Date: Thu, 20 May 2021 02:32:45 +0000
+Subject: [PATCH 10/10] - Add more sensor type and event type
+
+Symtom/Reason:
+    In intel-ipmi-oem, sensor type and event type are get from dbus path name.
+    But currently not support all of sensor type and cannot return correct value.
+
+Root Cause:
+    Refer to getSensorTypeStringFromPath(), has not much sensor type supported.
+
+Solution/Change:
+    [sdrutils.hpp]
+        Define more sensor type and related path key words.
+
+Entry Test:
+
+busctl call "xyz.openbmc_project.Logging.IPMI" "/xyz/openbmc_project/Logging/IPMI" "xyz.openbmc_project.Logging.IPMI" \
+"IpmiSelAdd" ssaybq "DCMI_Power_Off" \
+"/xyz/openbmc_project/sensors/discrete_0ah/system_event/DCMI_Power_Off" 3 {0x02,0xff,0xff} yes 0x20
+
+sysadmin@transformers:~# ipmitool sel elist
+   1 |  Pre-Init  |0000000815| System Event DCMI_Power_Off | Transition to Power Off | Asserted
+---
+ include/sdrutils.hpp | 26 ++++++++++++++++++++++++--
+ 1 file changed, 24 insertions(+), 2 deletions(-)
+
+diff --git a/include/sdrutils.hpp b/include/sdrutils.hpp
+index 59e2b1d..4125245 100644
+--- a/include/sdrutils.hpp
++++ b/include/sdrutils.hpp
+@@ -568,7 +568,12 @@ enum class SensorTypeCodes : uint8_t
+     voltage = 0x2,
+     current = 0x3,
+     fan = 0x4,
++    processor = 0x7,
++    power_supply = 0x8,
++    power_unit = 0x9,
+     other = 0xB,
++    memory = 0x0C,
++    system_event = 0x12,
+     oem = 0xC0,
+ };
+ 
+@@ -579,7 +584,13 @@ const static boost::container::flat_map<const char*, SensorTypeCodes, CmpStr>
+                  {"current", SensorTypeCodes::current},
+                  {"fan_tach", SensorTypeCodes::fan},
+                  {"fan_pwm", SensorTypeCodes::fan},
+-                 {"power", SensorTypeCodes::other}}};
++                 {"processor", SensorTypeCodes::processor},
++                 {"power_supply", SensorTypeCodes::power_supply},
++                 {"power_unit", SensorTypeCodes::power_unit},
++                 {"power", SensorTypeCodes::other},
++                 {"memory", SensorTypeCodes::memory},
++                 {"system_event", SensorTypeCodes::system_event}
++                 }};
+ 
+ inline static std::string getSensorTypeStringFromPath(const std::string& path)
+ {
+@@ -646,6 +657,8 @@ enum class EventTypeCodes : uint8_t
+     unspecific = 0x00,
+     threshold = 0x01,
+     discrete = 0x03,
++    discrete_05h = 0x05,
++    discrete_0ah = 0x0a,
+     specific = 0x6F,
+     oem = 0x70,
+ };
+@@ -654,7 +667,16 @@ inline static uint8_t getEventTypeStringFromPath(const std::string& path)
+ {
+     uint8_t eventType = 0xFF;
+ 
+-    if (path.find("discrete") != std::string::npos)
++    /* Add more path key words */
++    if (path.find("discrete_05h") != std::string::npos)
++    {
++        eventType = (uint8_t)EventTypeCodes::discrete_05h;
++    }
++    else if (path.find("discrete_0ah") != std::string::npos)
++    {
++        eventType = (uint8_t)EventTypeCodes::discrete_0ah;
++    }
++    else if (path.find("discrete") != std::string::npos)
+     {
+         eventType = (uint8_t)EventTypeCodes::discrete;
+     }
+-- 
+2.7.4
+

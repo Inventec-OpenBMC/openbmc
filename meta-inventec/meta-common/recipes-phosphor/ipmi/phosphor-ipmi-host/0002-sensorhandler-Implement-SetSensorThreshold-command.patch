@@ -1,0 +1,197 @@
+From 7eb019de9181312d465307e44976ccdfaf880bd5 Mon Sep 17 00:00:00 2001
+From: "pj.chen" <chen.pj@inventec.com>
+Date: Fri, 12 Feb 2021 03:14:43 +0800
+Subject: [PATCH 02/16] - Implement SetSensorThreshold command
+
+Add Ipmi command SetSensorThreshold support
+---
+ sensorhandler.cpp | 167 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 167 insertions(+)
+
+diff --git a/sensorhandler.cpp b/sensorhandler.cpp
+index 41eed5a..1a20321 100644
+--- a/sensorhandler.cpp
++++ b/sensorhandler.cpp
+@@ -621,6 +621,165 @@ ipmi::RspType<uint8_t, // validMask
+                                  resp.upperNonRecoverable);
+ }
+ 
++/*
++Inventec patch: [sensorhandler] - Implement SetSensorThreshold command
++*/
++/**
++@brief This command is used to set sensorReading.
++
++@param
++    -  sensorNumber
++    -  lowerNonCriticalThreshMask
++    -  lowerCriticalThreshMask
++    -  lowerNonRecovThreshMask
++    -  upperNonCriticalThreshMask
++    -  upperCriticalThreshMask
++    -  upperNonRecovThreshMask
++    -  reserved
++    -  lowerNonCritical
++    -  lowerCritical
++    -  lowerNonRecoverable
++    -  upperNonCritical
++    -  upperCritical
++    -  upperNonRecoverable
++@return completion code on success.
++**/
++
++ipmi::RspType<> ipmiSensorSetSensorThresholds( uint8_t sensorNum,
++                                            bool lowerNonCriticalThreshMask,
++                                            bool lowerCriticalThreshMask,
++                                            bool lowerNonRecovThreshMask,
++                                            bool upperNonCriticalThreshMask,
++                                            bool upperCriticalThreshMask,
++                                            bool upperNonRecovThreshMask,
++                                            uint2_t reserved,
++                                            uint8_t lowerNonCritical,
++                                            uint8_t lowerCritical,
++                                            uint8_t lowerNonRecoverable,
++                                            uint8_t upperNonCritical,
++                                            uint8_t upperCritical,
++                                            uint8_t upperNonRecoverable)
++{
++    constexpr auto warningThreshIntf =
++        "xyz.openbmc_project.Sensor.Threshold.Warning";
++    constexpr auto criticalThreshIntf =
++        "xyz.openbmc_project.Sensor.Threshold.Critical";
++    constexpr auto valueInterface =
++        "xyz.openbmc_project.Sensor.Value";
++
++    // lower nc and upper nc not suppported on any sensor
++    if (lowerNonRecovThreshMask || upperNonRecovThreshMask)
++    {
++        return ipmi::responseInvalidFieldRequest();
++    }
++
++    const auto iter = ipmi::sensor::sensors.find(sensorNum);
++    if (iter == ipmi::sensor::sensors.end())
++    {
++        return ipmi::responseSensorInvalid();
++    }
++
++    const auto info = iter->second;
++
++    // Proceed only if the sensor value interface is implemented.
++    if (info.propertyInterfaces.find(valueInterface) ==
++        info.propertyInterfaces.end())
++    {
++        // return with valid mask as 0
++        return ipmi::responseSuccess();
++    }
++
++    sdbusplus::bus::bus bus{ipmid_get_sd_bus_connection()};
++    auto service = ipmi::getService(bus, info.sensorInterface, info.sensorPath);
++
++    if(lowerNonCriticalThreshMask)
++    {
++        double warnLow =
++            (lowerNonCritical * info.coefficientM + info.scaledOffset)
++            * std::pow(10, info.exponentR - info.scale);
++
++        try
++        {
++            ipmi::setDbusProperty(bus, service,info.sensorPath,
++                    warningThreshIntf, "WarningLow", warnLow);
++        }
++        catch (const sdbusplus::exception::SdBusError& e)
++        {
++            std::fprintf(stderr,"set WarningLow fail\n");
++            return ipmi::responseInvalidFieldRequest();
++        }
++    }
++
++    if(lowerCriticalThreshMask)
++    {
++        double critLow =
++            (lowerCritical * info.coefficientM + info.scaledOffset)
++            * std::pow(10, info.exponentR - info.scale);
++
++        try
++        {
++            ipmi::setDbusProperty(bus, service,info.sensorPath,
++                    criticalThreshIntf, "CriticalLow", critLow);
++        }
++        catch (const sdbusplus::exception::SdBusError& e)
++        {
++            std::fprintf(stderr,"set CriticalLow fail\n");
++            return ipmi::responseInvalidFieldRequest();
++        }
++    }
++
++    if(upperNonCriticalThreshMask)
++    {
++        double warnHigh =
++            (upperNonCritical * info.coefficientM + info.scaledOffset)
++            * std::pow(10, info.exponentR - info.scale);
++
++        try
++        {
++            ipmi::setDbusProperty(bus, service,info.sensorPath,
++                    warningThreshIntf, "WarningHigh", warnHigh);
++        }
++        catch (const sdbusplus::exception::SdBusError& e)
++        {
++            std::fprintf(stderr,"set WarningHigh fail\n");
++            return ipmi::responseInvalidFieldRequest();
++        }
++    }
++
++    if(upperCriticalThreshMask)
++    {
++        double critHigh =
++            (upperCritical * info.coefficientM + info.scaledOffset)
++            * std::pow(10, info.exponentR - info.scale);
++
++        try
++        {
++            ipmi::setDbusProperty(bus, service,info.sensorPath,
++                    criticalThreshIntf, "CriticalHigh", critHigh);
++        }
++        catch (const sdbusplus::exception::SdBusError& e)
++        {
++            std::fprintf(stderr,"set CriticalHigh fail\n");
++            return ipmi::responseInvalidFieldRequest();
++        }
++    }
++    return ipmi::responseSuccess();
++}
++
++
++
++ipmi_ret_t ipmi_sen_wildcard(ipmi_netfn_t netfn, ipmi_cmd_t cmd,
++                             ipmi_request_t request, ipmi_response_t response,
++                             ipmi_data_len_t data_len, ipmi_context_t context)
++{
++    ipmi_ret_t rc = IPMI_CC_INVALID;
++
++    printf("IPMI S/E Wildcard Netfn:[0x%X], Cmd:[0x%X]\n", netfn, cmd);
++    *data_len = 0;
++
++    return rc;
++}
++
+ /** @brief implements the get SDR Info command
+  *  @param count - Operation
+  *
+@@ -1156,5 +1315,13 @@ void register_netfn_sen_functions()
+                           ipmi::sensor_event::cmdGetSensorThreshold,
+                           ipmi::Privilege::User, ipmiSensorGetSensorThresholds);
+ 
++    /*
++    Inventec patch: [sensorhandler] - Implement SetSensorThreshold command
++    */
++    // <Set Sensor Thresholds>
++    ipmi::registerHandler(ipmi::prioOpenBmcBase, ipmi::netFnSensor,
++                          ipmi::sensor_event::cmdSetSensorThreshold,
++                          ipmi::Privilege::Operator, ipmiSensorSetSensorThresholds);
++
+     return;
+ }
+-- 
+2.7.4
+

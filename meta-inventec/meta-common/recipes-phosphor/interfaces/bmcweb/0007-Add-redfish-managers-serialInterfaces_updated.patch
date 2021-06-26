@@ -1,0 +1,72 @@
+diff --git a/redfish-core/include/redfish.hpp b/redfish-core/include/redfish.hpp
+index db58d60..663d21b 100644
+--- a/redfish-core/include/redfish.hpp
++++ b/redfish-core/include/redfish.hpp
+@@ -87,6 +87,7 @@ class RedfishService
+         nodes.emplace_back(std::make_unique<ChassisResetActionInfo>(app));
+         nodes.emplace_back(std::make_unique<UpdateService>(app));
+         nodes.emplace_back(std::make_unique<StorageCollection>(app));
++        nodes.emplace_back(std::make_unique<SerialInterfaces>(app));
+         nodes.emplace_back(std::make_unique<Storage>(app));
+         nodes.emplace_back(std::make_unique<Drive>(app));
+ #ifdef BMCWEB_INSECURE_ENABLE_REDFISH_FW_TFTP_UPDATE
+diff --git a/redfish-core/lib/managers.hpp b/redfish-core/lib/managers.hpp
+index 67f8d99..1d010d3 100644
+--- a/redfish-core/lib/managers.hpp
++++ b/redfish-core/lib/managers.hpp
+@@ -1704,6 +1704,45 @@ struct SetPIDValues : std::enable_shared_from_this<SetPIDValues>
+     size_t objectCount = 0;
+ };
+ 
++class SerialInterfaces : public Node
++{
++  public:
++    SerialInterfaces(App& app) :
++        Node(app, "/redfish/v1/Managers/bmc/SerialInterfaces/")
++    {
++        entityPrivileges = {
++            {boost::beast::http::verb::get, {{"Login"}}},
++            {boost::beast::http::verb::head, {{"Login"}}},
++            {boost::beast::http::verb::patch, {{"ConfigureManager"}}},
++            {boost::beast::http::verb::put, {{"ConfigureManager"}}},
++            {boost::beast::http::verb::delete_, {{"ConfigureManager"}}},
++            {boost::beast::http::verb::post, {{"ConfigureManager"}}}};
++    }
++
++  private:
++    void doGet(const std::shared_ptr<bmcweb::AsyncResp>& asyncResp,
++               const crow::Request&, const std::vector<std::string>&) override
++    {
++        getData(asyncResp);
++    }
++
++
++    void getData(const std::shared_ptr<bmcweb::AsyncResp>& asyncResp)
++    {
++        asyncResp->res.jsonValue["@odata.type"] =
++            "#SerialInterface.v1_5_0.SerialInterface";
++        asyncResp->res.jsonValue["@odata.id"] =
++            "/redfish/v1/Managers/bmc/SerialInterfaces";
++        asyncResp->res.jsonValue["Id"] = "TTY0";
++        asyncResp->res.jsonValue["Name"] = "Manager Serial Interface";
++        asyncResp->res.jsonValue["Description"] = "Management for Serial Interface";
++        asyncResp->res.jsonValue["SignalType"] = "Rs232";
++        asyncResp->res.jsonValue["BitRate"] = "115200";
++        asyncResp->res.jsonValue["FlowControl"] = "None";
++    }
++};
++
++
+ /**
+  * @brief Retrieves BMC manager location data over DBus
+  *
+@@ -1781,6 +1820,9 @@ class Manager : public Node
+         asyncResp->res.jsonValue["ServiceEntryPointUUID"] = uuid;
+         asyncResp->res.jsonValue["Model"] = "OpenBmc"; // TODO(ed), get model
+ 
++	asyncResp->res.jsonValue["SerialInterfaces"] = {
++               {"@odata.id", "/redfish/v1/Managers/bmc/SerialInterfaces"}};
++
+         asyncResp->res.jsonValue["LogServices"] = {
+             {"@odata.id", "/redfish/v1/Managers/bmc/LogServices"}};
+ 

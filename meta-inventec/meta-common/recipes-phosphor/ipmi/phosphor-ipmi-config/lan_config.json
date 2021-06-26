@@ -1,0 +1,6 @@
+{
+    "primary_rmcp_port": 623,
+    "vlan_priority": 0,
+    "ip_family": "both",
+    "community_str": "public"
+}

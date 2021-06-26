@@ -1,0 +1,64 @@
+From bf23f741d05fdad8575d81122f2c35b2449aa9ee Mon Sep 17 00:00:00 2001
+From: "Lin.TommySC" <lin.tommysc@inventec.com>
+Date: Mon, 12 Apr 2021 00:43:11 +0000
+Subject: [PATCH 22/25] Add Aspeed VHUB dirver support on Transformers
+
+Symptom/Reason :
+    - Aspeed VHUB driver is not working on Transformers
+
+Root Cause:
+    - Control pin is not properly configured
+
+Solution/Change:
+    [linux-aspeed]
+        - Re-configure control pin and register for vhub
+---
+ arch/arm/boot/dts/aspeed-g6-pinctrl.dtsi  | 2 +-
+ arch/arm/boot/dts/aspeed-g6.dtsi          | 2 +-
+ drivers/usb/gadget/udc/aspeed-vhub/vhub.h | 4 ++--
+ 3 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm/boot/dts/aspeed-g6-pinctrl.dtsi b/arch/arm/boot/dts/aspeed-g6-pinctrl.dtsi
+index 15b70c8..87b4294 100644
+--- a/arch/arm/boot/dts/aspeed-g6-pinctrl.dtsi
++++ b/arch/arm/boot/dts/aspeed-g6-pinctrl.dtsi
+@@ -1183,7 +1183,7 @@
+ 	};
+ 	pinctrl_usb2ad_default: usb2ad_default {
+ 		function = "USB2AD";
+-		groups = "USB2AD";
++		groups = "USBA";
+ 	};
+ 
+ 	pinctrl_usb2adp_default: usb2adp_default {
+diff --git a/arch/arm/boot/dts/aspeed-g6.dtsi b/arch/arm/boot/dts/aspeed-g6.dtsi
+index 39876cc..474b13ab 100644
+--- a/arch/arm/boot/dts/aspeed-g6.dtsi
++++ b/arch/arm/boot/dts/aspeed-g6.dtsi
+@@ -379,7 +379,7 @@
+ 
+ 		vhub: usb-vhub@1e6a0000 {
+ 			compatible = "aspeed,ast2600-usb-vhub";
+-			reg = <0x1e6a0000 0x300>;
++			reg = <0x1e6a0000 0x350>;
+ 			interrupts = <GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>;
+ 			clocks = <&syscon ASPEED_CLK_GATE_USBPORT1CLK>;
+ 			status = "disabled";
+diff --git a/drivers/usb/gadget/udc/aspeed-vhub/vhub.h b/drivers/usb/gadget/udc/aspeed-vhub/vhub.h
+index 87a5dea..a980a85 100644
+--- a/drivers/usb/gadget/udc/aspeed-vhub/vhub.h
++++ b/drivers/usb/gadget/udc/aspeed-vhub/vhub.h
+@@ -210,8 +210,8 @@
+  * existing AST2400/AST2500 platforms. AST2600 and future vhub revisions
+  * should define number of downstream ports and endpoints in device tree.
+  */
+-#define AST_VHUB_NUM_GEN_EPs	15	/* Generic non-0 EPs */
+-#define AST_VHUB_NUM_PORTS	5	/* vHub ports */
++#define AST_VHUB_NUM_GEN_EPs	21	/* Generic non-0 EPs */
++#define AST_VHUB_NUM_PORTS	7	/* vHub ports */
+ #define AST_VHUB_EP0_MAX_PACKET	64	/* EP0's max packet size */
+ #define AST_VHUB_EPn_MAX_PACKET	1024	/* Generic EPs max packet size */
+ #define AST_VHUB_DESCS_COUNT	256	/* Use 256 descriptor mode (valid
+-- 
+2.7.4
+

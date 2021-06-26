@@ -1,0 +1,366 @@
+From 334b75165163c641cf1190bd406f7ed210f88be4 Mon Sep 17 00:00:00 2001
+From: "Lin.TommySC" <lin.tommysc@inventec.com>
+Date: Fri, 18 Jun 2021 09:21:50 +0000
+Subject: [PATCH] Add IPv4 IPv6 Addressing Mode Support
+
+Symptom/Reason :
+    - Enable IPv6 and disable IPv4 in raw command does not work
+
+Root Cause:
+    - OpenBMC's implementation supports only IPv4/IPv6 dual mode
+
+Solution/Change:
+    [phosphor-dbus-interfaces]
+        - Add IPFamily property in EthernetInterface
+    [phosphor-ipmi-host]
+        - Add function call to get/set IPFamily property
+    [phosphor-network]
+        - Implementation of get/set IPFamily property
+
+Entry Test:
+    - Set to IPv6 only mode
+        ipmitool raw 0x0c 0x01 0x01 0x33 0x01
+    - Get current IP addressing mode
+        ipmitool raw 0x0c 0x02 0x01 0x33 0x00 0x00
+---
+ ethernet_interface.cpp   | 78 ++++++++++++++++++++++++++++++++++++++++++++++--
+ ethernet_interface.hpp   |  4 +++
+ network_manager.cpp      | 24 +++++++++++++++
+ network_manager.hpp      |  9 ++++++
+ network_manager_main.cpp | 11 +++++++
+ types.hpp                |  2 ++
+ util.cpp                 | 18 +++++++++++
+ util.hpp                 | 10 +++++--
+ 8 files changed, 151 insertions(+), 5 deletions(-)
+
+diff --git a/ethernet_interface.cpp b/ethernet_interface.cpp
+index bc6f12b..e16b55f 100644
+--- a/ethernet_interface.cpp
++++ b/ethernet_interface.cpp
+@@ -86,6 +86,7 @@ EthernetInterface::EthernetInterface(sdbusplus::bus::bus& bus,
+     EthernetInterfaceIntf::dhcpEnabled(dhcpEnabled);
+     EthernetInterfaceIntf::ipv6AcceptRA(getIPv6AcceptRAFromConf());
+     EthernetInterfaceIntf::ipv6HopLimit(getIPv6HopValue(manager.getConfDir(), intfName));
++    EthernetInterfaceIntf::ipFamily(getIPFamilyConf());
+     route::Table routingTable;
+     auto gatewayList = routingTable.getDefaultGateway();
+     auto gateway6List = routingTable.getDefaultGateway6();
+@@ -582,6 +583,49 @@ uint8_t EthernetInterface::ipv6HopLimit(uint8_t value)
+     return value;
+ }
+ 
++EthernetInterface::IPFamilyConf EthernetInterface::ipFamily(IPFamilyConf value)
++{
++    if (value == EthernetInterfaceIntf::ipFamily())
++    {
++        return value;
++    }
++
++    bool nic_restart = (EthernetInterfaceIntf::ipFamily() == IPFamilyConf::v4);
++    EthernetInterfaceIntf::ipFamily(value);
++    DHCPConf dhcp_orig = EthernetInterfaceIntf::dhcpEnabled();
++    DHCPConf dhcp_next = DHCPConf::both;
++    std::string strMode = "both";
++
++    if (value == IPFamilyConf::v4)
++    {
++        strMode = "v4";
++        dhcp_next = DHCPConf::v4;
++    }
++    else if (value == IPFamilyConf::v6)
++    {
++        strMode = "v6";
++        dhcp_next = DHCPConf::v6;
++    }
++
++    updateConfigValue<std::string>(LAN_CONFIG_IP_FAMILY, strMode);
++
++    if (dhcp_orig == DHCPConf::none || dhcp_orig == dhcp_next)
++    {
++        manager.writeToConfigurationFile();
++    }
++    else
++    {
++        dhcpEnabled(dhcp_next);
++    }
++
++    if (nic_restart)
++    {
++        manager.startNicResetTimer();
++    }
++
++    return value;
++}
++
+ bool EthernetInterface::linkUp() const
+ {
+     EthernetIntfSocket eifSocket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
+@@ -917,6 +961,12 @@ void EthernetInterface::writeConfigurationFile()
+     using namespace std::string_literals;
+     namespace fs = std::filesystem;
+ 
++    if (interfaceName() == "usb0")
++    {
++        // usb0 interface is not cinfigurable
++        return;
++    }
++
+     // if there is vlan interafce then write the configuration file
+     // for vlan also.
+ 
+@@ -962,12 +1012,34 @@ void EthernetInterface::writeConfigurationFile()
+     // write the network section
+     stream << "[Network]\n";
+ #ifdef LINK_LOCAL_AUTOCONFIGURATION
+-    stream << "LinkLocalAddressing=yes\n";
++    if (EthernetInterfaceIntf::ipFamily() == EthernetInterfaceIntf::IPFamilyConf::v4)
++    {
++        stream << "LinkLocalAddressing=ipv4\n";
++    }
++    else if (EthernetInterfaceIntf::ipFamily() == EthernetInterfaceIntf::IPFamilyConf::v6)
++    {
++        stream << "LinkLocalAddressing=ipv6\n";
++    }
++    else
++    {
++        stream << "LinkLocalAddressing=yes\n";
++    }
+ #else
+     stream << "LinkLocalAddressing=no\n";
+ #endif
+-    stream << std::boolalpha
+-           << "IPv6AcceptRA=" << EthernetInterfaceIntf::ipv6AcceptRA() << "\n";
++    if (EthernetInterfaceIntf::ipFamily() == EthernetInterfaceIntf::IPFamilyConf::v4)
++    {
++        stream << "IPv6AcceptRA=false\n";
++    }
++    else if (EthernetInterfaceIntf::ipFamily() == EthernetInterfaceIntf::IPFamilyConf::v6)
++    {
++        stream << "IPv6AcceptRA=true\n";
++    }
++    else
++    {
++        stream << std::boolalpha
++            << "IPv6AcceptRA=" << EthernetInterfaceIntf::ipv6AcceptRA() << "\n";
++    }
+ 
+     // Add the VLAN entry
+     for (const auto& intf : vlanInterfaces)
+diff --git a/ethernet_interface.hpp b/ethernet_interface.hpp
+index 5e42cfb..f6760ca 100644
+--- a/ethernet_interface.hpp
++++ b/ethernet_interface.hpp
+@@ -170,6 +170,9 @@ class EthernetInterface : public Ifaces
+     /** Set value of IPv6HopLimit */
+     uint8_t ipv6HopLimit(uint8_t value) override;
+ 
++    /** Set value of IPFamily */
++    IPFamilyConf ipFamily(IPFamilyConf value) override;
++
+     /** @brief Selectively disables DHCP
+      *  @param[in] protocol - The IPv4 or IPv6 protocol to return to static
+      *                        addressing mode
+@@ -251,6 +254,7 @@ class EthernetInterface : public Ifaces
+     using EthernetInterfaceIntf::linkUp;
+     using EthernetInterfaceIntf::nicEnabled;
+     using EthernetInterfaceIntf::ipv6HopLimit;
++    using EthernetInterfaceIntf::ipFamily;
+     using MacAddressIntf::macAddress;
+ 
+     using EthernetInterfaceIntf::defaultGateway;
+diff --git a/network_manager.cpp b/network_manager.cpp
+index 751d1a1..fee63e7 100644
+--- a/network_manager.cpp
++++ b/network_manager.cpp
+@@ -33,6 +33,7 @@ namespace network
+ 
+ extern std::unique_ptr<Timer> refreshObjectTimer;
+ extern std::unique_ptr<Timer> restartTimer;
++extern std::unique_ptr<Timer> restartNicTimer;
+ using namespace phosphor::logging;
+ using namespace sdbusplus::xyz::openbmc_project::Common::Error;
+ 
+@@ -253,6 +254,15 @@ void Manager::restartTimers()
+     }
+ }
+ 
++void Manager::startNicResetTimer()
++{
++    using namespace std::chrono;
++    if (restartNicTimer)
++    {
++        restartNicTimer->restartOnce(restartNicTimeout);
++    }
++}
++
+ void Manager::restartSystemdUnit(const std::string& unit)
+ {
+     try
+@@ -285,5 +295,19 @@ void Manager::restartSystemdUnit(const std::string& unit)
+     }
+ }
+ 
++void Manager::restartNIC(const std::string& interface)
++{
++    for (const auto& intf : interfaces)
++    {
++        if (intf.second->interfaceName() == interface)
++        {
++            intf.second->nicEnabled(false);
++            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
++            intf.second->nicEnabled(true);
++            break;
++        }
++    }
++}
++
+ } // namespace network
+ } // namespace phosphor
+diff --git a/network_manager.hpp b/network_manager.hpp
+index 227955c..3dcc97f 100644
+--- a/network_manager.hpp
++++ b/network_manager.hpp
+@@ -116,6 +116,9 @@ class Manager : public details::VLANCreateIface
+     /** @brief restart the network timers. */
+     void restartTimers();
+ 
++    /** @brief restart the NIC timer. */
++    void startNicResetTimer();
++
+     /** @brief This function gets the MAC address from the VPD and
+      *  sets it on the corresponding ethernet interface during first
+      *  Boot, once it sets the MAC from VPD, it creates a file named
+@@ -136,6 +139,12 @@ class Manager : public details::VLANCreateIface
+      */
+     virtual void restartSystemdUnit(const std::string& unit);
+ 
++    /** @brief Restart the NIC card
++     *  @param[in] interface - NIC interface which needs to be
++     *                         restarted.
++     */
++    virtual void restartNIC(const std::string& interface);
++
+     /** @brief Returns the number of interfaces under this manager.
+      *
+      * @return the number of interfaces managed by this manager.
+diff --git a/network_manager_main.cpp b/network_manager_main.cpp
+index 38fe673..89ba2be 100644
+--- a/network_manager_main.cpp
++++ b/network_manager_main.cpp
+@@ -47,6 +47,7 @@ namespace network
+ std::unique_ptr<phosphor::network::Manager> manager = nullptr;
+ std::unique_ptr<Timer> refreshObjectTimer = nullptr;
+ std::unique_ptr<Timer> restartTimer = nullptr;
++std::unique_ptr<Timer> restartNicTimer = nullptr;
+ 
+ #ifdef SYNC_MAC_FROM_INVENTORY
+ std::unique_ptr<sdbusplus::bus::match::match> EthInterfaceMatch = nullptr;
+@@ -251,12 +252,22 @@ void restartNetwork()
+     }
+ }
+ 
++/** @brief restart the systemd networkd. */
++void restartNic()
++{
++    if (manager)
++    {
++        manager->restartNIC("eth0");
++    }
++}
++
+ void initializeTimers()
+ {
+     auto event = sdeventplus::Event::get_default();
+     refreshObjectTimer =
+         std::make_unique<Timer>(event, std::bind(refreshObjects));
+     restartTimer = std::make_unique<Timer>(event, std::bind(restartNetwork));
++    restartNicTimer = std::make_unique<Timer>(event, std::bind(restartNic));
+ }
+ 
+ } // namespace network
+diff --git a/types.hpp b/types.hpp
+index 082d588..431a4d8 100644
+--- a/types.hpp
++++ b/types.hpp
+@@ -34,6 +34,8 @@ constexpr auto restartTimeout = 3s;
+ // configuration takes 3-4 sec after systemd-networkd restart.
+ constexpr auto refreshTimeout = restartTimeout + 7s;
+ 
++constexpr auto restartNicTimeout = refreshTimeout + 2s;
++
+ namespace systemd
+ {
+ namespace config
+diff --git a/util.cpp b/util.cpp
+index 70d1df5..64171d1 100644
+--- a/util.cpp
++++ b/util.cpp
+@@ -542,6 +542,24 @@ uint8_t getIPv6HopValue(const std::string& confDir, const std::string& intf)
+     return hopLimit;
+ }
+ 
++EthernetInterfaceIntf::IPFamilyConf getIPFamilyConf()
++{
++    EthernetInterfaceIntf::IPFamilyConf mode = EthernetInterfaceIntf::IPFamilyConf::both;
++    std::string strMode = "both";
++    loadConfigValue<std::string>(LAN_CONFIG_IP_FAMILY, strMode);
++
++    if (strMode == "v4")
++    {
++        mode = EthernetInterfaceIntf::IPFamilyConf::v4;
++    }
++    else if (strMode == "v6")
++    {
++        mode = EthernetInterfaceIntf::IPFamilyConf::v6;
++    }
++
++    return mode;
++}
++
+ namespace mac_address
+ {
+ 
+diff --git a/util.hpp b/util.hpp
+index 179a76b..cb0424a 100644
+--- a/util.hpp
++++ b/util.hpp
+@@ -169,6 +169,11 @@ EthernetInterfaceIntf::DHCPConf getDHCPValue(const std::string& confDir,
+  */
+ uint8_t getIPv6HopValue(const std::string& confDir, const std::string& intf);
+ 
++/** @brief read the IPFamilyConf value from the configuration file
++ * 
++ */
++EthernetInterfaceIntf::IPFamilyConf getIPFamilyConf();
++
+ namespace internal
+ {
+ 
+@@ -207,6 +212,7 @@ void execute(const char* path, ArgTypes&&... tArgs)
+ constexpr auto LAN_CFG_FILE = "/usr/share/ipmi-providers/lan_config.json";
+ // Config name for LAN Config Parameters
+ constexpr auto LAN_CONFIG_VLAN_PCP = "vlan_priority";
++constexpr auto LAN_CONFIG_IP_FAMILY = "ip_family";
+ 
+ using namespace phosphor::logging;
+ 
+@@ -247,14 +253,14 @@ template <typename T> int updateConfigValue(const std::string& name, T val)
+     std::ifstream configFile(LAN_CFG_FILE);
+     if (!configFile.is_open())
+     {
+-        log<level::ERR>("loadConfigValue : Cannot open config path");
++        log<level::ERR>("updateConfigValue : Cannot open config path");
+         return -1;
+     }
+     auto data = nlohmann::json::parse(configFile, nullptr);
+ 
+     if (data.is_discarded())
+     {
+-        log<level::ERR>("loadConfigValue JSON parser failure");
++        log<level::ERR>("updateConfigValue JSON parser failure");
+         return -2;
+     }
+ 
+-- 
+2.7.4
+

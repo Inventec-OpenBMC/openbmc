@@ -1,0 +1,36 @@
+From 890eebfbd679510276987a305c0e410cf51cb9bc Mon Sep 17 00:00:00 2001
+From: "Alang.Huang" <Huang.Alang@inventec.com>
+Date: Sat, 6 Mar 2021 01:59:30 +0000
+Subject: [PATCH 08/10] disable whitelist filter by commenting out
+ registerFilter()
+
+---
+ src/whitelist-filter.cpp | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/src/whitelist-filter.cpp b/src/whitelist-filter.cpp
+index c7e4086..9d52084 100644
+--- a/src/whitelist-filter.cpp
++++ b/src/whitelist-filter.cpp
+@@ -103,13 +103,17 @@ WhitelistFilter::WhitelistFilter()
+ {
+     bus = getSdBus();
+ 
++    #if 0
+     log<level::INFO>("Loading whitelist filter");
+-
+     ipmi::registerFilter(ipmi::prioOpenBmcBase,
+                          [this](ipmi::message::Request::ptr request) {
+                              return filterMessage(request);
+                          });
++    #else
++
++    log<level::INFO>("Disable whitelist filter");
+ 
++    #endif
+     channelSMM = getSMMChannel();
+     // wait until io->run is going to fetch RestrictionMode
+     post_work([this]() { postInit(); });
+-- 
+2.7.4
+

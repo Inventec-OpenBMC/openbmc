@@ -1,0 +1,90 @@
+From ebaeca90843e1e16cbc15a34d98792d9b64a7d2e Mon Sep 17 00:00:00 2001
+From: "pj.chen" <chen.pj@inventec.com>
+Date: Tue, 29 Dec 2020 02:38:02 +0000
+Subject: [PATCH] - Add tmp468 support and Label search for extra thresold and
+ ipmi config
+
+---
+ src/HwmonTempMain.cpp | 39 +++++++++++++++++++++++++++++++++------
+ 1 file changed, 33 insertions(+), 6 deletions(-)
+
+diff --git a/src/HwmonTempMain.cpp b/src/HwmonTempMain.cpp
+index 916a980..0c9166a 100644
+--- a/src/HwmonTempMain.cpp
++++ b/src/HwmonTempMain.cpp
+@@ -40,7 +40,7 @@ static constexpr bool debug = false;
+ static constexpr float pollRateDefault = 0.5;
+ 
+ namespace fs = std::filesystem;
+-static constexpr std::array<const char*, 16> sensorTypes = {
++static constexpr std::array<const char*, 17> sensorTypes = {
+     "xyz.openbmc_project.Configuration.EMC1412",
+     "xyz.openbmc_project.Configuration.EMC1413",
+     "xyz.openbmc_project.Configuration.EMC1414",
+@@ -56,7 +56,8 @@ static constexpr std::array<const char*, 16> sensorTypes = {
+     "xyz.openbmc_project.Configuration.TMP441",
+     "xyz.openbmc_project.Configuration.LM75A",
+     "xyz.openbmc_project.Configuration.TMP75",
+-    "xyz.openbmc_project.Configuration.W83773G"};
++    "xyz.openbmc_project.Configuration.W83773G",
++    "xyz.openbmc_project.Configuration.TMP468"};
+ 
+ void createSensors(
+     boost::asio::io_service& io, sdbusplus::asio::object_server& objectServer,
+@@ -208,11 +209,21 @@ void createSensors(
+                 std::vector<thresholds::Threshold> sensorThresholds;
+                 int index = 1;
+ 
+-                if (!parseThresholdsFromConfig(*sensorData, sensorThresholds,
++                if( !strncmp( sensorType, "xyz.openbmc_project.Configuration.TMP468" , strlen(sensorType))) {
++                    std::string thresholdLabel = sensorName.substr(0, sensorName.find(" "));
++                    if (!parseThresholdsFromConfig(*sensorData, sensorThresholds,&thresholdLabel, nullptr))
++                    {
++                        std::cerr << "error populating thresholds for "
++                              << sensorName << " index 1\n";
++                    }
++                } else {
++
++                    if (!parseThresholdsFromConfig(*sensorData, sensorThresholds,
+                                                nullptr, &index))
+-                {
+-                    std::cerr << "error populating thresholds for "
++                    {
++                        std::cerr << "error populating thresholds for "
+                               << sensorName << " index 1\n";
++                    }
+                 }
+ 
+                 auto findPollRate = baseConfiguration->second.find("PollRate");
+@@ -291,11 +302,27 @@ void createSensors(
+                         }
+ 
+                         auto& sensor = sensors[sensorName];
++                        /* Extra threshold should all add label.*/
++                        std::vector<thresholds::Threshold> sensorThresholdsExtra;
++                        std::string labelHead = sensorName.substr(0, sensorName.find(" "));
++                        if (!parseThresholdsFromConfig(*sensorData, sensorThresholdsExtra, &labelHead))
++                        {
++                            std::cerr << "error populating thresholds for "
++                                      << sensorName << "\n";
++                        }
++
++                        /* Extra ipmiconfig.*/
++                        std::vector<ipmidata::IpmiConfig> sensorIpmiConfig;
++                        if (!parseIpmiDataFromConfig(*sensorData, sensorIpmiConfig, &labelHead))
++                        {
++                            std::cerr << "error populating ipmi for "
++                                      << sensorName << "\n";
++                        }
+                         sensor = nullptr;
+                         sensor = std::make_shared<HwmonTempSensor>(
+                             *hwmonFile, sensorType, objectServer,
+                             dbusConnection, io, sensorName,
+-                            std::move(thresholds), pollRate, 
++                            std::move(sensorThresholdsExtra), pollRate, 
+                             std::move(sensorIpmiConfig), *interfacePath, readState);
+                         sensor->setupRead();
+                     }
+-- 
+2.7.4
+

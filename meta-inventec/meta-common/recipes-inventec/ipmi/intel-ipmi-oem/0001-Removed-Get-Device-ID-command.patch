@@ -1,0 +1,28 @@
+From 46ca3fa1f094a13b7a14925dc439c93d0999d261 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Tue, 23 Jun 2020 15:16:11 -0400
+Subject: [PATCH 01/10] Removed Get Device ID command
+
+Removed Get Device ID command
+---
+ src/appcommands.cpp | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/appcommands.cpp b/src/appcommands.cpp
+index 10e3d13..0942d0c 100644
+--- a/src/appcommands.cpp
++++ b/src/appcommands.cpp
+@@ -386,8 +386,10 @@ RspType<uint8_t,  // Device ID
+ static void registerAPPFunctions(void)
+ {
+     // <Get Device ID>
++    /*
+     registerHandler(prioOemBase, netFnApp, app::cmdGetDeviceId, Privilege::User,
+                     ipmiAppGetDeviceId);
++    */
+ }
+ 
+ } // namespace ipmi
+-- 
+2.7.4
+

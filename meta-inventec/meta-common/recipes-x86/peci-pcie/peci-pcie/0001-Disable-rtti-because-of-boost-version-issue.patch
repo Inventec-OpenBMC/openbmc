@@ -1,0 +1,28 @@
+From 8826ef8838dc9924571507655a7bd8b9fee9caae Mon Sep 17 00:00:00 2001
+From: Qiping Fang <fang.qiping@inventec.com>
+Date: Wed, 19 May 2021 16:27:13 -0700
+Subject: [PATCH] Disable rtti because of boost version issue
+
+---
+ CMakeLists.txt | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 83d2dcd..e5f93b1 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -46,8 +46,9 @@ add_definitions (-DBOOST_NO_RTTI)
+ add_definitions (-DBOOST_NO_TYPEID)
+ add_definitions (-DBOOST_ASIO_DISABLE_THREADS)
+ 
+-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
+-set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-rtti")
++# Temporarily disable rtti
++#set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
++#set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-rtti")
+ 
+ set (SERVICE_FILES
+      ${PROJECT_SOURCE_DIR}/service_files/xyz.openbmc_project.PCIe.service)
+-- 
+2.7.4
+

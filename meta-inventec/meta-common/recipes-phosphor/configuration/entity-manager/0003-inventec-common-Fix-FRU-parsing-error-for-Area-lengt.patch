@@ -1,0 +1,44 @@
+From aab3bd8c1d55cd7d892456926e6df7207a569b2c Mon Sep 17 00:00:00 2001
+From: "pj.chen" <chen.pj@inventec.com>
+Date: Thu, 25 Mar 2021 09:27:07 +0000
+Subject: [PATCH 3/4] Subject: [PATCH] [inventec][common] - Fix FRU parsing
+ error for Area length
+
+Symptom/Reason:
+    FruDevice cannot post FRU information to Dbus
+
+Root Cause:
+    Using uint8 to store area length, it may overflow.
+
+Solution/Change:
+    [FruDevice]
+        Change the type to uint16.
+
+Entry Test:
+
+sysadmin@transformers:~# busctl tree xyz.openbmc_project.FruDevice
+`-/xyz
+  `-/xyz/openbmc_project
+    `-/xyz/openbmc_project/FruDevice
+      |-/xyz/openbmc_project/FruDevice/11_50
+      `-/xyz/openbmc_project/FruDevice/TRANSFORMERS________
+---
+ src/FruUtils.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/FruUtils.cpp b/src/FruUtils.cpp
+index beeb148..bd31b85 100644
+--- a/src/FruUtils.cpp
++++ b/src/FruUtils.cpp
+@@ -307,7 +307,7 @@ resCodes formatFRU(const std::vector<uint8_t>& fruBytes,
+             return resCodes::resErr;
+         }
+ 
+-        uint8_t fruAreaSize = *fruBytesIter * fruBlockSize;
++        uint16_t fruAreaSize = *fruBytesIter * fruBlockSize;
+         std::vector<uint8_t>::const_iterator fruBytesIterEndArea =
+             fruBytes.begin() + offset + fruAreaSize - 1;
+         ++fruBytesIter;
+-- 
+2.7.4
+

@@ -1,0 +1,61 @@
+From d630f8c1cf2233e48f77874e61b3637434cf6762 Mon Sep 17 00:00:00 2001
+From: "Lin.TommySC" <lin.tommysc@inventec.com>
+Date: Wed, 14 Apr 2021 03:26:50 +0000
+Subject: [PATCH 1/6] Fix IP address of usb0 net interface
+
+Symptom/Reason :
+    - Can't upgrade BMC image through ipminet interface
+
+Root Cause:
+    - Feature not implemented
+
+Solution/Change:
+    [linux-aspeed]
+        - Enable vhub in device tree
+        - Correct control pin setting of pinctrl_usb2ad_default
+    [phospher-network]
+        - Fix IP address for usb0 interface
+
+Entry Test:
+    - Check IP address of usb0
+        # ip addr show usb0
+---
+ network_config.cpp | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/network_config.cpp b/network_config.cpp
+index 94c8eae..6f8775a 100644
+--- a/network_config.cpp
++++ b/network_config.cpp
+@@ -17,6 +17,19 @@ void writeDHCPDefault(const std::string& filename, const std::string& interface)
+     std::ofstream filestream;
+ 
+     filestream.open(filename);
++
++    if (interface.compare("usb0") == 0)
++    {
++        filestream << "[Match]\n"
++                    "Name=" << interface << std::endl <<
++                    "[Address]\n"
++                    "Address=169.254.47.147/24\n"
++                    "[Network]\n"
++                    "DHCP=false\n"
++                    "LinkLocalAddressing=no\n"
++                    "IPv6AcceptRA=false\n";
++        return;
++    }
+     // Add the following line to your phosphor-network bbappend file
+     // to control IPV6_ACCEPT_RA
+     //   EXTRA_OECONF_append = " --enable-ipv6-accept-ra=yes"
+@@ -25,6 +38,8 @@ void writeDHCPDefault(const std::string& filename, const std::string& interface)
+     // The new value is only assigned on first boot, when the default
+     // file is not present, or after the default file has been
+     // manually removed.
++
++
+     filestream << "[Match]\nName=" << interface <<
+                 "\n[Network]\nDHCP=true\n"
+ #ifdef LINK_LOCAL_AUTOCONFIGURATION
+-- 
+2.7.4
+

@@ -1,0 +1,168 @@
+From 868b7630f0c1bfe93cc195aab1cc1dbf1fd9ae6b Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Tue, 29 Sep 2020 14:39:06 -0400
+Subject: [PATCH 03/25] Subject: [Patch][kernel] intel-peci-client support
+ Icelake and Eaglestream
+
+    -Support Intel icelake CPU PECI to get DIMM temperature.
+    -And hard code temperature high 85C and critical 90C.
+    -Enable peci interface , get cpu/dimmp temp by adding eagle stream(Sapphire Rapids) support
+---
+ drivers/hwmon/peci-dimmtemp.c         | 46 ++++++++++++++++++++++++++---------
+ drivers/mfd/intel-peci-client.c       | 12 +++++++++
+ include/linux/mfd/intel-peci-client.h | 11 +++++++++
+ 3 files changed, 58 insertions(+), 11 deletions(-)
+
+diff --git a/drivers/hwmon/peci-dimmtemp.c b/drivers/hwmon/peci-dimmtemp.c
+index 1555bfd..9c22ded 100644
+--- a/drivers/hwmon/peci-dimmtemp.c
++++ b/drivers/hwmon/peci-dimmtemp.c
+@@ -37,6 +37,8 @@ static const u8 support_model[4] = {
+ 	INTEL_FAM6_BROADWELL_X,
+ 	INTEL_FAM6_SKYLAKE_X,
+ 	INTEL_FAM6_SKYLAKE_XD,
++	INTEL_FAM6_ICELAKE_X,
++	INTEL_FAM6_SAPPHIRERAPIDS_X,
+ };
+ 
+ static inline int read_ddr_dimm_temp_config(struct peci_dimmtemp *priv,
+@@ -66,6 +68,12 @@ static int get_dimm_temp(struct peci_dimmtemp *priv, int dimm_no)
+ 	priv->temp[dimm_no].value = cfg_data[dimm_order] * 1000;
+ 
+ 	switch (priv->gen_info->model) {
++	case INTEL_FAM6_ICELAKE_X:
++		// ieclake has used MMIO, so cannot get from PCIe config register
++		// hard code for temperature high and critical value
++		priv->temp_max[dimm_no] = 85 * 1000; //85C
++		priv->temp_crit[dimm_no] = 90 * 1000; //90C
++		break;
+ 	case INTEL_FAM6_SKYLAKE_X:
+ 		rp_msg.addr = priv->mgr->client->addr;
+ 		rp_msg.bus = 2;
+@@ -146,6 +154,11 @@ static int get_dimm_temp(struct peci_dimmtemp *priv, int dimm_no)
+ 		priv->temp_max[dimm_no] = rp_msg.pci_config[1] * 1000;
+ 		priv->temp_crit[dimm_no] = rp_msg.pci_config[2] * 1000;
+ 		break;
++	case INTEL_FAM6_SAPPHIRERAPIDS_X:
++		/*<TBD> not sure how to get temp config hard code here as Icelake patch*/
++		priv->temp_max[dimm_no] = 85 * 1000; //85C
++		priv->temp_crit[dimm_no] = 90 * 1000; //90C
++		break;
+ 	default:
+ 		return -EOPNOTSUPP;
+ 	}
+@@ -225,18 +238,24 @@ static int check_populated_dimms(struct peci_dimmtemp *priv)
+ 
+ 	for (chan_rank = 0; chan_rank < chan_rank_max; chan_rank++) {
+ 		int ret;
+-
+ 		ret = read_ddr_dimm_temp_config(priv, chan_rank, cfg_data);
++
+ 		if (ret) {
+-			priv->dimm_mask = 0;
+-			return ret;
++			for (dimm_idx = 0; dimm_idx < dimm_idx_max; dimm_idx++) {
++				priv->dimm_mask &= ~(BIT(chan_rank *
++							    dimm_idx_max +
++							    dimm_idx));
++			}
++		}
++		else {
++			for (dimm_idx = 0; dimm_idx < dimm_idx_max; dimm_idx++) {
++				if (cfg_data[dimm_idx]) {
++					priv->dimm_mask |= BIT(chan_rank *
++							       dimm_idx_max +
++							       dimm_idx);
++				}
++			}
+ 		}
+-
+-		for (dimm_idx = 0; dimm_idx < dimm_idx_max; dimm_idx++)
+-			if (cfg_data[dimm_idx])
+-				priv->dimm_mask |= BIT(chan_rank *
+-						       dimm_idx_max +
+-						       dimm_idx);
+ 	}
+ 
+ 	if (!priv->dimm_mask)
+@@ -360,11 +379,14 @@ static int peci_dimmtemp_probe(struct platform_device *pdev)
+ 
+ 	for (i = 0; i < ARRAY_SIZE(support_model); i++) {
+ 		if (mgr->gen_info->model == support_model[i])
++		{
+ 			break;
++		}
+ 	}
+-	if (i == ARRAY_SIZE(support_model))
++	if (i == ARRAY_SIZE(support_model)) {
++		dev_err(dev, "model is not in support model\n");
+ 		return -ENODEV;
+-
++	}
+ 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
+ 	if (!priv)
+ 		return -ENOMEM;
+@@ -384,6 +406,8 @@ static int peci_dimmtemp_probe(struct platform_device *pdev)
+ 	INIT_DELAYED_WORK(&priv->work_handler, create_dimm_temp_info_delayed);
+ 
+ 	ret = create_dimm_temp_info(priv);
++	pr_info("create_dimm_temp_info: %d\n", ret);
++
+ 	if (ret && ret != -EAGAIN) {
+ 		dev_dbg(dev, "Failed to create DIMM temp info\n");
+ 		goto err_free_wq;
+diff --git a/drivers/mfd/intel-peci-client.c b/drivers/mfd/intel-peci-client.c
+index 24f1543..cebb177 100644
+--- a/drivers/mfd/intel-peci-client.c
++++ b/drivers/mfd/intel-peci-client.c
+@@ -48,6 +48,18 @@ static const struct cpu_gen_info cpu_gen_info_table[] = {
+ 		.core_max      = CORE_MAX_ON_SKXD,
+ 		.chan_rank_max = CHAN_RANK_MAX_ON_SKXD,
+ 		.dimm_idx_max  = DIMM_IDX_MAX_ON_SKXD },
++	{ /* IceLake */
++		.family        = INTEL_FAM6,
++		.model         = INTEL_FAM6_ICELAKE_X,
++		.core_max      = CORE_MAX_ON_ICE,
++		.chan_rank_max = CHAN_RANK_MAX_ON_ICE,
++		.dimm_idx_max  = DIMM_IDX_MAX_ON_ICE },
++	{ /* SAPPHIRERAPIDS */
++		.family        = INTEL_FAM6,
++		.model         = INTEL_FAM6_SAPPHIRERAPIDS_X,
++		.core_max      = CORE_MAX_ON_SAPPHIRERAPIDS,
++		.chan_rank_max = CHAN_RANK_MAX_ON_SAPPHIRERAPIDS,
++		.dimm_idx_max  = DIMM_IDX_MAX_ON_SAPPHIRERAPIDS },
+ };
+ 
+ static int peci_client_get_cpu_gen_info(struct peci_client_manager *priv)
+diff --git a/include/linux/mfd/intel-peci-client.h b/include/linux/mfd/intel-peci-client.h
+index 7668d0c..b94fde5 100644
+--- a/include/linux/mfd/intel-peci-client.h
++++ b/include/linux/mfd/intel-peci-client.h
+@@ -18,6 +18,8 @@
+ #define INTEL_FAM6_BROADWELL_X		0x4F
+ #define INTEL_FAM6_SKYLAKE_X		0x55
+ #define INTEL_FAM6_SKYLAKE_XD		0x56
++#define INTEL_FAM6_ICELAKE_X		0x6A
++#define INTEL_FAM6_SAPPHIRERAPIDS_X     0x8F
+ #endif
+ 
+ #define INTEL_FAM6             6 /* P6 (Pentium Pro and later) */
+@@ -38,6 +40,15 @@
+ #define CHAN_RANK_MAX_ON_SKXD  2  /* Max number of channel ranks on Skylake D */
+ #define DIMM_IDX_MAX_ON_SKXD   2  /* Max DIMM index per channel on Skylake D */
+ 
++#define CORE_MAX_ON_ICE        30 /* Max number of cores on Icelake */
++#define CHAN_RANK_MAX_ON_ICE   8  /* Max number of channel ranks on Icelake */
++#define DIMM_IDX_MAX_ON_ICE    2  /* Max DIMM index per channel on IceLake */
++
++/*SAPPHIRERAPIDS*/
++#define CORE_MAX_ON_SAPPHIRERAPIDS 50 /* Max number of cores */
++#define CHAN_RANK_MAX_ON_SAPPHIRERAPIDS  8  /* Max number of channel ranks*/
++#define DIMM_IDX_MAX_ON_SAPPHIRERAPIDS   2  /* Max DIMM index per channel*/
++
+ #define CORE_NUMS_MAX          CORE_MAX_ON_SKX
+ #define CHAN_RANK_MAX          CHAN_RANK_MAX_ON_HSX
+ #define DIMM_IDX_MAX           DIMM_IDX_MAX_ON_HSX
+-- 
+2.7.4
+

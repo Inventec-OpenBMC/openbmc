@@ -1,0 +1,111 @@
+From f3fb0d28e111b640f9c7190e7da032e57d9c928d Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Tue, 4 Aug 2020 16:40:49 -0400
+Subject: [PATCH 03/10] Implement Set SEL Time command
+
+Implement Set SEL Time command.
+Note: Time sync mode should be Manual to set.
+---
+ src/storagecommands.cpp | 71 ++++++++++++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 68 insertions(+), 3 deletions(-)
+
+diff --git a/src/storagecommands.cpp b/src/storagecommands.cpp
+index bd43a34..636dc7b 100644
+--- a/src/storagecommands.cpp
++++ b/src/storagecommands.cpp
+@@ -26,6 +26,8 @@
+ #include <boost/process.hpp>
+ #include <ipmid/api.hpp>
+ #include <ipmid/message.hpp>
++#include <ipmid/utils.hpp>
++#include <sys/time.h>
+ #include <phosphor-ipmi-host/selutility.hpp>
+ #include <phosphor-logging/log.hpp>
+ #include <sdbusplus/message/types.hpp>
+@@ -39,6 +41,15 @@
+ 
+ static constexpr bool DEBUG = false;
+ 
++const static constexpr char* settingMgtService = "xyz.openbmc_project.Settings";
++const static constexpr char* timeSyncObjPath = "/xyz/openbmc_project/time/sync_method";
++const static constexpr char* timeSyncMethodIntf = "xyz.openbmc_project.Time.Synchronization";
++const static constexpr char* timeSyncMethodProp = "TimeSyncMethod";
++const std::vector<std::string> timeSyncMethodValue = {
++    "xyz.openbmc_project.Time.Synchronization.Method.Manual",
++    "xyz.openbmc_project.Time.Synchronization.Method.NTP"
++};
++
+ namespace intel_oem::ipmi::sel
+ {
+ static const std::filesystem::path selLogDir = "/var/log";
+@@ -1208,10 +1219,64 @@ ipmi::RspType<uint32_t> ipmiStorageGetSELTime()
+     return ipmi::responseSuccess(selTime.tv_sec);
+ }
+ 
+-ipmi::RspType<> ipmiStorageSetSELTime(uint32_t selTime)
++ipmi::RspType<> ipmiStorageSetSELTime(std::vector<uint8_t> selTime)
+ {
+-    // Set SEL Time is not supported
+-    return ipmi::responseInvalidCommand();
++    uint32_t setSelTime;
++    struct timeval stime;
++    int dataLen = 4; // Time Stamp only 4 Byte
++
++    if (selTime.size() != dataLen)
++    {
++        if (DEBUG)
++        {
++            std::fprintf(stderr, "ipmiStorageSetSELTime invalide Length %d\n",
++                                  selTime.size());
++        }
++        return ipmi::responseReqDataLenInvalid();
++    }
++
++    try
++    {
++        // Check time sync mode is Manual
++        std::shared_ptr<sdbusplus::asio::connection> dbus = getSdBus();
++        std::string service = getService(*dbus, timeSyncMethodIntf,
++                                                timeSyncObjPath);
++        Value variant = getDbusProperty(*dbus, service, timeSyncObjPath,
++                                 timeSyncMethodIntf, timeSyncMethodProp);
++        std::string& syncMode = std::get<std::string>(variant);
++
++        if (syncMode.find("Manual") == std::string::npos)
++        {
++            std::fprintf(stderr, "ipmiStorageSetSELTime SyncMode error: %s\n",
++                                  syncMode.c_str());
++            return responseCommandNotAvailable();
++        }
++
++        std::memcpy(&setSelTime, selTime.data(), dataLen);
++
++        if (DEBUG)
++        {
++            std::fprintf(stderr, "ipmiStorageSetSELTime data: 0x%X\n",
++                                  setSelTime);
++        }
++
++        using namespace std::chrono;
++        microseconds usec{seconds(setSelTime)};
++
++        gettimeofday(&stime, NULL);
++        stime.tv_sec = setSelTime;
++        if (settimeofday(&stime, NULL) != 0)
++        {
++            ipmi::responseUnspecifiedError();
++        }
++    }
++    catch (const std::exception& e)
++    {
++        std::fprintf(stderr, "ipmiStorageSetSELTime exception\n");
++        return ipmi::responseUnspecifiedError();
++    }
++
++    return ipmi::responseSuccess();
+ }
+ 
+ std::vector<uint8_t> getType12SDRs(uint16_t index, uint16_t recordId)
+-- 
+2.7.4
+

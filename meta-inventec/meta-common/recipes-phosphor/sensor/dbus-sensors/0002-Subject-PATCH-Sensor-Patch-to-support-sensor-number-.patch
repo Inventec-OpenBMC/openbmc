@@ -1,0 +1,565 @@
+From 0f152779964e96b513ffcc4101291e491ab5307b Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Thu, 13 Aug 2020 19:01:10 +0800
+Subject: [PATCH] Subject: [PATCH] [Sensor] Patch to support sensor number,
+ entity number and entity instance
+
+Patch to support IPMI information from entity-manager inventory
+- IPMB PCH temperature sensor
+- Hwmon temperature sensor
+- CPU/DIMM temperature sensor
+- PSU sensor
+---
+ include/CPUSensor.hpp       |  3 +++
+ include/HwmonTempSensor.hpp |  4 +++-
+ include/IpmbSensor.hpp      |  4 ++++
+ include/PSUSensor.hpp       |  6 +++++-
+ src/CPUSensor.cpp           | 28 ++++++++++++++++++++++++++
+ src/CPUSensorMain.cpp       | 11 +++++++++-
+ src/HwmonTempMain.cpp       | 13 +++++++++---
+ src/HwmonTempSensor.cpp     | 23 +++++++++++++++++++++
+ src/IpmbSensor.cpp          | 32 ++++++++++++++++++++++++++++-
+ src/PSUSensor.cpp           | 37 ++++++++++++++++++++++++++++++++--
+ src/PSUSensorMain.cpp       | 49 +++++++++++++++++++++++++++++++++++----------
+ 11 files changed, 190 insertions(+), 20 deletions(-)
+
+diff --git a/include/CPUSensor.hpp b/include/CPUSensor.hpp
+index 29b8209..95f45bc 100644
+--- a/include/CPUSensor.hpp
++++ b/include/CPUSensor.hpp
+@@ -2,6 +2,8 @@
+ 
+ #include <Thresholds.hpp>
+ #include <Utils.hpp>
++#include <sensor.hpp>
++#include <IpmiInfo.hpp>
+ #include <boost/asio/streambuf.hpp>
+ #include <boost/container/flat_map.hpp>
+ #include <gpiod.hpp>
+@@ -24,6 +26,7 @@ class CPUSensor : public Sensor
+               std::shared_ptr<sdbusplus::asio::connection>& conn,
+               boost::asio::io_service& io, const std::string& sensorName,
+               std::vector<thresholds::Threshold>&& thresholds,
++              std::vector<ipmidata::IpmiConfig>&& ipmiinfo,
+               const std::string& configuration, int cpuId, bool show,
+               double dtsOffset);
+     ~CPUSensor() override;
+diff --git a/include/HwmonTempSensor.hpp b/include/HwmonTempSensor.hpp
+index 4f59af6..bbfd829 100644
+--- a/include/HwmonTempSensor.hpp
++++ b/include/HwmonTempSensor.hpp
+@@ -1,9 +1,10 @@
+ #pragma once
+ 
+ #include <Thresholds.hpp>
++#include <sensor.hpp>
++#include <IpmiInfo.hpp>
+ #include <boost/asio/streambuf.hpp>
+ #include <sdbusplus/asio/object_server.hpp>
+-#include <sensor.hpp>
+ 
+ #include <string>
+ #include <vector>
+@@ -19,6 +20,7 @@ class HwmonTempSensor :
+                     boost::asio::io_service& io, const std::string& fanName,
+                     std::vector<thresholds::Threshold>&& thresholds,
+                     const float pollRate,
++                    std::vector<ipmidata::IpmiConfig>&& ipmiinfo,
+                     const std::string& sensorConfiguration,
+                     const PowerState powerState);
+     ~HwmonTempSensor() override;
+diff --git a/include/IpmbSensor.hpp b/include/IpmbSensor.hpp
+index 4effd18..75fce51 100644
+--- a/include/IpmbSensor.hpp
++++ b/include/IpmbSensor.hpp
+@@ -1,4 +1,7 @@
+ #pragma once
++#include <sensor.hpp>
++#include <IpmiInfo.hpp>
++
+ #include <boost/asio/deadline_timer.hpp>
+ #include <boost/container/flat_map.hpp>
+ #include <sensor.hpp>
+@@ -80,6 +83,7 @@ struct IpmbSensor : public Sensor
+                const std::string& sensorConfiguration,
+                sdbusplus::asio::object_server& objectServer,
+                std::vector<thresholds::Threshold>&& thresholds,
++               std::vector<ipmidata::IpmiConfig>&& ipmiinfo,
+                uint8_t deviceAddress, uint8_t hostSMbusIndex,
+                std::string& sensorTypeName);
+     ~IpmbSensor() override;
+diff --git a/include/PSUSensor.hpp b/include/PSUSensor.hpp
+index e309aeb..c060c53 100644
+--- a/include/PSUSensor.hpp
++++ b/include/PSUSensor.hpp
+@@ -2,6 +2,8 @@
+ 
+ #include <PwmSensor.hpp>
+ #include <Thresholds.hpp>
++#include <sensor.hpp>
++#include <IpmiInfo.hpp>
+ #include <boost/asio/streambuf.hpp>
+ #include <sdbusplus/asio/object_server.hpp>
+ #include <sensor.hpp>
+@@ -18,9 +20,10 @@ class PSUSensor : public Sensor, public std::enable_shared_from_this<PSUSensor>
+               std::shared_ptr<sdbusplus::asio::connection>& conn,
+               boost::asio::io_service& io, const std::string& sensorName,
+               std::vector<thresholds::Threshold>&& thresholds,
++              std::vector<ipmidata::IpmiConfig>&& ipmiinfo,
+               const std::string& sensorConfiguration,
+               const std::string& sensorUnits, unsigned int factor, double max,
+-              double min, const std::string& label, size_t tSize);
++              double min, double rsense, const std::string& label, size_t tSize);
+     ~PSUSensor() override;
+     void setupRead(void);
+ 
+@@ -32,6 +35,7 @@ class PSUSensor : public Sensor, public std::enable_shared_from_this<PSUSensor>
+     std::string path;
+     std::string pathRatedMax;
+     std::string pathRatedMin;
++    double rsenseValue;
+     unsigned int sensorFactor;
+     uint8_t minMaxReadCounter;
+     void handleResponse(const boost::system::error_code& err);
+diff --git a/src/CPUSensor.cpp b/src/CPUSensor.cpp
+index 40b86d1..18edcba 100644
+--- a/src/CPUSensor.cpp
++++ b/src/CPUSensor.cpp
+@@ -38,6 +38,7 @@ CPUSensor::CPUSensor(const std::string& path, const std::string& objectType,
+                      std::shared_ptr<sdbusplus::asio::connection>& conn,
+                      boost::asio::io_service& io, const std::string& sensorName,
+                      std::vector<thresholds::Threshold>&& thresholdsIn,
++                     std::vector<ipmidata::IpmiConfig>&& _ipmiinfo,
+                      const std::string& sensorConfiguration, int cpuId,
+                      bool show, double dtsOffset) :
+     Sensor(boost::replace_all_copy(sensorName, " ", "_"),
+@@ -90,6 +91,26 @@ CPUSensor::CPUSensor(const std::string& path, const std::string& objectType,
+             association = objectServer.add_interface(interfacePath,
+                                                      association::interface);
+ 
++            ipmiInterface = objectServer.add_interface(
++                "/xyz/openbmc_project/sensors/temperature/" + name,
++                "xyz.openbmc_project.Sensor.IpmiSensor");
++
++            if (_ipmiinfo.empty())
++            {
++                // Default
++                ipmiInterface->register_property("sensorNumber", 0);
++                ipmiInterface->register_property("entityID", 0);
++                ipmiInterface->register_property("entityInstance", 0);
++            }
++            else
++            {
++                for (auto& ipmi : _ipmiinfo)
++                {
++                    ipmiInterface->register_property("sensorNumber", ipmi.number);
++                    ipmiInterface->register_property("entityID", ipmi.entityId);
++                    ipmiInterface->register_property("entityInstance", ipmi.entityIns);
++                }
++            }
+             setInitialProperties(conn, units);
+         }
+     }
+@@ -110,6 +131,7 @@ CPUSensor::~CPUSensor()
+         objServer.remove_interface(thresholdInterfaceCritical);
+         objServer.remove_interface(sensorInterface);
+         objServer.remove_interface(association);
++        objServer.remove_interface(ipmiInterface);
+     }
+ }
+ 
+@@ -246,6 +268,11 @@ void CPUSensor::handleResponse(const boost::system::error_code& err)
+                 updateMinMaxValues();
+             }
+ 
++            /*
++                Because threshold value of CPUs and DIMMs are defined in Entity-manager configuration files
++                we don't want these settings changed in run-time to avoid some cases,
++                such as BIOS changed the temp_high by accident that may cause BMC recording wrong event.
++
+             double gTcontrol = gCpuSensors[nameTcontrol]
+                                    ? gCpuSensors[nameTcontrol]->value
+                                    : std::numeric_limits<double>::quiet_NaN();
+@@ -278,6 +305,7 @@ void CPUSensor::handleResponse(const boost::system::error_code& err)
+                     }
+                 }
+             }
++            */
+         }
+         catch (const std::invalid_argument&)
+         {
+diff --git a/src/CPUSensorMain.cpp b/src/CPUSensorMain.cpp
+index f304e3f..2f417df 100644
+--- a/src/CPUSensorMain.cpp
++++ b/src/CPUSensorMain.cpp
+@@ -378,12 +378,21 @@ bool createSensors(boost::asio::io_service& io,
+                               << sensorName << "\n";
+                 }
+             }
++
++            std::vector<ipmidata::IpmiConfig> sensorIpmiConfig;
++            labelHead = boost::replace_all_copy(sensorName, " ", "_");
++            if (!parseIpmiDataFromConfig(*sensorData, sensorIpmiConfig, &labelHead))
++            {
++                std::cerr << "error populating ipmi for "
++                          << sensorName << "\n";
++            }
++
+             auto& sensorPtr = gCpuSensors[sensorName];
+             // make sure destructor fires before creating a new one
+             sensorPtr = nullptr;
+             sensorPtr = std::make_unique<CPUSensor>(
+                 inputPathStr, sensorType, objectServer, dbusConnection, io,
+-                sensorName, std::move(sensorThresholds), *interfacePath, cpuId,
++                sensorName, std::move(sensorThresholds), std::move(sensorIpmiConfig), *interfacePath, cpuId,
+                 show, dtsOffset);
+             createdSensors.insert(sensorName);
+             if (debug)
+diff --git a/src/HwmonTempMain.cpp b/src/HwmonTempMain.cpp
+index 60a8fde..916a980 100644
+--- a/src/HwmonTempMain.cpp
++++ b/src/HwmonTempMain.cpp
+@@ -241,12 +241,19 @@ void createSensors(
+                 sensor = nullptr;
+                 auto hwmonFile = getFullHwmonFilePath(directory.string(),
+                                                       "temp1", permitSet);
++                std::vector<ipmidata::IpmiConfig> sensorIpmiConfig;
++                std::string labelHead = sensorName.substr(0, sensorName.find(" "));
++                if (!parseIpmiDataFromConfig(*sensorData, sensorIpmiConfig, &labelHead))
++                {
++                    std::cerr << "error populating ipmi for "
++                              << sensorName << "\n";
++                }
+                 if (hwmonFile)
+                 {
+                     sensor = std::make_shared<HwmonTempSensor>(
+                         *hwmonFile, sensorType, objectServer, dbusConnection,
+                         io, sensorName, std::move(sensorThresholds), pollRate,
+-                        *interfacePath, readState);
++                        std::move(sensorIpmiConfig), *interfacePath, readState);
+                     sensor->setupRead();
+                 }
+                 // Looking for keys like "Name1" for temp2_input,
+@@ -288,8 +295,8 @@ void createSensors(
+                         sensor = std::make_shared<HwmonTempSensor>(
+                             *hwmonFile, sensorType, objectServer,
+                             dbusConnection, io, sensorName,
+-                            std::move(thresholds), pollRate, *interfacePath,
+-                            readState);
++                            std::move(thresholds), pollRate, 
++                            std::move(sensorIpmiConfig), *interfacePath, readState);
+                         sensor->setupRead();
+                     }
+                 }
+diff --git a/src/HwmonTempSensor.cpp b/src/HwmonTempSensor.cpp
+index 72b20d0..cb71886 100644
+--- a/src/HwmonTempSensor.cpp
++++ b/src/HwmonTempSensor.cpp
+@@ -43,6 +43,7 @@ HwmonTempSensor::HwmonTempSensor(
+     std::shared_ptr<sdbusplus::asio::connection>& conn,
+     boost::asio::io_service& io, const std::string& sensorName,
+     std::vector<thresholds::Threshold>&& thresholdsIn, const float pollRate,
++    std::vector<ipmidata::IpmiConfig>&& _ipmiinfo,
+     const std::string& sensorConfiguration, const PowerState powerState) :
+     Sensor(boost::replace_all_copy(sensorName, " ", "_"),
+            std::move(thresholdsIn), sensorConfiguration, objectType, maxReading,
+@@ -55,6 +56,27 @@ HwmonTempSensor::HwmonTempSensor(
+         "/xyz/openbmc_project/sensors/temperature/" + name,
+         "xyz.openbmc_project.Sensor.Value");
+ 
++    ipmiInterface = objectServer.add_interface(
++        "/xyz/openbmc_project/sensors/temperature/" + name,
++        "xyz.openbmc_project.Sensor.IpmiSensor");
++
++    if (_ipmiinfo.empty())
++    {
++        // Default
++        ipmiInterface->register_property("sensorNumber", 0);
++        ipmiInterface->register_property("entityID", 0);
++        ipmiInterface->register_property("entityInstance", 0);
++    }
++    else
++    {
++        for (auto& ipmi : _ipmiinfo)
++        {
++            ipmiInterface->register_property("sensorNumber", ipmi.number);
++            ipmiInterface->register_property("entityID", ipmi.entityId);
++            ipmiInterface->register_property("entityInstance", ipmi.entityIns);
++        }
++    }
++
+     if (thresholds::hasWarningInterface(thresholds))
+     {
+         thresholdInterfaceWarning = objectServer.add_interface(
+@@ -81,6 +103,7 @@ HwmonTempSensor::~HwmonTempSensor()
+     objServer.remove_interface(thresholdInterfaceWarning);
+     objServer.remove_interface(thresholdInterfaceCritical);
+     objServer.remove_interface(sensorInterface);
++    objServer.remove_interface(ipmiInterface);
+     objServer.remove_interface(association);
+ }
+ 
+diff --git a/src/IpmbSensor.cpp b/src/IpmbSensor.cpp
+index 503a256..cb55374 100644
+--- a/src/IpmbSensor.cpp
++++ b/src/IpmbSensor.cpp
+@@ -62,6 +62,7 @@ IpmbSensor::IpmbSensor(std::shared_ptr<sdbusplus::asio::connection>& conn,
+                        const std::string& sensorConfiguration,
+                        sdbusplus::asio::object_server& objectServer,
+                        std::vector<thresholds::Threshold>&& thresholdData,
++                       std::vector<ipmidata::IpmiConfig>&& _ipmiinfo,
+                        uint8_t deviceAddress, uint8_t hostSMbusIndex,
+                        std::string& sensorTypeName) :
+     Sensor(boost::replace_all_copy(sensorName, " ", "_"),
+@@ -76,6 +77,26 @@ IpmbSensor::IpmbSensor(std::shared_ptr<sdbusplus::asio::connection>& conn,
+     sensorInterface = objectServer.add_interface(
+         dbusPath, "xyz.openbmc_project.Sensor.Value");
+ 
++    ipmiInterface = objectServer.add_interface(
++        dbusPath, "xyz.openbmc_project.Sensor.IpmiSensor");
++
++    if (_ipmiinfo.empty())
++    {
++        // Default
++        ipmiInterface->register_property("sensorNumber", 0);
++        ipmiInterface->register_property("entityID", 0);
++        ipmiInterface->register_property("entityInstance", 0);
++    }
++    else
++    {
++        for (auto& ipmi : _ipmiinfo)
++        {
++            ipmiInterface->register_property("sensorNumber", ipmi.number);
++            ipmiInterface->register_property("entityID", ipmi.entityId);
++            ipmiInterface->register_property("entityInstance", ipmi.entityIns);
++        }
++    }
++
+     if (thresholds::hasWarningInterface(thresholds))
+     {
+         thresholdInterfaceWarning = objectServer.add_interface(
+@@ -95,6 +116,7 @@ IpmbSensor::~IpmbSensor()
+     objectServer.remove_interface(thresholdInterfaceWarning);
+     objectServer.remove_interface(thresholdInterfaceCritical);
+     objectServer.remove_interface(sensorInterface);
++    objectServer.remove_interface(ipmiInterface);
+     objectServer.remove_interface(association);
+ }
+ 
+@@ -446,6 +468,14 @@ void createSensors(
+                         std::cerr << "error populating thresholds for " << name
+                                   << "\n";
+                     }
++
++                    std::vector<ipmidata::IpmiConfig> sensorIpmiConfig;
++                    if (!parseIpmiDataFromConfig(pathPair.second, sensorIpmiConfig, &name))
++                    {
++                        std::cerr << "error populating ipmi for " 
++                                  << name << "\n";
++                    }
++
+                     uint8_t deviceAddress =
+                         loadVariant<uint8_t>(entry.second, "Address");
+ 
+@@ -471,7 +501,7 @@ void createSensors(
+                     auto& sensor = sensors[name];
+                     sensor = std::make_unique<IpmbSensor>(
+                         dbusConnection, io, name, pathPair.first, objectServer,
+-                        std::move(sensorThresholds), deviceAddress,
++                        std::move(sensorThresholds), std::move(sensorIpmiConfig), deviceAddress,
+                         hostSMbusIndex, sensorTypeName);
+ 
+                     /* Initialize scale and offset value */
+diff --git a/src/PSUSensor.cpp b/src/PSUSensor.cpp
+index a528819..5738f47 100644
+--- a/src/PSUSensor.cpp
++++ b/src/PSUSensor.cpp
+@@ -40,9 +40,10 @@ PSUSensor::PSUSensor(const std::string& path, const std::string& objectType,
+                      std::shared_ptr<sdbusplus::asio::connection>& conn,
+                      boost::asio::io_service& io, const std::string& sensorName,
+                      std::vector<thresholds::Threshold>&& thresholdsIn,
++                     std::vector<ipmidata::IpmiConfig>&& _ipmiinfo,
+                      const std::string& sensorConfiguration,
+                      const std::string& sensorUnits, unsigned int factor,
+-                     double max, double min, const std::string& label,
++                     double max, double min, double rsense, const std::string& label,
+                      size_t tSize) :
+     Sensor(boost::replace_all_copy(sensorName, " ", "_"),
+            std::move(thresholdsIn), sensorConfiguration, objectType, max, min,
+@@ -52,12 +53,15 @@ PSUSensor::PSUSensor(const std::string& path, const std::string& objectType,
+     sensorFactor(factor), minMaxReadCounter(0)
+ {
+     std::string unitPath = sensor_paths::getPathForUnits(sensorUnits);
++    rsenseValue = rsense;
++    
+     if constexpr (debug)
+     {
+         std::cerr << "Constructed sensor: path " << path << " type "
+                   << objectType << " config " << sensorConfiguration
+                   << " typename " << unitPath << " factor " << factor << " min "
+-                  << min << " max " << max << " name \"" << sensorName
++                  << min << " max " << max 
++                  << " rsense " << rsenseValue << " name \"" << sensorName
+                   << "\"\n";
+     }
+ 
+@@ -74,6 +78,26 @@ PSUSensor::PSUSensor(const std::string& path, const std::string& objectType,
+     sensorInterface = objectServer.add_interface(
+         dbusPath, "xyz.openbmc_project.Sensor.Value");
+ 
++    ipmiInterface = objectServer.add_interface(
++        dbusPath, "xyz.openbmc_project.Sensor.IpmiSensor");
++
++    if (_ipmiinfo.empty())
++    {
++        // Default
++        ipmiInterface->register_property("sensorNumber", 0);
++        ipmiInterface->register_property("entityID", 0);
++        ipmiInterface->register_property("entityInstance", 0);
++    }
++    else
++    {
++        for (auto& ipmi : _ipmiinfo)
++        {
++            ipmiInterface->register_property("sensorNumber", ipmi.number);
++            ipmiInterface->register_property("entityID", ipmi.entityId);
++            ipmiInterface->register_property("entityInstance", ipmi.entityIns);
++        }
++    }
++
+     if (thresholds::hasWarningInterface(thresholds))
+     {
+         thresholdInterfaceWarning = objectServer.add_interface(
+@@ -124,6 +148,7 @@ PSUSensor::~PSUSensor()
+     waitTimer.cancel();
+     inputDev.close();
+     objServer.remove_interface(sensorInterface);
++    objServer.remove_interface(ipmiInterface);
+     objServer.remove_interface(thresholdInterfaceWarning);
+     objServer.remove_interface(thresholdInterfaceCritical);
+     objServer.remove_interface(association);
+@@ -178,6 +203,14 @@ void PSUSensor::handleResponse(const boost::system::error_code& err)
+             rawValue = std::stod(response);
+             responseStream.clear();
+             double nvalue = rawValue / sensorFactor;
++            nvalue = nvalue / rsenseValue;   // For HSC devic Rsense value
++
++            if constexpr (debug)
++            {
++                std::cerr << "Read " << path << " scale " << sensorFactor
++                          << " value " << nvalue 
++                          << " Rsense " << rsenseValue << "\n";
++            }
+ 
+             updateValue(nvalue);
+ 
+diff --git a/src/PSUSensorMain.cpp b/src/PSUSensorMain.cpp
+index 6595db9..e6f4b45 100644
+--- a/src/PSUSensorMain.cpp
++++ b/src/PSUSensorMain.cpp
+@@ -606,6 +606,25 @@ static void createSensorsCallback(
+             std::string keyScale = labelHead + "_Scale";
+             std::string keyMin = labelHead + "_Min";
+             std::string keyMax = labelHead + "_Max";
++            std::string keyRsense = labelHead + "_Rsense";
++
++            double sensorRsense = 1; // Defaule 1 for PSU type
++            auto findRsense = baseConfig->second.find(keyRsense);
++            if (findRsense != baseConfig->second.end())
++            {
++                try
++                {
++                    sensorRsense = std::visit(
++                        VariantToDoubleVisitor(), findRsense->second);
++
++                    std::cout << keyRsense << " Rsense: " << sensorRsense << "\n";
++                }
++                catch (std::invalid_argument&)
++                {
++                    std::cerr << "Unable to parse " << keyRsense << "\n";
++                    continue;
++                }
++            }
+ 
+             bool customizedName = false;
+             auto findCustomName = baseConfig->second.find(keyName);
+@@ -774,6 +793,13 @@ static void createSensorsCallback(
+                           << sensorNameSubStr << "\n";
+             }
+ 
++            std::vector<ipmidata::IpmiConfig> sensorIpmiConfig;
++            if (!parseIpmiDataFromConfig(*sensorData, sensorIpmiConfig, &labelHead))
++            {
++                std::cerr << "error populating ipmi for "
++                          << sensorNameSubStr << "\n";
++            }
++
+             auto findSensorUnit = sensorTable.find(sensorNameSubStr);
+             if (findSensorUnit == sensorTable.end())
+             {
+@@ -820,9 +846,10 @@ static void createSensorsCallback(
+             sensors[sensorName] = nullptr;
+             sensors[sensorName] = std::make_shared<PSUSensor>(
+                 sensorPathStr, sensorType, objectServer, dbusConnection, io,
+-                sensorName, std::move(sensorThresholds), *interfacePath,
++                sensorName, std::move(sensorThresholds),
++                std::move(sensorIpmiConfig), *interfacePath,
+                 findSensorUnit->second, factor, psuProperty->maxReading,
+-                psuProperty->minReading, labelHead, thresholdConfSize);
++                psuProperty->minReading, sensorRsense, labelHead, thresholdConfSize);
+             sensors[sensorName]->setupRead();
+             ++numCreated;
+             if constexpr (debug)
+@@ -870,15 +897,15 @@ void propertyInitialize(void)
+                    {"in", sensor_paths::unitVolts},
+                    {"fan", sensor_paths::unitRPMs}};
+ 
+-    labelMatch = {{"pin", PSUProperty("Input Power", 3000, 0, 6)},
+-                  {"pout1", PSUProperty("Output Power", 3000, 0, 6)},
++    labelMatch = {{"pin", PSUProperty("PIN", 1300, 0, 6)},
++                  {"pout1", PSUProperty("POUT", 1300, 0, 6)},
+                   {"pout2", PSUProperty("Output Power", 3000, 0, 6)},
+                   {"pout3", PSUProperty("Output Power", 3000, 0, 6)},
+                   {"power1", PSUProperty("Output Power", 3000, 0, 6)},
+                   {"maxpin", PSUProperty("Max Input Power", 3000, 0, 6)},
+-                  {"vin", PSUProperty("Input Voltage", 300, 0, 3)},
++                  {"vin", PSUProperty("VIN", 300, 0, 3)},
+                   {"maxvin", PSUProperty("Max Input Voltage", 300, 0, 3)},
+-                  {"vout1", PSUProperty("Output Voltage", 255, 0, 3)},
++                  {"vout1", PSUProperty("VOUT", 255, 0, 3)},
+                   {"vout2", PSUProperty("Output Voltage", 255, 0, 3)},
+                   {"vout3", PSUProperty("Output Voltage", 255, 0, 3)},
+                   {"vout4", PSUProperty("Output Voltage", 255, 0, 3)},
+@@ -912,8 +939,8 @@ void propertyInitialize(void)
+                   {"vout32", PSUProperty("Output Voltage", 255, 0, 3)},
+                   {"vmon", PSUProperty("Auxiliary Input Voltage", 255, 0, 3)},
+                   {"in1", PSUProperty("Output Voltage", 255, 0, 3)},
+-                  {"iin", PSUProperty("Input Current", 20, 0, 3)},
+-                  {"iout1", PSUProperty("Output Current", 255, 0, 3)},
++                  {"iin", PSUProperty("IIN", 20, 0, 3)},
++                  {"iout1", PSUProperty("IOUT", 255, 0, 3)},
+                   {"iout2", PSUProperty("Output Current", 255, 0, 3)},
+                   {"iout3", PSUProperty("Output Current", 255, 0, 3)},
+                   {"iout4", PSUProperty("Output Current", 255, 0, 3)},
+@@ -929,15 +956,15 @@ void propertyInitialize(void)
+                   {"iout14", PSUProperty("Output Current", 255, 0, 3)},
+                   {"curr1", PSUProperty("Output Current", 255, 0, 3)},
+                   {"maxiout1", PSUProperty("Max Output Current", 255, 0, 3)},
+-                  {"temp1", PSUProperty("Temperature", 127, -128, 3)},
++                  {"temp1", PSUProperty("TEMP", 127, -128, 3)},
+                   {"temp2", PSUProperty("Temperature", 127, -128, 3)},
+                   {"temp3", PSUProperty("Temperature", 127, -128, 3)},
+                   {"temp4", PSUProperty("Temperature", 127, -128, 3)},
+                   {"temp5", PSUProperty("Temperature", 127, -128, 3)},
+                   {"temp6", PSUProperty("Temperature", 127, -128, 3)},
+                   {"maxtemp1", PSUProperty("Max Temperature", 127, -128, 3)},
+-                  {"fan1", PSUProperty("Fan Speed 1", 30000, 0, 0)},
+-                  {"fan2", PSUProperty("Fan Speed 2", 30000, 0, 0)}};
++                  {"fan1", PSUProperty("FAN_0", 30000, 0, 0)},
++                  {"fan2", PSUProperty("FAN_1", 30000, 0, 0)}};
+ 
+     pwmTable = {{"fan1", "Fan_1"}, {"fan2", "Fan_2"}};
+ 
+-- 
+2.7.4
+

@@ -1,0 +1,166 @@
+From ee2b9674f4142f24daa33834664d3d7d73b03d12 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Tue, 20 Oct 2020 14:00:04 -0400
+Subject: [PATCH 15/25] Subject: [Patch][kernel][pmbus] Add a DTS node of pmbus
+ to use fixed fan_config date
+
+- Add a DTS node of pmbus to use fixed fan_config date.
+  Due to some PSUs support fan but the FAN_CONFIG_1_2 (0x3A) and FAN_CONFIG_3_4 (0x3D) may not support,
+  e.g. P2000 Series PSU.
+---
+ drivers/hwmon/pmbus/pmbus.c      | 11 ++++--
+ drivers/hwmon/pmbus/pmbus_core.c | 75 +++++++++++++++++++++++++++++++---------
+ 2 files changed, 68 insertions(+), 18 deletions(-)
+
+diff --git a/drivers/hwmon/pmbus/pmbus.c b/drivers/hwmon/pmbus/pmbus.c
+index dd81b7e..83f1d12 100644
+--- a/drivers/hwmon/pmbus/pmbus.c
++++ b/drivers/hwmon/pmbus/pmbus.c
+@@ -42,13 +42,20 @@ static void pmbus_find_sensor_groups(struct i2c_client *client,
+ 	if (info->func[0]
+ 	    && pmbus_check_byte_register(client, 0, PMBUS_STATUS_INPUT))
+ 		info->func[0] |= PMBUS_HAVE_STATUS_INPUT;
+-	if (pmbus_check_byte_register(client, 0, PMBUS_FAN_CONFIG_12) &&
++
++	/*
++	 * Due to some PSUs support fan but the FAN_CONFIG_1_2 (0x3A) and FAN_CONFIG_3_4 (0x3D) may not support
++	 * e.g. P2000 Series PSU.
++	 * And the pmbus_add_fan_attributes function will check this value again.
++	 * So here we just check if it can support PMBUS_READ_FAN_SPEED
++	*/
++	if (/* pmbus_check_byte_register(client, 0, PMBUS_FAN_CONFIG_12) && */
+ 	    pmbus_check_word_register(client, 0, PMBUS_READ_FAN_SPEED_1)) {
+ 		info->func[0] |= PMBUS_HAVE_FAN12;
+ 		if (pmbus_check_byte_register(client, 0, PMBUS_STATUS_FAN_12))
+ 			info->func[0] |= PMBUS_HAVE_STATUS_FAN12;
+ 	}
+-	if (pmbus_check_byte_register(client, 0, PMBUS_FAN_CONFIG_34) &&
++	if (/* pmbus_check_byte_register(client, 0, PMBUS_FAN_CONFIG_34) && */
+ 	    pmbus_check_word_register(client, 0, PMBUS_READ_FAN_SPEED_3)) {
+ 		info->func[0] |= PMBUS_HAVE_FAN34;
+ 		if (pmbus_check_byte_register(client, 0, PMBUS_STATUS_FAN_34))
+diff --git a/drivers/hwmon/pmbus/pmbus_core.c b/drivers/hwmon/pmbus/pmbus_core.c
+index 57e12b9..19464b4 100644
+--- a/drivers/hwmon/pmbus/pmbus_core.c
++++ b/drivers/hwmon/pmbus/pmbus_core.c
+@@ -102,6 +102,13 @@ struct pmbus_data {
+ 
+ 	s16 currpage;	/* current page, -1 for unknown/unset */
+ 	s16 currphase;	/* current phase, 0xff for all, -1 for unknown/unset */
++
++	/*
++	 * fixed fan_config value
++	 * Due to some PSUs support fan but the FAN_CONFIG_1_2 (0x3A) and FAN_CONFIG_3_4 (0x3D) may not support
++	 * e.g. P2000 Series PSU. So if the dts has the node fan_configs then this pointer will be used.
++	*/
++	u8 *fan_configs;
+ };
+ 
+ struct pmbus_debugfs_entry {
+@@ -281,19 +288,23 @@ int pmbus_update_fan(struct i2c_client *client, int page, int id,
+ 	int from;
+ 	int rv;
+ 	u8 to;
++	struct pmbus_data *data = i2c_get_clientdata(client);
+ 
+-	from = pmbus_read_byte_data(client, page,
+-				    pmbus_fan_config_registers[id]);
+-	if (from < 0)
+-		return from;
+-
+-	to = (from & ~mask) | (config & mask);
+-	if (to != from) {
+-		rv = pmbus_write_byte_data(client, page,
+-					   pmbus_fan_config_registers[id], to);
+-		if (rv < 0)
+-			return rv;
+-	}
++	// check if we use fixed fan_config data
++	if (!data->fan_configs) {
++	    from = pmbus_read_byte_data(client, page,
++				        pmbus_fan_config_registers[id]);
++	    if (from < 0)
++		    return from;
++
++	    to = (from & ~mask) | (config & mask);
++	    if (to != from) {
++		    rv = pmbus_write_byte_data(client, page,
++					       pmbus_fan_config_registers[id], to);
++		    if (rv < 0)
++			    return rv;
++	    }
++    }
+ 
+ 	return _pmbus_write_word_data(client, page,
+ 				      pmbus_fan_command_registers[id], command);
+@@ -454,8 +465,14 @@ static int pmbus_get_fan_rate(struct i2c_client *client, int page, int id,
+ 		return s->data;
+ 	}
+ 
+-	config = _pmbus_read_byte_data(client, page,
+-				       pmbus_fan_config_registers[id]);
++	// check if we use fixed fan_config data
++	if (data->fan_configs) {
++		config = data->fan_configs[id];
++	} else {
++		config = _pmbus_read_byte_data(client, page,
++						pmbus_fan_config_registers[id]);
++	}
++
+ 	if (config < 0)
+ 		return config;
+ 
+@@ -1938,8 +1955,14 @@ static int pmbus_add_fan_attributes(struct i2c_client *client,
+ 			 * Each fan configuration register covers multiple fans,
+ 			 * so we have to do some magic.
+ 			 */
+-			regval = _pmbus_read_byte_data(client, page,
+-				pmbus_fan_config_registers[f]);
++			// check if we use fixed fan_config data
++			if (data->fan_configs) {
++				regval = data->fan_configs[f];
++			} else {
++				regval = _pmbus_read_byte_data(client, page,
++					pmbus_fan_config_registers[f]);
++			}
++
+ 			if (regval < 0 ||
+ 			    (!(regval & (PB_FAN_1_INSTALLED >> ((f & 1) * 4)))))
+ 				continue;
+@@ -2589,6 +2612,7 @@ int pmbus_do_probe(struct i2c_client *client, struct pmbus_driver_info *info)
+ 	struct pmbus_data *data;
+ 	size_t groups_num = 0;
+ 	int ret;
++	u8 fan_configs[2] = {0}; // currently only consider fan_config_1_2 and fan_config_3_4
+ 
+ 	if (!info)
+ 		return -ENODEV;
+@@ -2621,6 +2645,25 @@ int pmbus_do_probe(struct i2c_client *client, struct pmbus_driver_info *info)
+ 	data->currpage = -1;
+ 	data->currphase = -1;
+ 
++	ret = of_property_read_u8_array(dev->of_node, "fan_configs",
++					fan_configs, ARRAY_SIZE(fan_configs));
++
++	if (!ret) {
++		data->fan_configs = devm_kzalloc(dev,
++						ARRAY_SIZE(pmbus_fan_config_registers),
++						GFP_KERNEL);
++		if (data->fan_configs) {
++			dev_info(dev,
++				"Use fixed fan_configs, fan_config_1_2 :0x%x, fan_config_3_4 :0x%x\n",
++				fan_configs[0], fan_configs[1]);
++			// currently only consider fan_config_1_2 and fan_config_3_4
++			data->fan_configs[0] = fan_configs[0];
++			data->fan_configs[1] = fan_configs[0];
++			data->fan_configs[2] = fan_configs[1];
++			data->fan_configs[3] = fan_configs[1];
++		}
++	}
++
+ 	ret = pmbus_init_common(client, data, info);
+ 	if (ret < 0)
+ 		return ret;
+-- 
+2.7.4
+
