@@ -22,4 +22,5 @@ SRC_URI_append =  " file://0001-Delete-event-log.patch \
                     file://0006-Fix-invalid-ldap-server-uri-causing-internal-server-.patch \
                     file://0007-static-ip-fix.patch \
                     file://0008-static-IP-address-cannot-be-network-address.patch \
+                    file://0009-gateway-ip-fix.patch \
 "
