@@ -854,6 +854,38 @@
                 }
             ],
             "Type": "EventSensor"
+        },
+        {
+            "Name": "Inlet_BRD_Temp",
+            "SensorType": "temperature",
+            "SensorMember1": "THERMAL_Q89",
+            "SensorMember2": "THERMAL_Q90",
+            "SensorMember3": "THERMAL_Q92",
+            "SensorInfo": [
+                {
+                    "Label": "Inlet_BRD_Temp",
+                    "SensorNum": "0x69",
+                    "EntityId": "0x7",
+                    "EntityInstance": "7"
+                }
+            ],
+            "Type": "AverageSensor"
+        },
+        {
+            "Name": "Exit_Air_Temp",
+            "SensorType": "temperature",
+            "SensorMember1": "THERMAL_Q91",
+            "SensorMember2": "THERMAL_Q93",
+            "SensorMember3": "THERMAL_Q94",
+            "SensorInfo": [
+                {
+                    "Label": "Exit_Air_Temp",
+                    "SensorNum": "0x6A",
+                    "EntityId": "0x7",
+                    "EntityInstance": "8"
+                }
+            ],
+            "Type": "AverageSensor"
         }
     ],
     "Name": "Transformers MotherBoard",
