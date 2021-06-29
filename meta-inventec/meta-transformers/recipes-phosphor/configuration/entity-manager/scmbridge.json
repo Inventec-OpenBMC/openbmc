@@ -805,11 +805,12 @@
         },
         {
             "Name": "System_Airflow",
-            "TachMaxPercent": 100,
-            "TachMinPercent": 20,
-            "MaxCFM": 17.5,
-            "C1": 110.5,
-            "C2": 100,
+            "InletSensor": "Inlet_BRD_Temp",
+            "OutletSensor": "Exit_Air_Temp",
+            "PowerSensor": "HSC_PIN",
+            "C1": 1.8,
+            "MaxReading": 200.0,
+            "MinReading": 0.0,
             "SensorInfo": [
                 {
                     "Label": "System_Airflow",
@@ -819,17 +820,7 @@
                     "EntityInstance": "24"
                 }
             ],
-            "Tachs": [
-                "FAN1_TACH2",
-                "FAN2_TACH2",
-                "FAN3_TACH2",
-                "FAN4_TACH2",
-                "FAN5_TACH2",
-                "FAN6_TACH2",
-                "FAN7_TACH2",
-                "FAN8_TACH2"
-            ],
-            "Type": "CFMSensor"
+            "Type": "InvCfmSensor"
         }
     ],
     "Name": "Transformers scmbridge",
