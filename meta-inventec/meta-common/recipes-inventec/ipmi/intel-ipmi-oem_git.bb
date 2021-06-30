@@ -50,5 +50,6 @@ SRC_URI_append += " file://0001-Removed-Get-Device-ID-command.patch \
                     file://0014-disable-whitelist-filter.patch \
                     file://0015-Disable-sel-log-clear-message.patch \
                     file://0016-inventec-common-Add-more-sensor-type-and-event-type.patch \
+		    file://0017-Implement-SEL-get-set-UTC-time-offset.patch  \
                   "
 
