@@ -1,0 +1,74 @@
+From 0587972d09fdb37cb90c965c053c7f73b1398ff4 Mon Sep 17 00:00:00 2001
+From: "pj.chen" <chen.pj@inventec.com>
+Date: Fri, 9 Jul 2021 07:18:40 +0000
+Subject: [PATCH] [inventec][common] - Fix sensor reading factor un-match in
+ SDR
+
+Symptom/Reason:
+    The reading of some sensors are not correct.
+
+Root Cause:
+    The reading factor would save in the SDR record,
+    and the sensor reading would use the factors to convert the value.
+    In SDR, using only the maximum and minimum to calculate the factors.
+    But in sensor reading, would use also threshold settings.
+
+Solution/Change:
+   Modify the get maximum and minimum part.
+
+Entry Test:
+
+sysadmin@transformers:~# ipmitool sensor get FAN1_TACH1
+Locating sensor record...
+Sensor ID              : FAN1_TACH1 (0x30)
+ Entity ID             : 29.0
+ Sensor Type (Threshold)  : Fan
+ Sensor Reading        : 8304 (+/- 0) RPM
+ Status                : ok
+ Lower Non-Recoverable : na
+ Lower Critical        : 1211.000
+ Lower Non-Critical    : na
+ Upper Non-Critical    : na
+ Upper Critical        : 43942.000
+ Upper Non-Recoverable : na
+ Positive Hysteresis   : Unspecified
+ Negative Hysteresis   : Unspecified
+ Assertion Events      :
+ Event Enable          : Event Messages Disabled
+ Assertions Enabled    : lcr- ucr+
+ Deassertions Enabled  : lcr+ ucr-
+
+sysadmin@transformers:~# cat /sys/class/hwmon/hwmon0/fan0_input
+8220
+---
+ src/sensorcommands.cpp | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/src/sensorcommands.cpp b/src/sensorcommands.cpp
+index 4e6c006..c59419f 100644
+--- a/src/sensorcommands.cpp
++++ b/src/sensorcommands.cpp
+@@ -1279,6 +1279,8 @@ static int getSensorDataRecord(ipmi::Context::ptr ctx,
+     record.body.entity_id = entityId;
+     record.body.entity_instance = entityInstance;
+ 
++    /* Inventec patch - Fix sensor reading factor un-match in SDR */
++    #if 0
+     auto maxObject = sensorObject->second.find("MaxValue");
+     auto minObject = sensorObject->second.find("MinValue");
+ 
+@@ -1295,6 +1297,11 @@ static int getSensorDataRecord(ipmi::Context::ptr ctx,
+     {
+         min = std::visit(VariantToDoubleVisitor(), minObject->second);
+     }
++    #endif
++    double max = 0;
++    double min = 0;
++    getSensorMaxMin(sensorMap, max, min);
++    /* Inventec patch - Fix sensor reading factor un-match in SDR - END*/
+ 
+     int16_t mValue = 0;
+     int8_t rExp = 0;
+-- 
+2.17.1
+

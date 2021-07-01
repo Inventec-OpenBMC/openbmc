@@ -44,5 +44,6 @@ SRC_URI_append += " file://0001-Removed-Get-Device-ID-command.patch \
                     file://0008-disable-whitelist-filter.patch \
                     file://0009-IPMI-Patch-sensor-reading-command-to-get-sensor-numb.patch \
                     file://0010-inventec-common-Add-more-sensor-type-and-event-type.patch \
+                    file://0011-inventec-common-Fix-sensor-reading-factor-un-match-i.patch \
                   "
 
