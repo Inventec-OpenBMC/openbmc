@@ -1,0 +1,190 @@
+From 601f7336cb56e9bede3c1ea9a141ac247223c558 Mon Sep 17 00:00:00 2001
+From: "Lin.TommySC" <lin.tommysc@inventec.com>
+Date: Mon, 5 Jul 2021 08:22:41 +0000
+Subject: [PATCH] Add MAC address support for destination address
+
+Symptom/Reason :
+    - Can not get the MAC address in Destination Addresses via raw command
+
+Root Cause:
+    - Feature not implemented because MAC address information is not useful for OpenBMC
+
+Solution/Change:
+    [phosphor-dbus-interfaces]
+        - Add MACAddress property in Client interface
+    [phosphor-ipmi-host]
+        - Get/Set MACAddress property from/to Client d-bus interface
+    [phosphor-snmp]
+        - Implementation of get/set MACAddress property
+
+Entry Test:
+    - Set destination address
+        ipmitool raw 0x0c 0x01 0x01 0x13 0x00 0x00 0x00 0x0a 0x6 0x8d 0x21 0x7c 0xd3 0x0a 0xc4 0x90 0xe4
+    - Get destination address
+        ipmitool raw 0x0c 0x02 0x01 0x13 0x00 0x00
+---
+ snmp_client.cpp                                          | 16 +++++++++++++++-
+ snmp_client.hpp                                          | 12 +++++++++++-
+ snmp_conf_manager.cpp                                    |  4 ++--
+ snmp_conf_manager.hpp                                    |  2 +-
+ snmp_serialize.cpp                                       |  6 ++++--
+ xyz/openbmc_project/Network/Client/Create.interface.yaml |  6 ++++++
+ 6 files changed, 39 insertions(+), 7 deletions(-)
+
+diff --git a/snmp_client.cpp b/snmp_client.cpp
+index 52eb744..a6f5934 100644
+--- a/snmp_client.cpp
++++ b/snmp_client.cpp
+@@ -10,13 +10,15 @@ namespace snmp
+ {
+ 
+ Client::Client(sdbusplus::bus::bus& bus, const char* objPath,
+-               ConfManager& parent, const std::string& address, uint16_t port) :
++               ConfManager& parent, const std::string& address, uint16_t port,
++               const std::string& mac) :
+     Ifaces(bus, objPath, true),
+     id(std::stol(std::experimental::filesystem::path(objPath).filename())),
+     parent(parent)
+ {
+     this->address(address);
+     this->port(port);
++    this->mACAddress(mac);
+ 
+     // Emit deferred signal.
+     emit_object_added();
+@@ -50,6 +52,18 @@ uint16_t Client::port(uint16_t value)
+     return port;
+ }
+ 
++std::string Client::mACAddress(std::string value)
++{
++    if (value == Ifaces::mACAddress())
++    {
++        return value;
++    }
++
++    auto addr = Ifaces::mACAddress(value);
++    serialize(id, *this, parent.dbusPersistentLocation);
++    return addr;
++}
++
+ void Client::delete_()
+ {
+     parent.deleteSNMPClient(id);
+diff --git a/snmp_client.hpp b/snmp_client.hpp
+index 51ebabb..5abed3d 100644
+--- a/snmp_client.hpp
++++ b/snmp_client.hpp
+@@ -47,7 +47,7 @@ class Client : public Ifaces
+      *  @param[in] port - network port.
+      */
+     Client(sdbusplus::bus::bus &bus, const char *objPath, ConfManager &parent,
+-           const std::string &address, uint16_t port);
++           const std::string &address, uint16_t port, const std::string &mac);
+ 
+     /** @brief Constructor to put object onto bus at a dbus path.
+      *  @param[in] bus - Bus to attach to.
+@@ -77,10 +77,20 @@ class Client : public Ifaces
+      */
+     uint16_t port(uint16_t value) override;
+ 
++    /** @brief Update the MAC address of the object.
++     *
++     *  @param[in] value - MAC address
++     *
++     *  @return On success the updated MAC address
++     */
++    std::string mACAddress(std::string value) override;
++
+     using sdbusplus::xyz::openbmc_project::Network::server::Client::address;
+ 
+     using sdbusplus::xyz::openbmc_project::Network::server::Client::port;
+ 
++    using sdbusplus::xyz::openbmc_project::Network::server::Client::mACAddress;
++
+     /** @brief Delete this d-bus object.
+      */
+     void delete_() override;
+diff --git a/snmp_conf_manager.cpp b/snmp_conf_manager.cpp
+index 9990cab..8e96dff 100644
+--- a/snmp_conf_manager.cpp
++++ b/snmp_conf_manager.cpp
+@@ -29,7 +29,7 @@ ConfManager::ConfManager(sdbusplus::bus::bus& bus, const char* objPath) :
+ {
+ }
+ 
+-std::string ConfManager::client(std::string address, uint16_t port, uint8_t id)
++std::string ConfManager::client(std::string address, uint16_t port, uint8_t id, std::string mac)
+ {
+     // will throw exception if it is already configured.
+     checkClientConfigured(address, port);
+@@ -54,7 +54,7 @@ std::string ConfManager::client(std::string address, uint16_t port, uint8_t id)
+     objPath /= std::to_string(lastClientId);
+ 
+     auto client = std::make_unique<phosphor::network::snmp::Client>(
+-        bus, objPath.string().c_str(), *this, address, port);
++        bus, objPath.string().c_str(), *this, address, port, mac);
+ 
+     // save the D-Bus object
+     serialize(lastClientId, *client, dbusPersistentLocation);
+diff --git a/snmp_conf_manager.hpp b/snmp_conf_manager.hpp
+index 45f796b..175fc08 100644
+--- a/snmp_conf_manager.hpp
++++ b/snmp_conf_manager.hpp
+@@ -51,7 +51,7 @@ class ConfManager : public details::CreateIface
+      *  @param[in] port - network port.
+      *  @returns D-Bus object path
+      */
+-    std::string client(std::string address, uint16_t port, uint8_t id) override;
++    std::string client(std::string address, uint16_t port, uint8_t id, std::string mac) override;
+ 
+     /* @brief delete the D-Bus object of the given ID.
+      * @param[in] id - client identifier.
+diff --git a/snmp_serialize.cpp b/snmp_serialize.cpp
+index 2e61fe5..e36a470 100644
+--- a/snmp_serialize.cpp
++++ b/snmp_serialize.cpp
+@@ -32,7 +32,7 @@ using namespace phosphor::logging;
+ template <class Archive>
+ void save(Archive& archive, const Client& manager, const std::uint32_t version)
+ {
+-    archive(manager.address(), manager.port());
++    archive(manager.address(), manager.port(), manager.mACAddress());
+ }
+ 
+ /** @brief Function required by Cereal to perform deserialization.
+@@ -47,11 +47,13 @@ void load(Archive& archive, Client& manager, const std::uint32_t version)
+ {
+     std::string ipaddress{};
+     uint16_t port{};
++    std::string mac{};
+ 
+-    archive(ipaddress, port);
++    archive(ipaddress, port, mac);
+ 
+     manager.address(ipaddress);
+     manager.port(port);
++    manager.mACAddress(mac);
+ }
+ 
+ fs::path serialize(Id id, const Client& manager, const fs::path& dir)
+diff --git a/xyz/openbmc_project/Network/Client/Create.interface.yaml b/xyz/openbmc_project/Network/Client/Create.interface.yaml
+index 5ba6efa..ec509f0 100644
+--- a/xyz/openbmc_project/Network/Client/Create.interface.yaml
++++ b/xyz/openbmc_project/Network/Client/Create.interface.yaml
+@@ -16,6 +16,12 @@ methods:
+           type: byte
+           description: >
+               Client Identifier.
++        - name: MACAddress
++          type: string
++          description: >
++              MAC address of the ethernet interface in six groups of
++              two hexadecimal digits separated by colons.
++              Example: 01:23:45:67:89:AB
+       errors:
+         - xyz.openbmc_project.Common.Error.InvalidArgument
+       returns:
+-- 
+2.7.4
+
