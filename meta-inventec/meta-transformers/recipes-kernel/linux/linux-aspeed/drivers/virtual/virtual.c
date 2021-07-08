@@ -57,11 +57,31 @@ static virtual_hwmon_psu_params_t device_params_psu = {
 	.pwm1_input = 0,
 };
 
+static virtual_hwmon_fan_params_t device_params_fan = {
+	.fan1_input = 0,
+	.fan2_input = 0,
+	.fan3_input = 0,
+	.fan4_input = 0,
+	.fan1_target = 0,
+	.fan2_target = 0,
+	.fan3_target = 0,
+	.fan4_target = 0,
+	.fan1_fault = 0,
+	.fan2_fault = 0,
+	.fan3_fault = 0,
+	.fan4_fault = 0,
+	.pwm1_input = 0,
+	.pwm2_input = 0,
+	.pwm1_enable = 0,
+	.pwm2_enable = 0,
+};
+
 
 static const struct i2c_device_id virtual_hwmon_ids[] = {
 	{ "virtual_temp", VIRTUAL_TEMP, },
 	{ "virtual_eeprom", VIRTUAL_EEPROM, },
 	{ "virtual_psu", VIRTUAL_PSU, },
+	{ "virtual_fan", VIRTUAL_FAN, },
 	{ /* LIST END */ }
 };
 MODULE_DEVICE_TABLE(i2c, virtual_hwmon_ids);
@@ -78,6 +98,10 @@ static const struct of_device_id __maybe_unused virtual_hwmon_of_match[] = {
 	{
 		.compatible = "inventec,virtual_psu",
 		.data = (void *)VIRTUAL_PSU
+	},
+	{
+		.compatible = "inventec,virtual_fan",
+		.data = (void *)VIRTUAL_FAN
 	},
 	{ },
 };
@@ -125,11 +149,15 @@ static umode_t virtual_hwmon_is_visible(const void *data, enum hwmon_sensor_type
 		case hwmon_fan_input:
 		case hwmon_fan_label:
 			return 0444;
+		case hwmon_fan_target:
+		case hwmon_fan_fault:
+			return 0644;
 		}
 		break;
 	case hwmon_pwm:
 		switch (attr) {
 		case hwmon_pwm_input:
+		case hwmon_pwm_enable:
 			return 0644;
 		}
 		break;
@@ -267,22 +295,22 @@ static ssize_t virtual_eeprom_write(struct file *filp, struct kobject *kobj,
 	return count;
 }
 
-static int virtual_pwm_to_fan1_input(u8 pwm, long *fan1_input)
+static int virtual_pwm_to_main_fan_input(u8 pwm, long *main_input)
 {
 	if(pwm == 0) {
-		*fan1_input = 0;
+		*main_input = 0;
 	} else {
-		*fan1_input = 1000 + pwm * 100;
+		*main_input = 1000 + pwm * 100;
 	}
 	return 0;
 }
 
-static int virtual_pwm_to_fan2_input(u8 pwm, long *fan2_input)
+static int virtual_pwm_to_sub_fan_input(u8 pwm, long *sub_input)
 {
 	if(pwm == 0) {
-		*fan2_input = 0;
+		*sub_input = 0;
 	} else {
-		*fan2_input = 500 + pwm * 60;
+		*sub_input = 500 + pwm * 60;
 	}
 	return 0;
 }
@@ -362,9 +390,9 @@ static int virtual_hwmon_psu_read(struct device *dev, enum hwmon_sensor_types ty
 		case hwmon_fan_input:
 			switch(channel) {
 			case 0:
-				return virtual_pwm_to_fan1_input( para->pwm1_input, val);
+				return virtual_pwm_to_main_fan_input( para->pwm1_input, val);
 			case 1:
-				return virtual_pwm_to_fan2_input( para->pwm1_input, val);
+				return virtual_pwm_to_sub_fan_input( para->pwm1_input, val);
 			default:
 				dev_info(dev, "hwmon psu not support channel %d\n", channel);
 				return -EINVAL;
@@ -416,6 +444,8 @@ static int virtual_hwmon_psu_read(struct device *dev, enum hwmon_sensor_types ty
 
 	return 0;
 }
+
+
 
 
 static const char *const virtual_hwmon_psu_in_labels[] = {
@@ -596,6 +626,210 @@ static int virtual_hwmon_psu_write(struct device *dev, enum hwmon_sensor_types t
 }
 
 
+static int virtual_hwmon_fan_read(struct device *dev, enum hwmon_sensor_types type,
+		     u32 attr, int channel, long *val)
+{
+	virtual_hwmon_data_t *data = dev_get_drvdata(dev);
+	virtual_hwmon_fan_params_t *para = data->params;
+
+	switch (type) {
+	case hwmon_fan:
+		switch (attr) {
+		case hwmon_fan_input:
+			switch(channel) {
+			case 0:
+				return virtual_pwm_to_main_fan_input( para->pwm1_input, val);
+			case 1:
+				return virtual_pwm_to_sub_fan_input( para->pwm1_input, val);
+			case 2:
+				return virtual_pwm_to_main_fan_input( para->pwm2_input, val);
+			case 3:
+				return virtual_pwm_to_sub_fan_input( para->pwm2_input, val);
+			default:
+				dev_info(dev, "hwmon fan not support channel %d\n", channel);
+				return -EINVAL;
+			}
+			break;
+		case hwmon_fan_target:
+			switch(channel) {
+			case 0:
+				*val = para->fan1_target;
+				break;
+			case 1:
+				*val = para->fan2_target;
+				break;
+			case 2:
+				*val = para->fan3_target;
+				break;
+			case 3:
+				*val = para->fan4_target;
+				break;
+			default:
+				dev_info(dev, "hwmon fan not support channel %d\n", channel);
+				return -EINVAL;
+			}
+			break;
+		case hwmon_fan_fault:
+			switch(channel) {
+			case 0:
+				*val = para->fan1_fault;
+				break;
+			case 1:
+				*val = para->fan2_fault;
+				break;
+			case 2:
+				*val = para->fan3_fault;
+				break;
+			case 3:
+				*val = para->fan4_fault;
+				break;
+			default:
+				dev_info(dev, "hwmon fan not support channel %d\n", channel);
+				return -EINVAL;
+			}
+			break;
+		default:
+			dev_info(dev, "hwmon fan not support attr %d\n", attr);
+			return -EINVAL;
+		}
+		break;
+	case hwmon_pwm:
+		switch (attr) {
+		case hwmon_pwm_input:
+			switch(channel) {
+			case 0:
+				*val = para->pwm1_input;
+				break;
+			case 1:
+				*val = para->pwm2_input;
+				break;
+			default:
+				dev_info(dev, "hwmon fan not support channel %d\n", channel);
+				return -EINVAL;
+			}
+			break;
+		case hwmon_pwm_enable:
+			switch(channel) {
+			case 0:
+				*val = para->pwm1_enable;
+				break;
+			case 1:
+				*val = para->pwm2_enable;
+				break;
+			default:
+				dev_info(dev, "hwmon fan not support channel %d\n", channel);
+				return -EINVAL;
+			}
+			break;
+		default:
+			dev_info(dev, "hwmon fan not support attr %d\n", attr);
+			return -EINVAL;
+		}
+		break;
+	default:
+		dev_info(dev, "hwmon fan not support type %d\n", type);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int virtual_hwmon_fan_write(struct device *dev, enum hwmon_sensor_types type,
+		      u32 attr, int channel, long val)
+{
+	virtual_hwmon_data_t *data = dev_get_drvdata(dev);
+	virtual_hwmon_fan_params_t *para = data->params;
+
+	switch (type) {
+	case hwmon_fan:
+		switch (attr) {
+		case hwmon_fan_input:
+			dev_info(dev, "Please use pwm to set fan input\n");
+			break;
+		case hwmon_fan_target:
+			switch(channel) {
+			case 0:
+				para->fan1_target = val;
+				break;
+			case 1:
+				para->fan2_target = val;
+				break;
+			case 2:
+				para->fan3_target = val;
+				break;
+			case 3:
+				para->fan4_target = val;
+				break;
+			default:
+				dev_info(dev, "hwmon fan not support channel %d\n", channel);
+				return -EINVAL;
+			}
+			break;
+		case hwmon_fan_fault:
+			switch(channel) {
+			case 0:
+				para->fan1_fault = val;
+				break;
+			case 1:
+				para->fan2_fault = val;
+				break;
+			case 2:
+				para->fan3_fault = val;
+				break;
+			case 3:
+				para->fan4_fault = val;
+				break;
+			default:
+				dev_info(dev, "hwmon fan not support channel %d\n", channel);
+				return -EINVAL;
+			}
+			break;
+		default:
+			dev_info(dev, "hwmon fan not support attr %d\n", attr);
+			return -EINVAL;
+		}
+		break;
+	case hwmon_pwm:
+		switch (attr) {
+		case hwmon_pwm_input:
+			switch(channel) {
+			case 0:
+				para->pwm1_input = val;
+				break;
+			case 1:
+				para->pwm2_input = val;
+				break;
+			default:
+				dev_info(dev, "hwmon psu not support channel %d\n", channel);
+				return -EINVAL;
+			}
+			break;
+		case hwmon_pwm_enable:
+			switch(channel) {
+			case 0:
+				para->pwm1_enable = val;
+				break;
+			case 1:
+				para->pwm2_enable = val;
+				break;
+			default:
+				dev_info(dev, "hwmon psu not support channel %d\n", channel);
+				return -EINVAL;
+			}
+			break;
+		default:
+			dev_info(dev, "hwmon psu not support attr %d\n", attr);
+			return -EINVAL;
+		}
+		break;
+	default:
+		dev_info(dev, "hwmon psu not support type %d\n", type);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 /*************************/
 
 static const struct hwmon_channel_info *virtual_hwmon_temp_info[] = {
@@ -668,6 +902,30 @@ static const struct hwmon_chip_info virtual_hwmon_psu_chip_info = {
 	.info = virtual_hwmon_psu_info,
 };
 
+static const struct hwmon_channel_info *virtual_hwmon_fan_info[] = {
+	HWMON_CHANNEL_INFO(fan,
+			   HWMON_F_INPUT|HWMON_F_TARGET|HWMON_F_FAULT,
+			   HWMON_F_INPUT|HWMON_F_TARGET|HWMON_F_FAULT,
+			   HWMON_F_INPUT|HWMON_F_TARGET|HWMON_F_FAULT,
+			   HWMON_F_INPUT|HWMON_F_TARGET|HWMON_F_FAULT),
+	HWMON_CHANNEL_INFO(pwm,
+			   HWMON_PWM_INPUT|HWMON_PWM_ENABLE,
+			   HWMON_PWM_INPUT|HWMON_PWM_ENABLE),
+	NULL
+};
+
+static const struct hwmon_ops virtual_hwmon_fan_ops = {
+	.is_visible = virtual_hwmon_is_visible,
+	.read = virtual_hwmon_fan_read,
+	.write = virtual_hwmon_fan_write,
+};
+
+static const struct hwmon_chip_info virtual_hwmon_fan_chip_info = {
+	.ops = &virtual_hwmon_fan_ops,
+	.info = virtual_hwmon_fan_info,
+};
+
+
 /*******
   Remove
 *******/
@@ -686,6 +944,8 @@ static int virtual_hwmon_remove(struct i2c_client *client)
 		sysfs_remove_bin_file(&client->dev.kobj, &virtual_eeprom_attr);
 		break;
 	case VIRTUAL_PSU:
+		break;
+	case VIRTUAL_FAN:
 		break;
 	default:
 		dev_info(dev, "sensor '%s' not support kind %d\n", client->name, data->kind);
@@ -787,7 +1047,36 @@ virtual_psu_probe(struct i2c_client *client )
 	return err;
 }
 
+static int
+virtual_fan_probe(struct i2c_client *client )
+{
+	struct device *dev = &client->dev;
+	struct device *hwmon_dev;
+	virtual_hwmon_data_t *data;
+	int err;
 
+	err = 0;
+
+	data = devm_kzalloc(dev, sizeof(virtual_hwmon_data_t), GFP_KERNEL);
+	if (!data) {
+		return -ENOMEM;
+	}
+
+	data->client = client;
+	data->kind = VIRTUAL_FAN;
+	data->params = &device_params_fan;
+
+	hwmon_dev = devm_hwmon_device_register_with_info(dev, client->name,
+							 data, &virtual_hwmon_fan_chip_info,
+							 NULL);
+
+	if (IS_ERR(hwmon_dev))
+		return PTR_ERR(hwmon_dev);
+
+	dev_info(dev, "%s: sensor '%s'\n", dev_name(hwmon_dev), client->name);
+
+	return err;
+}
 
 
 static int
@@ -814,8 +1103,11 @@ virtual_hwmon_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	case VIRTUAL_PSU:
 		err = virtual_psu_probe(client);
 		break;
+	case VIRTUAL_FAN:
+		err = virtual_fan_probe(client);
+		break;
 	default:
-		dev_info(dev, "sensor '%s' not support kind\n", client->name, kind);
+		dev_info(dev, "sensor '%s' not support kind %d\n", client->name, kind);
 		err = -EINVAL;
 		break;
 	}
