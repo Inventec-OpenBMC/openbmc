@@ -1,0 +1,89 @@
+From 1397e877c8b4f1414207eda9fe6eee3f3959185e Mon Sep 17 00:00:00 2001
+From: Ashwini Udupa <udupa.ashwini@inventec.com>
+Date: Thu, 8 Jul 2021 14:41:03 -0700
+Subject: [PATCH] delete event log
+
+---
+ redfish-core/lib/log_services.hpp | 66 +++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 66 insertions(+)
+
+diff --git a/redfish-core/lib/log_services.hpp b/redfish-core/lib/log_services.hpp
+index 8464d06..a190a28 100644
+--- a/redfish-core/lib/log_services.hpp
++++ b/redfish-core/lib/log_services.hpp
+@@ -1345,6 +1345,72 @@ class JournalEventLogEntry : public Node
+         // Requested ID was not found
+         messages::resourceMissingAtURI(asyncResp->res, targetID);
+     }
++
++    void doDelete(const std::shared_ptr<bmcweb::AsyncResp>& asyncResp, const crow::Request&,
++                  const std::vector<std::string> &params) override
++    {
++        BMCWEB_LOG_DEBUG << "Do delete event log entry.";
++        if (params.size() != 1)
++        {
++            messages::internalError(asyncResp->res);
++            return;
++        }
++        const std::string& targetID = params[0];
++
++        BMCWEB_LOG_DEBUG << "targetID - " << targetID;
++        // Go through the log files and check the unique ID for each entry to
++        // find the target entry
++        std::vector<std::filesystem::path> redfishLogFiles;
++        getRedfishLogFiles(redfishLogFiles);
++        std::string logEntry;
++        bool targetIDfound=false;
++
++        // Oldest logs are in the last file, so start there and loop backwards
++        for (auto it = redfishLogFiles.rbegin(); it < redfishLogFiles.rend();
++             it++)
++        {
++            std::ifstream logStream(*it);
++            std::ofstream file("/var/log/rf_tmp");
++            if (!logStream.is_open())
++            {
++                continue;
++            }
++            if (!file.is_open())
++            {
++                 asyncResp->res.result(boost::beast::http::status::internal_server_error);
++                 return;
++            }
++
++            // Reset the unique ID on the first entry
++            bool firstEntry = true;
++            while (std::getline(logStream, logEntry))
++            {
++                std::string idStr;
++                if (!getUniqueEntryID(logEntry, idStr, firstEntry))
++                {
++                    continue;
++                }
++
++                if (firstEntry)
++                {
++                    firstEntry = false;
++                }
++ 
++                if (idStr == targetID)
++                   targetIDfound=true;
++                else
++                   file << logEntry << std::endl;
++             }
++             std::string ls((*it).string());
++             std::remove(ls.c_str());
++             std::rename("/var/log/rf_tmp",ls.c_str());
++             BMCWEB_LOG_DEBUG << "Selected event log deleted successfully.";
++             asyncResp->res.result(boost::beast::http::status::ok);
++         }
++         // Requested ID was not found
++         if (targetIDfound == false)
++            messages::resourceMissingAtURI(asyncResp->res, targetID);
++     }
+ };
+ 
+ class DBusEventLogEntryCollection : public Node
+-- 
+2.7.4
+
