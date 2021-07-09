@@ -22,4 +22,5 @@ SRC_URI_append =  " file://0001-Empty-base-dn-error.patch \
                     file://0006-Bug-389.patch \
                     file://0007-Add-redfish-managers-serialInterfaces_updated.patch \
                     file://0008-delete-event-log.patch \
+                    file://0009-gateway-ip-fix.patch \
 "
