@@ -1,0 +1,120 @@
+From b87d2e7166400d06f68636452fa2242fbf22ec6a Mon Sep 17 00:00:00 2001
+From: cynthia <wu.cynthia@inventec.com>
+Date: Fri, 9 Jul 2021 17:46:04 +0800
+Subject: [PATCH] Change the way to generate fru id
+
+    Symptom/Reason :
+             Fru id is changed after we modify product name of fru
+	    data
+
+    Root Cause:
+	     Currently we are getting fru devices from dbus service
+	    'xyz.openbmc_project.FruDevice', and it's object oath is
+	    created from product name data. If the data is changed,
+	    this might change the order, and influence the fru id.
+
+    Solution/Change:
+            [storagecommands.cpp]
+             Change the way to get fru id, and use map to make it
+	    stable after generated.
+
+    Entry Test:
+	    1.ipmitool fru print
+	    2.ipmitool fru read
+		ex: ipmitool fru read 0 test.bin
+	    3.ipmitool fru write
+		ex: ipmitool fru write 0 Fru.bin
+	    4.ipmitool fru edit
+		ex: ipmitool fru edit 1 field b 1 "TRANSFORMERS       "
+	    5.ipmitool raw 0xa 0x12
+		ex: ipmitool raw 0xa 0x12 0x1 0xf 0x0 0x50
+	    6.ipmitool raw 0xa 0x11
+		ex: ipmitool raw 0xa 0x11 0x1 0x0 0x0 0xff
+---
+ src/storagecommands.cpp | 39 ++++++++++++++++++++++-----------------
+ 1 file changed, 22 insertions(+), 17 deletions(-)
+
+diff --git a/src/storagecommands.cpp b/src/storagecommands.cpp
+index 28c9720..17dcd19 100644
+--- a/src/storagecommands.cpp
++++ b/src/storagecommands.cpp
+@@ -34,6 +34,7 @@
+ #include <sdbusplus/timer.hpp>
+ 
+ #include <thread>
++#include <map>
+ 
+ #include <filesystem>
+ #include <functional>
+@@ -112,6 +113,8 @@ using ManagedObjectType =
+     boost::container::flat_map<sdbusplus::message::object_path, ObjectType>;
+ using ManagedEntry = std::pair<sdbusplus::message::object_path, ObjectType>;
+ 
++static std::map<std::string,int> fru_id_map;
++
+ constexpr static const char* fruDeviceServiceName =
+     "xyz.openbmc_project.FruDevice";
+ constexpr static const char* entityManagerServiceName =
+@@ -182,6 +185,7 @@ void createTimers()
+ 
+ void recalculateHashes()
+ {
++    bool base_fru_found = false;
+ 
+     deviceHashes.clear();
+     // hash the object paths to create unique device id's. increment on
+@@ -215,33 +219,34 @@ void recalculateHashes()
+             chassisType = std::get<std::string>(chassisFind->second);
+         }
+ 
+-        uint8_t fruHash = 0;
+-        if (chassisType.compare(chassisTypeRackMount) != 0)
+-        {
+-            //fruHash = hasher(fru.first.str); 
+-            // can't be 0xFF based on spec, and 0 is reserved for baseboard
+-            if (fruHash == 0 || fruHash == 0xFF)
+-            {
+-                fruHash = 1;
++        uint8_t fru_id = 0;
++        std::string fru_addr_string = std::to_string(fruBus)+std::to_string(fruAddr);
++
++        if( fru_id_map.find(fru_addr_string)== fru_id_map.end() ){
++            if(base_fru_found==true){   // baseboard fru already exists
++                fru_id = fru_id_map.size();
++            }else if (chassisType.compare(chassisTypeRackMount) != 0 ){
++                fru_id = fru_id_map.size()+1;
++            }else{
++                base_fru_found = true;  //fru id 0 is reserved for baseboard fru
+             }
++            fru_id_map[fru_addr_string] = fru_id;
+         }
++
+         std::pair<uint8_t, uint8_t> newDev(fruBus, fruAddr);
+ 
+         bool emplacePassed = false;
+-        while (!emplacePassed)
++        if (fru_id_map[fru_addr_string] != 0XFF)  // can't be 0xFF based on spec
+         {
+-            auto resp = deviceHashes.emplace(fruHash, newDev);
++            auto resp = deviceHashes.emplace(fru_id_map[fru_addr_string], newDev);
+             emplacePassed = resp.second;
+             if (!emplacePassed)
+             {
+-                fruHash++;
+-                // can't be 0xFF based on spec, and 0 is reserved for
+-                // baseboard
+-                if (fruHash == 0XFF)
+-                {
+-                    fruHash = 0x1;
+-                }
++                fprintf(stderr,"Failed to add fru data on %x %x to id %x\n", fruBus, fruAddr, fru_id_map[fru_addr_string]);
+             }
++        }else{
++            fprintf(stderr,"Wrong fru id %x\n",fru_id_map[fru_addr_string]);
++            fru_id_map.erase(fru_addr_string);
+         }
+     }
+ }
+-- 
+2.17.1
+
