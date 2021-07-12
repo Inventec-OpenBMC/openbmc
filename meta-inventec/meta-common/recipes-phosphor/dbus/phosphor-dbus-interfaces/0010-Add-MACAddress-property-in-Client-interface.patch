@@ -1,0 +1,48 @@
+From 2e4a8c580292094f5a35934dc80645e53ad4d1ee Mon Sep 17 00:00:00 2001
+From: "Lin.TommySC" <lin.tommysc@inventec.com>
+Date: Mon, 12 Jul 2021 05:32:49 +0000
+Subject: [PATCH] Add MACAddress property in Client interface
+
+Symptom/Reason :
+Can not get the MAC address in Destination Addresses via raw command
+
+Root Cause:
+Feature not implemented because MAC address information is not useful for OpenBMC
+
+Solution/Change:
+-[phosphor-dbus-interfaces]
+  -Add MACAddress property in Client interface
+-[phosphor-ipmi-host]
+  -Get/Set MACAddress property from/to Client d-bus interface
+-[phosphor-snmp]
+  -Implementation of get/set MACAddress property
+
+Entry Test:
+Set destination address
+ipmitool raw 0x0c 0x01 0x01 0x13 0x00 0x00 0x00 0x0a 0x6 0x8d 0x21 0x7c 0xd3 0x0a 0xc4 0x90 0xe4
+Get destination address
+ipmitool raw 0x0c 0x02 0x01 0x13 0x00 0x00
+---
+ xyz/openbmc_project/Network/Client.interface.yaml | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/xyz/openbmc_project/Network/Client.interface.yaml b/xyz/openbmc_project/Network/Client.interface.yaml
+index 8c8eaeb..19014cb 100644
+--- a/xyz/openbmc_project/Network/Client.interface.yaml
++++ b/xyz/openbmc_project/Network/Client.interface.yaml
+@@ -17,3 +17,12 @@ properties:
+           The value of this property is the network port number.
+       errors:
+         - xyz.openbmc_project.Common.Error.InternalFailure
++    - name: MACAddress
++      type: string
++      description: >
++          MAC address of the ethernet interface in six groups of
++          two hexadecimal digits separated by colons.
++          Example: 01:23:45:67:89:AB
++      errors:
++        - xyz.openbmc_project.Common.Error.InvalidArgument
++        - xyz.openbmc_project.Common.Error.InternalFailure
+-- 
+2.17.1
+

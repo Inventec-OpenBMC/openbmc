@@ -10,4 +10,5 @@ SRC_URI_append = " \
     file://0007-inventec-common-Modify-power-capability-for-DCMI.patch \
     file://0008-Implement-LAN-Config-VLAN-Priority.patch \
     file://0009-Add-IPv4-IPv6-addressing-enable-mode-support.patch \
+    file://0010-Add-MACAddress-property-in-Client-interface.patch \
 "

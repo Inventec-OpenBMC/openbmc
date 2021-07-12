@@ -8,4 +8,5 @@ DEPENDS_append = " \
 
 SRC_URI += " file://0001-Implement-LAN-Config-Community-String.patch \
              file://0002-Implement-LAN-Config-Destination-Addresses.patch \
+             file://0003-Add-MAC-address-support-for-destination-address.patch \
 "

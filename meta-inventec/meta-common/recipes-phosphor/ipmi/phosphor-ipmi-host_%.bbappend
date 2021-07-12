@@ -18,6 +18,7 @@ SRC_URI_append = " file://0001-sensorhandler-fix-get-threshold-error.patch \
                    file://0014-Bug-354-Transformers-OpenBMC-IPMI-Get-Enhanced-Syste.patch \
                    file://0015-Force-zero-padding-when-setting-password.patch \
                    file://0016-Refine-IPFamilyEnables-command.patch \
+                   file://0017-Add-MAC-address-support-for-destination-address.patch \
 "
 
 
