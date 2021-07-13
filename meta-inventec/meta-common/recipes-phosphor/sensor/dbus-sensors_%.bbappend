@@ -6,7 +6,7 @@ DEPENDS += "inv-gpiolib"
 SRC_URI += "file://0001-Subject-PATCH-Subject-PATCH-Sensor-Patch-to-support-.patch \
             file://0002-Subject-PATCH-Sensor-Patch-to-support-sensor-number-.patch \
             file://0003-Subject-PATCH-Sensor-Event-Support-GPIO-sensor-monit.patch \
-            file://0004-Subject-Patch-dbus-sensors-Fan-Support-I2C-fan-senso.patch \
+            file://0004-inventec-common-Fan-Patch-to-support-sensor-number-e.patch \
             file://0005-Subject-PATCH-Sensor-Support-I2C-adc-sensor-adt7462.patch \
             file://0006-Subject-Patch-Sensor-Add-NM-and-BIOS-event-DBUS-inte.patch \
             file://0007-Subject-Patch-Sensor-Add-WATCHDOG-sensor-DBUS-interf.patch \
