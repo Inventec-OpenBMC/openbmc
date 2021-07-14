@@ -19,6 +19,7 @@ SRC_URI_append = " file://0001-sensorhandler-fix-get-threshold-error.patch \
                    file://0015-Force-zero-padding-when-setting-password.patch \
                    file://0016-Refine-IPFamilyEnables-command.patch \
                    file://0017-Add-MAC-address-support-for-destination-address.patch \
+                   file://0018-Add-IPv6Only-mode-support-in-IPFamilySupport-command.patch \
 "
 
 
