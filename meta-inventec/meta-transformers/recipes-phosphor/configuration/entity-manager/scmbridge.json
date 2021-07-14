@@ -55,8 +55,8 @@
             "Name": "FAN1_TACH1",
             "Presence": {
                 "Method": "tach",
-                "TachVal": 600,
-                "HysVal": 300
+                "TachVal": 0,
+                "HysVal": 0
             },
             "Thresholds": [
                 {
@@ -96,8 +96,8 @@
             "Name": "FAN1_TACH2",
             "Presence": {
                 "Method": "tach",
-                "TachVal": 600,
-                "HysVal": 300
+                "TachVal": 0,
+                "HysVal": 0
             },
             "Thresholds": [
                 {
@@ -137,8 +137,8 @@
             "Name": "FAN2_TACH1",
             "Presence": {
                 "Method": "tach",
-                "TachVal": 600,
-                "HysVal": 300
+                "TachVal": 0,
+                "HysVal": 0
             },
             "Thresholds": [
                 {
@@ -179,8 +179,8 @@
             "Name": "FAN2_TACH2",
             "Presence": {
                 "Method": "tach",
-                "TachVal": 600,
-                "HysVal": 300
+                "TachVal": 0,
+                "HysVal": 0
             },
             "Thresholds": [
                 {
@@ -220,8 +220,8 @@
             "Name": "FAN3_TACH1",
             "Presence": {
                 "Method": "tach",
-                "TachVal": 600,
-                "HysVal": 300
+                "TachVal": 0,
+                "HysVal": 0
             },
             "Thresholds": [
                 {
@@ -261,8 +261,8 @@
             "Name": "FAN3_TACH2",
             "Presence": {
                 "Method": "tach",
-                "TachVal": 600,
-                "HysVal": 300
+                "TachVal": 0,
+                "HysVal": 0
             },
             "Thresholds": [
                 {
@@ -302,8 +302,8 @@
             "Name": "FAN4_TACH1",
             "Presence": {
                 "Method": "tach",
-                "TachVal": 600,
-                "HysVal": 300
+                "TachVal": 0,
+                "HysVal": 0
             },
             "Thresholds": [
                 {
@@ -343,8 +343,8 @@
             "Name": "FAN4_TACH2",
             "Presence": {
                 "Method": "tach",
-                "TachVal": 600,
-                "HysVal": 300
+                "TachVal": 0,
+                "HysVal": 0
             },
             "Thresholds": [
                 {
@@ -384,8 +384,8 @@
             "Name": "FAN5_TACH1",
             "Presence": {
                 "Method": "tach",
-                "TachVal": 600,
-                "HysVal": 300
+                "TachVal": 0,
+                "HysVal": 0
             },
             "Thresholds": [
                 {
@@ -425,8 +425,8 @@
             "Name": "FAN5_TACH2",
             "Presence": {
                 "Method": "tach",
-                "TachVal": 600,
-                "HysVal": 300
+                "TachVal": 0,
+                "HysVal": 0
             },
             "Thresholds": [
                 {
@@ -466,8 +466,8 @@
             "Name": "FAN6_TACH1",
             "Presence": {
                 "Method": "tach",
-                "TachVal": 600,
-                "HysVal": 300
+                "TachVal": 0,
+                "HysVal": 0
             },
             "Thresholds": [
                 {
@@ -507,8 +507,8 @@
             "Name": "FAN6_TACH2",
             "Presence": {
                 "Method": "tach",
-                "TachVal": 600,
-                "HysVal": 300
+                "TachVal": 0,
+                "HysVal": 0
             },
             "Thresholds": [
                 {
@@ -548,8 +548,8 @@
             "Name": "FAN7_TACH1",
             "Presence": {
                 "Method": "tach",
-                "TachVal": 600,
-                "HysVal": 300
+                "TachVal": 0,
+                "HysVal": 0
             },
             "Thresholds": [
                 {
@@ -589,8 +589,8 @@
             "Name": "FAN7_TACH2",
             "Presence": {
                 "Method": "tach",
-                "TachVal": 600,
-                "HysVal": 300
+                "TachVal": 0,
+                "HysVal": 0
             },
             "Thresholds": [
                 {
@@ -630,8 +630,8 @@
             "Name": "FAN8_TACH1",
             "Presence": {
                 "Method": "tach",
-                "TachVal": 600,
-                "HysVal": 300
+                "TachVal": 0,
+                "HysVal": 0
             },
             "Thresholds": [
                 {
@@ -671,8 +671,8 @@
             "Name": "FAN8_TACH2",
             "Presence": {
                 "Method": "tach",
-                "TachVal": 600,
-                "HysVal": 300
+                "TachVal": 0,
+                "HysVal": 0
             },
             "Thresholds": [
                 {

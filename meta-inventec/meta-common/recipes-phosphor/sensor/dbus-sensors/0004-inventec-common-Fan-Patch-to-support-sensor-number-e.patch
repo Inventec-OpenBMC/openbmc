@@ -1,4 +1,4 @@
-From 52f53af41d9ea3688ae17472f32571b1215ef817 Mon Sep 17 00:00:00 2001
+From 800dcbf0f4024154a43fd3d8cd9581bd765de573 Mon Sep 17 00:00:00 2001
 From: "pj.chen" <chen.pj@inventec.com>
 Date: Mon, 12 Jul 2021 05:33:39 +0000
 Subject: [PATCH] [inventec][common][Fan] - Patch to support sensor number,
@@ -13,8 +13,8 @@ Subject: [PATCH] [inventec][common][Fan] - Patch to support sensor number,
  src/FanMain.cpp        | 168 +++++++++++++++++++++++++-----
  src/PSUSensorMain.cpp  |   5 +-
  src/PwmSensor.cpp      |  30 ++++++
- src/TachSensor.cpp     | 225 +++++++++++++++++++++++++++++++++++++----
- 6 files changed, 433 insertions(+), 51 deletions(-)
+ src/TachSensor.cpp     | 230 +++++++++++++++++++++++++++++++++++++----
+ 6 files changed, 438 insertions(+), 51 deletions(-)
 
 diff --git a/include/PwmSensor.hpp b/include/PwmSensor.hpp
 index d78b8e9..adce767 100644
@@ -488,7 +488,7 @@ index f76ea50..8ec67bc 100644
  
  void PwmSensor::setValue(uint32_t value)
 diff --git a/src/TachSensor.cpp b/src/TachSensor.cpp
-index b3c955c..f5cbd0c 100644
+index b3c955c..a704e0c 100644
 --- a/src/TachSensor.cpp
 +++ b/src/TachSensor.cpp
 @@ -37,8 +37,11 @@
@@ -723,7 +723,7 @@ index b3c955c..f5cbd0c 100644
      }
  }
  
-@@ -287,6 +394,60 @@ bool PresenceSensor::getValue(void)
+@@ -287,6 +394,65 @@ bool PresenceSensor::getValue(void)
      return status;
  }
  
@@ -749,7 +749,12 @@ index b3c955c..f5cbd0c 100644
 +{
 +    if (status)
 +    {
-+        if (tachVal <= badTach)
++        /*
++            badTach is the "TachVal" in entity-manager config file.
++            goodTach is "TachVal" + "HysVal".
++            Set TachVal to zero and than the fan would be always present.
++        */
++        if (tachVal < badTach)
 +        {
 +            if (unpresentCount++ >= checkPresentCount)
 +            {
@@ -784,7 +789,7 @@ index b3c955c..f5cbd0c 100644
  RedundancySensor::RedundancySensor(size_t count,
                                     const std::vector<std::string>& children,
                                     sdbusplus::asio::object_server& objectServer,
-@@ -347,3 +508,31 @@ void RedundancySensor::update(const std::string& name, bool failed)
+@@ -347,3 +513,31 @@ void RedundancySensor::update(const std::string& name, bool failed)
          iface->set_property("Status", state);
      }
  }
