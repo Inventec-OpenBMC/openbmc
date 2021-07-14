@@ -715,6 +715,17 @@
              "Type": "pmbus"
         },
         {
+            "Name": "Pwm_PSU1_Fan_1",
+            "SensorInfo": [
+                {
+                    "SensorNum": "0x7F",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "10"
+                 }
+             ],
+             "Type": "pmbus"
+        },
+        {
             "Address": "0x58",
             "Bus": "12",
             "Labels": [
@@ -821,6 +832,13 @@
                     "SensorNum": "0x7E",
                     "EntityId": "0x0A",
                     "EntityInstance": "9"
+                },
+                {
+                    "Label": "Pwm_PSU1_Fan_1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x7F",
+                    "EntityId": "0x0A",
+                    "EntityInstance": "10"
                 }
             ],
             "Type": "pmbus"

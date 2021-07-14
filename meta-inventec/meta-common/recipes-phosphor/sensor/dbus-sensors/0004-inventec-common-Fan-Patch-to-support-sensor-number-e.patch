@@ -1,4 +1,4 @@
-From 800dcbf0f4024154a43fd3d8cd9581bd765de573 Mon Sep 17 00:00:00 2001
+From c39eba71690a51454fffb2031c88543608a7bd6b Mon Sep 17 00:00:00 2001
 From: "pj.chen" <chen.pj@inventec.com>
 Date: Mon, 12 Jul 2021 05:33:39 +0000
 Subject: [PATCH] [inventec][common][Fan] - Patch to support sensor number,
@@ -11,10 +11,10 @@ Subject: [PATCH] [inventec][common][Fan] - Patch to support sensor number,
  include/PwmSensor.hpp  |   3 +
  include/TachSensor.hpp |  53 +++++++++-
  src/FanMain.cpp        | 168 +++++++++++++++++++++++++-----
- src/PSUSensorMain.cpp  |   5 +-
- src/PwmSensor.cpp      |  30 ++++++
+ src/PSUSensorMain.cpp  |  22 +++-
+ src/PwmSensor.cpp      |  54 ++++++++++
  src/TachSensor.cpp     | 230 +++++++++++++++++++++++++++++++++++++----
- 6 files changed, 438 insertions(+), 51 deletions(-)
+ 6 files changed, 475 insertions(+), 55 deletions(-)
 
 diff --git a/include/PwmSensor.hpp b/include/PwmSensor.hpp
 index d78b8e9..adce767 100644
@@ -415,25 +415,55 @@ index e613494..a861ff2 100644
              }
  
 diff --git a/src/PSUSensorMain.cpp b/src/PSUSensorMain.cpp
-index e6f4b45..5a883c5 100644
+index e6f4b45..a38ec4a 100644
 --- a/src/PSUSensorMain.cpp
 +++ b/src/PSUSensorMain.cpp
-@@ -241,9 +241,12 @@ static void
+@@ -217,8 +217,9 @@ static void
+                    const std::string& interfacePath,
+                    std::shared_ptr<sdbusplus::asio::connection>& dbusConnection,
+                    sdbusplus::asio::object_server& objectServer,
+-                   const std::string& psuName)
++                   const std::string& psuName, const SensorData& sensorData)
+ {
++    std::string sensorName;
+     for (const auto& pwmName : pwmTable)
+     {
+         if (pwmName.first != labelHead)
+@@ -241,9 +242,20 @@ static void
              continue;
          }
  
+-        pwmSensors[psuName + labelHead] = std::make_unique<PwmSensor>(
+-            "Pwm_" + psuName + "_" + pwmName.second, pwmPathStr, dbusConnection,
+-            objectServer, interfacePath + "_" + pwmName.second, "PSU");
++        sensorName = "Pwm_" + psuName + "_" + pwmName.second;
 +        // Currently Not Support psu PSM IPMI sensor Info, so let it empty
 +        std::vector<ipmidata::IpmiConfig> sensorIpmiConfig;
-+
-         pwmSensors[psuName + labelHead] = std::make_unique<PwmSensor>(
-             "Pwm_" + psuName + "_" + pwmName.second, pwmPathStr, dbusConnection,
--            objectServer, interfacePath + "_" + pwmName.second, "PSU");
-+            objectServer, std::move(sensorIpmiConfig), interfacePath + "_" + pwmName.second, "PSU");
++        if (!parseIpmiDataFromConfig(sensorData, sensorIpmiConfig, &sensorName))
++        {
++            std::cerr << "error populating ipmi for " << sensorName << "\n";
++        }
++        else
++        {
++            pwmSensors[psuName + labelHead] = std::make_unique<PwmSensor>(
++                sensorName, pwmPathStr, dbusConnection,
++                objectServer, std::move(sensorIpmiConfig),
++                interfacePath + "_" + pwmName.second, "PSU");
++        }
      }
  }
  
+@@ -565,7 +577,7 @@ static void createSensorsCallback(
+             }
+ 
+             checkPWMSensor(sensorPath, labelHead, *interfacePath,
+-                           dbusConnection, objectServer, psuNames[0]);
++                           dbusConnection, objectServer, psuNames[0], *sensorData);
+ 
+             if (!findLabels.empty())
+             {
 diff --git a/src/PwmSensor.cpp b/src/PwmSensor.cpp
-index f76ea50..8ec67bc 100644
+index f76ea50..9113b4e 100644
 --- a/src/PwmSensor.cpp
 +++ b/src/PwmSensor.cpp
 @@ -30,6 +30,7 @@ static constexpr double targetIfaceMax = sysPwmMax;
@@ -444,11 +474,39 @@ index f76ea50..8ec67bc 100644
                       const std::string& sensorConfiguration,
                       const std::string& sensorType) :
      sysPath(sysPath),
-@@ -161,6 +162,31 @@ PwmSensor::PwmSensor(const std::string& name, const std::string& sysPath,
+@@ -157,10 +158,59 @@ PwmSensor::PwmSensor(const std::string& name, const std::string& sysPath,
+     if (sensorType == "PSU")
+     {
+         createInventoryAssoc(conn, association, sensorConfiguration);
++        ipmiInterface = objectServer.add_interface(
++            "/xyz/openbmc_project/sensors/fan_pwm/" + name,
++            "xyz.openbmc_project.Sensor.IpmiSensor");
++
++        if (_ipmiinfo.empty())
++        {
++            // Default
++            ipmiInterface->register_property("sensorNumber", 0);
++            ipmiInterface->register_property("entityID", 0);
++            ipmiInterface->register_property("entityInstance", 0);
++        }
++        else
++        {
++            for (auto& ipmi : _ipmiinfo)
++            {
++                ipmiInterface->register_property("sensorNumber", ipmi.number);
++                ipmiInterface->register_property("entityID", ipmi.entityId);
++                ipmiInterface->register_property("entityInstance", ipmi.entityIns);
++            }
++        }
++        if (!ipmiInterface->initialize())
++        {
++            std::cerr << "error initializing ipmi interface\n";
++        }
+     }
      else
      {
          createAssociation(association, sensorConfiguration);
-+        // Currently only support fan PWM for IPMI sensor info
++
 +        ipmiInterface = objectServer.add_interface(
 +            "/xyz/openbmc_project/sensors/fan_pwm/" + name,
 +            "xyz.openbmc_project.Sensor.IpmiSensor");
@@ -476,7 +534,7 @@ index f76ea50..8ec67bc 100644
      }
  }
  PwmSensor::~PwmSensor()
-@@ -168,6 +194,10 @@ PwmSensor::~PwmSensor()
+@@ -168,6 +218,10 @@ PwmSensor::~PwmSensor()
      objectServer.remove_interface(sensorInterface);
      objectServer.remove_interface(controlInterface);
      objectServer.remove_interface(association);
