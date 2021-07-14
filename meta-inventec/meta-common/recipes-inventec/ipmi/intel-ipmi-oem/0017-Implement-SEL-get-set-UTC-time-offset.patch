@@ -1,17 +1,22 @@
-From 7eea45ab81e9e29f6e721015937f9653f1c4ab71 Mon Sep 17 00:00:00 2001
+From cac8d1e011a94c0ecdaff8a2d2271f4882f9e213 Mon Sep 17 00:00:00 2001
 From: cynthia <wu.cynthia@inventec.com>
 Date: Tue, 29 Jun 2021 00:42:54 +0800
-Subject: [PATCH] Implement SEL get/set UTC time offset
+Subject: [PATCH] - Implement SEL get/set UTC time offset - Modify the way to
+ set SEL time
 
 Symptom/Reason :
-	Implement new ipmitool SEL raw command
+	1. Implement new ipmitool SEL raw command
+	2. SEL time set will be changed after reboot
 
 Root Cause:
-	N/A
+	1. N/A
+	2. The RTC time isn't changed with original way.
 
 Solution/Change:
 	[storagecommands.cpp]
-	Add new functions for get/set UTC time offset
+	1. Add new functions for get/set UTC time offset
+	2. Change to use dbus method to set time, make sure RTC time
+	   is changed.
 
 Entry Test:
 	1. ipmitool raw 0xa 0x5c
@@ -21,29 +26,30 @@ Entry Test:
 	4. ipmitool sel time set
 	ex: ipmitool sel time set "06/29/2021 01:00:00"
 ---
- include/storagecommands.hpp |  6 ++++
- src/storagecommands.cpp     | 69 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 75 insertions(+)
+ include/storagecommands.hpp |  7 ++++
+ src/storagecommands.cpp     | 84 ++++++++++++++++++++++++++++++++++---
+ 2 files changed, 86 insertions(+), 5 deletions(-)
 
 diff --git a/include/storagecommands.hpp b/include/storagecommands.hpp
-index c9e2bd2..63c8ecf 100644
+index c9e2bd2..d6f1bf3 100644
 --- a/include/storagecommands.hpp
 +++ b/include/storagecommands.hpp
-@@ -21,6 +21,12 @@
+@@ -21,6 +21,13 @@
  
  static constexpr uint8_t ipmiSdrVersion = 0x51;
  
-+/*dbus status for timezone setting*/
++/*dbus status for timezone and time setting*/
 +const static constexpr char* TimeService = "org.freedesktop.timedate1";
 +const static constexpr char* TimeObj = "/org/freedesktop/timedate1";
 +const static constexpr char* TimeIntf = "org.freedesktop.timedate1";
 +const static constexpr char* SetTimeZone = "SetTimezone";
++const static constexpr char* SetTime = "SetTime";
 +
  namespace intel_oem::ipmi::sel
  {
  static constexpr uint8_t selOperationSupport = 0x02;
 diff --git a/src/storagecommands.cpp b/src/storagecommands.cpp
-index 9bcc353..28c9720 100644
+index 9bcc353..79c884e 100644
 --- a/src/storagecommands.cpp
 +++ b/src/storagecommands.cpp
 @@ -136,6 +136,7 @@ static std::vector<sdbusplus::bus::match::match> fruMatches;
@@ -84,20 +90,37 @@ index 9bcc353..28c9720 100644
  ipmi::RspType<uint32_t> ipmiStorageGetSELTime()
  {
      struct timespec selTime = {};
-@@ -1372,6 +1396,10 @@ ipmi::RspType<> ipmiStorageSetSELTime(std::vector<uint8_t> selTime)
+@@ -1372,17 +1396,57 @@ ipmi::RspType<> ipmiStorageSetSELTime(std::vector<uint8_t> selTime)
  
          gettimeofday(&stime, NULL);
          stime.tv_sec = setSelTime;
+-        if (settimeofday(&stime, NULL) != 0)
+-        {
+-            ipmi::responseUnspecifiedError();
+-        }
 +
 +        /* originally we got time in UTC, change to local time before we set*/
 +        stime.tv_sec += GetSELTimeUTCOffset()*60;  //offset in minutes, change to seconds
++        long long int time_usec = (long long int)(stime.tv_sec)*1000000;  //get time in micro second
 +
-         if (settimeofday(&stime, NULL) != 0)
-         {
-             ipmi::responseUnspecifiedError();
-@@ -1386,6 +1414,37 @@ ipmi::RspType<> ipmiStorageSetSELTime(std::vector<uint8_t> selTime)
-     return ipmi::responseSuccess();
- }
++        auto method = dbus->new_method_call(TimeService, TimeObj, TimeIntf, SetTime);
++        method.append( static_cast<int64_t>(time_usec), false, false);
++        sdbusplus::message::message SetTimeResp = dbus->call(method);
+     }
+     catch (const std::exception& e)
+     {
+-        std::fprintf(stderr, "ipmiStorageSetSELTime exception\n");
++        fprintf(stderr, "ipmiStorageSetSELTime exception %s\n", e.what());
+         return ipmi::responseUnspecifiedError();
+     }
++    catch (sdbusplus::exception_t& e)
++    {
++        fprintf(stderr, "ipmiStorageSetSELTime exception %s\n", e.what());
++        return ipmi::responseUnspecifiedError();
++    }
++
++    return ipmi::responseSuccess();
++}
  
 +ipmi::RspType<uint16_t> ipmiStorageGetSELTimeUTCOffset(){   
 +    uint16_t utc_time_offset = GetSELTimeUTCOffset();
@@ -127,13 +150,10 @@ index 9bcc353..28c9720 100644
 +        return ipmi::responseUnspecifiedError();
 +    }
 +    
-+    return ipmi::responseSuccess();
-+}
-+
- std::vector<uint8_t> getType12SDRs(uint16_t index, uint16_t recordId)
- {
-     std::vector<uint8_t> resp;
-@@ -1575,6 +1634,16 @@ void registerStorageFunctions()
+     return ipmi::responseSuccess();
+ }
+ 
+@@ -1575,6 +1639,16 @@ void registerStorageFunctions()
      ipmi::registerHandler(ipmi::prioOpenBmcBase, ipmi::netFnStorage,
                            ipmi::storage::cmdSetSelTime,
                            ipmi::Privilege::Operator, ipmiStorageSetSELTime);
