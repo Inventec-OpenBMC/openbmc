@@ -1,6 +1,7 @@
 #!/bin/sh
 DBUS_ASSET_INTERFACE="xyz.openbmc_project.Inventory.Decorator.Asset"
 DBUS_ITEM_INTERFACE="xyz.openbmc_project.Inventory.Item"
+DBUS_POWERSUPPLY_INTERFACE="xyz.openbmc_project.Inventory.Item.PowerSupply"
 
 #Asset.Manufacturer
 MFR_ID="0x99"
@@ -43,7 +44,6 @@ pmbus_read() {
 
     for d in ${arry}
     do
-        echo $d
         hex=$(echo $d | sed -e "s/0\x//")
         string+=$(echo -e "\x${hex}");
     done
@@ -56,13 +56,22 @@ update_inventory() {
       INVENTORY_PATH='xyz.openbmc_project.Inventory.Manager'
       OBJECT_PATH="/system/chassis/motherboard/powersupply$1"
 
-      busctl call \
-          ${INVENTORY_SERVICE} \
-          ${INVENTORY_OBJECT} \
-          ${INVENTORY_PATH} \
-          Notify a{oa{sa{sv}}} 1 \
-          ${OBJECT_PATH} 1 $2 1 \
-          $3 $4 "$5"
+      if [ $3 == 0 ]; then
+        busctl call \
+            ${INVENTORY_SERVICE} \
+            ${INVENTORY_OBJECT} \
+            ${INVENTORY_PATH} \
+            Notify a{oa{sa{sv}}} 1 \
+            ${OBJECT_PATH} 1 $2 $3
+      else
+        busctl call \
+            ${INVENTORY_SERVICE} \
+            ${INVENTORY_OBJECT} \
+            ${INVENTORY_PATH} \
+            Notify a{oa{sa{sv}}} 1 \
+            ${OBJECT_PATH} 1 $2 $3 \
+            $4 $5 "$6"
+      fi
 }
 
 
@@ -83,22 +92,24 @@ fi
 
 
 # TODO:Should check PSU present further
-update_inventory $PSU_ID $DBUS_ITEM_INTERFACE "Present" "b" "true"
-update_inventory $PSU_ID $DBUS_ITEM_INTERFACE "PrettyName" "s" "powersupply$PSU_ID"
+update_inventory $PSU_ID $DBUS_ITEM_INTERFACE 1 "Present" "b" "true"
+update_inventory $PSU_ID $DBUS_ITEM_INTERFACE 1 "PrettyName" "s" "powersupply$PSU_ID"
 
 
 pmbus_read $I2C_BUS $I2C_ADDR $MFR_ID
-update_inventory $PSU_ID $DBUS_ASSET_INTERFACE "Manufacturer" "s" "$string"
+update_inventory $PSU_ID $DBUS_ASSET_INTERFACE 1 "Manufacturer" "s" "$string"
 
 pmbus_read $I2C_BUS $I2C_ADDR $MFR_MODEL
-update_inventory $PSU_ID $DBUS_ASSET_INTERFACE "Model" "s" "$string"
+update_inventory $PSU_ID $DBUS_ASSET_INTERFACE 1 "Model" "s" "$string"
 
 pmbus_read $I2C_BUS $I2C_ADDR $MFR_DATE
-update_inventory $PSU_ID $DBUS_ASSET_INTERFACE "BuildDate" "s" "$string"
+update_inventory $PSU_ID $DBUS_ASSET_INTERFACE 1 "BuildDate" "s" "$string"
 
 pmbus_read $I2C_BUS $I2C_ADDR $MFR_SERIAL
-update_inventory $PSU_ID $DBUS_ASSET_INTERFACE "SerialNumber" "s" "$string"
+update_inventory $PSU_ID $DBUS_ASSET_INTERFACE 1 "SerialNumber" "s" "$string"
 
 pmbus_read $I2C_BUS $I2C_ADDR $IC_DEVICE_ID
-update_inventory $PSU_ID $DBUS_ASSET_INTERFACE "PartNumber" "s" "$string"
+update_inventory $PSU_ID $DBUS_ASSET_INTERFACE 1 "PartNumber" "s" "$string"
+
+update_inventory $PSU_ID $DBUS_POWERSUPPLY_INTERFACE 0
 
