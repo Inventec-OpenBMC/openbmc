@@ -1,4 +1,4 @@
-From c39eba71690a51454fffb2031c88543608a7bd6b Mon Sep 17 00:00:00 2001
+From fa841de82270983529db109ca47d546c9c026cd9 Mon Sep 17 00:00:00 2001
 From: "pj.chen" <chen.pj@inventec.com>
 Date: Mon, 12 Jul 2021 05:33:39 +0000
 Subject: [PATCH] [inventec][common][Fan] - Patch to support sensor number,
@@ -7,14 +7,15 @@ Subject: [PATCH] [inventec][common][Fan] - Patch to support sensor number,
 - Support detect fan presence via GPIO or tach.
 - Support PWM sensor
 - Fix index for fan0 and pwm0
+- Support Present sensor
 ---
  include/PwmSensor.hpp  |   3 +
- include/TachSensor.hpp |  53 +++++++++-
- src/FanMain.cpp        | 168 +++++++++++++++++++++++++-----
- src/PSUSensorMain.cpp  |  22 +++-
- src/PwmSensor.cpp      |  54 ++++++++++
- src/TachSensor.cpp     | 230 +++++++++++++++++++++++++++++++++++++----
- 6 files changed, 475 insertions(+), 55 deletions(-)
+ include/TachSensor.hpp |  55 +++++++-
+ src/FanMain.cpp        | 209 ++++++++++++++++++++++-----
+ src/PSUSensorMain.cpp  |  22 ++-
+ src/PwmSensor.cpp      |  54 +++++++
+ src/TachSensor.cpp     | 310 ++++++++++++++++++++++++++++++++++++++---
+ 6 files changed, 593 insertions(+), 60 deletions(-)
 
 diff --git a/include/PwmSensor.hpp b/include/PwmSensor.hpp
 index d78b8e9..adce767 100644
@@ -45,7 +46,7 @@ index d78b8e9..adce767 100644
      void setValue(uint32_t value);
      uint32_t getValue(bool errThrow = true);
 diff --git a/include/TachSensor.hpp b/include/TachSensor.hpp
-index fa9de07..47b5bac 100644
+index fa9de07..de6fffd 100644
 --- a/include/TachSensor.hpp
 +++ b/include/TachSensor.hpp
 @@ -8,6 +8,7 @@
@@ -56,15 +57,11 @@ index fa9de07..47b5bac 100644
  
  #include <memory>
  #include <optional>
-@@ -15,23 +16,60 @@
+@@ -15,23 +16,70 @@
  #include <utility>
  #include <vector>
  
-+static const std::string sensorType = "fan";
-+static const std::string SENSOR_PATH = "/xyz/openbmc_project/sensors/discrete/";
-+
-+void recordIPMISel(const std::string& sensorName, bool assert,
-+                   std::shared_ptr<sdbusplus::asio::connection>& conn);
++static const std::string PRESENT_SENSOR_PATH = "/xyz/openbmc_project/sensors/discrete_08h/fan_tach";
 +
 +/*
 + Because some fans don't have thier own GPIO present pin,
@@ -85,12 +82,18 @@ index fa9de07..47b5bac 100644
 +    PresenceSensor(presenceMethod&& method,
 +                   const std::string& gpioName, bool inverted,
 +                   boost::asio::io_service& io, const std::string& name,
-+                   std::shared_ptr<sdbusplus::asio::connection>& conn);
++                   sdbusplus::asio::object_server& objectServer,
++                   std::shared_ptr<sdbusplus::asio::connection>& conn,
++                   const std::string& configurationPath,
++                   std::vector<ipmidata::IpmiConfig>&& ipmiinfo);
 +
 +    PresenceSensor(presenceMethod&& method,
 +                   double& tachVal, double& hysVal,
 +                   boost::asio::io_service& io, const std::string& name,
-+                   std::shared_ptr<sdbusplus::asio::connection>& conn);
++                   sdbusplus::asio::object_server& objectServer,
++                   std::shared_ptr<sdbusplus::asio::connection>& conn,
++                   const std::string& configurationPath,
++                   std::vector<ipmidata::IpmiConfig>&& ipmiinfo);
 +
      ~PresenceSensor();
  
@@ -102,6 +105,7 @@ index fa9de07..47b5bac 100644
 +    void clearCounter();
 +    bool is_TheMethod(presenceMethod&& _method);
 +
++    void recordAbsentIPMISel(bool assert);
 +
    private:
      bool status = true;
@@ -115,11 +119,18 @@ index fa9de07..47b5bac 100644
 +    u_int8_t presentCount = 0;
 +    u_int8_t unpresentCount = 0;
 +
++    double value = std::numeric_limits<double>::quiet_NaN();
++
++    std::string configurationPath;
++    sdbusplus::asio::object_server& objServer;
 +    std::shared_ptr<sdbusplus::asio::connection>& conn; /*for recording IPMI sel*/
++    std::shared_ptr<sdbusplus::asio::dbus_interface> association;
++    std::shared_ptr<sdbusplus::asio::dbus_interface> sensorInterface;
++    std::shared_ptr<sdbusplus::asio::dbus_interface> ipmiInterface;
  };
  
  namespace redundancy
-@@ -70,6 +108,7 @@ class TachSensor : public Sensor
+@@ -70,6 +118,7 @@ class TachSensor : public Sensor
                 std::optional<RedundancySensor>* redundancy,
                 boost::asio::io_service& io, const std::string& fanName,
                 std::vector<thresholds::Threshold>&& thresholds,
@@ -127,7 +138,7 @@ index fa9de07..47b5bac 100644
                 const std::string& sensorConfiguration,
                 const std::pair<size_t, size_t>& limits,
                 const PowerState& powerState,
-@@ -82,6 +121,7 @@ class TachSensor : public Sensor
+@@ -82,6 +131,7 @@ class TachSensor : public Sensor
      std::unique_ptr<PresenceSensor> presence;
      std::shared_ptr<sdbusplus::asio::dbus_interface> itemIface;
      std::shared_ptr<sdbusplus::asio::dbus_interface> itemAssoc;
@@ -135,56 +146,61 @@ index fa9de07..47b5bac 100644
      boost::asio::posix::stream_descriptor inputDev;
      boost::asio::deadline_timer waitTimer;
      boost::asio::streambuf readBuf;
-@@ -91,20 +131,25 @@ class TachSensor : public Sensor
+@@ -91,6 +141,7 @@ class TachSensor : public Sensor
      void setupRead(void);
      void handleResponse(const boost::system::error_code& err);
      void checkThresholds(void) override;
 +    bool preCheckTachVal(void);
  };
  
--inline void logFanInserted(const std::string& device)
-+inline void logFanInserted(const std::string& device,
-+                            std::shared_ptr<sdbusplus::asio::connection>& conn)
- {
-     sd_journal_send("MESSAGE=%s", "Fan Inserted", "PRIORITY=%i", LOG_ERR,
-                     "REDFISH_MESSAGE_ID=%s", "OpenBMC.0.1.FanInserted",
-                     "REDFISH_MESSAGE_ARGS=%s", device.c_str(), NULL);
-+    recordIPMISel(device, true, conn);
- }
- 
--inline void logFanRemoved(const std::string& device)
-+inline void logFanRemoved(const std::string& device,
-+                            std::shared_ptr<sdbusplus::asio::connection>& conn)
- {
-     sd_journal_send("MESSAGE=%s", "Fan Removed", "PRIORITY=%i", LOG_ERR,
-                     "REDFISH_MESSAGE_ID=%s", "OpenBMC.0.1.FanRemoved",
-                     "REDFISH_MESSAGE_ARGS=%s", device.c_str(), NULL);
-+    recordIPMISel(device, false, conn);
- }
- 
- inline void logFanRedundancyLost(void)
+ inline void logFanInserted(const std::string& device)
 diff --git a/src/FanMain.cpp b/src/FanMain.cpp
-index e613494..a861ff2 100644
+index e613494..76f8bf4 100644
 --- a/src/FanMain.cpp
 +++ b/src/FanMain.cpp
-@@ -150,6 +150,73 @@ void createRedundancySensor(
+@@ -150,6 +150,101 @@ void createRedundancySensor(
          "org.freedesktop.DBus.ObjectManager", "GetManagedObjects");
  }
  
 +
-+static bool parsePresenceConfig(const SensorData::const_iterator& presenceConfig,
++static bool parsePresenceConfig(
++                        const SensorData& sensorData,
++                        const char* baseType,
 +                        std::string& sensorName, boost::asio::io_service& io,
++                        sdbusplus::asio::object_server& objectServer,
 +                        std::shared_ptr<sdbusplus::asio::connection>& dbusConnection,
++                        const std::string& configurationPath,
 +                        std::unique_ptr<PresenceSensor>& presenceSensor)
 +{
++    auto presenceConfig =
++        sensorData.find(baseType + std::string(".Presence"));
++
++    // presence sensors are optional
++    if (presenceConfig == sensorData.end())
++    {
++        /* Cannot found present config*/
++        return false;
++    }
++
 +    auto findMethod = presenceConfig->second.find("Method");
 +    if (findMethod == presenceConfig->second.end())
 +    {
++        std::cerr << "Malformed Presence Configuration\n";
 +        return false;
 +    }
 +
 +    std::string method =
 +        std::get<std::string>(findMethod->second);
++
++    std::string presentSensorName = sensorName+"_PST";
++    std::vector<ipmidata::IpmiConfig> sensorIpmiConfig;
++
++    if (!parseIpmiDataFromConfig(sensorData, sensorIpmiConfig, &presentSensorName))
++    {
++        std::cerr << "error populating ipmi for " <<
++            presentSensorName << "\n";
++    }
++
 +    if (method == "gpio")
 +    {
 +        auto findPolarity = presenceConfig->second.find("Polarity");
@@ -204,13 +220,16 @@ index e613494..a861ff2 100644
 +            {
 +                presenceSensor = std::make_unique<PresenceSensor>(
 +                    presenceMethod::gpio,
-+                    *pinName, inverted, io, sensorName, dbusConnection);
++                    *pinName, inverted, io, presentSensorName,
++                    objectServer, dbusConnection,
++                    configurationPath,std::move(sensorIpmiConfig));
++                return true;
 +            }
 +            else
 +            {
 +                std::cerr
 +                    << "Malformed Presence pinName for sensor "
-+                    << sensorName << " \n";
++                    << presentSensorName << " \n";
 +            }
 +        }
 +    }
@@ -225,12 +244,12 @@ index e613494..a861ff2 100644
 +                std::visit(VariantToUnsignedIntVisitor(), findTachVal->second));
 +            double hysVal = static_cast<double>(
 +                std::visit(VariantToUnsignedIntVisitor(), findHysVal->second));
-+            // presenceMethod method = presenceMethod::tach;
 +
 +            presenceSensor = std::make_unique<PresenceSensor>(
 +                presenceMethod::tach, tachVal, hysVal,
-+                io, sensorName, dbusConnection);
-+
++                io, presentSensorName,
++                objectServer, dbusConnection,
++                configurationPath,std::move(sensorIpmiConfig));
 +            return true;
 +        }
 +    }
@@ -241,7 +260,7 @@ index e613494..a861ff2 100644
  void createSensors(
      boost::asio::io_service& io, sdbusplus::asio::object_server& objectServer,
      boost::container::flat_map<std::string, std::unique_ptr<TachSensor>>&
-@@ -188,8 +255,11 @@ void createSensors(
+@@ -188,8 +283,11 @@ void createSensors(
                  fs::path directory = path.parent_path();
                  FanTypes fanType = getFanType(directory);
  
@@ -254,10 +273,12 @@ index e613494..a861ff2 100644
  
                  const char* baseType;
                  const SensorData* sensorData = nullptr;
-@@ -318,6 +388,14 @@ void createSensors(
+@@ -318,40 +416,25 @@ void createSensors(
                                << sensorName << "\n";
                  }
  
+-                auto presenceConfig =
+-                    sensorData->find(baseType + std::string(".Presence"));
 +                std::vector<ipmidata::IpmiConfig> sensorIpmiConfig;
 +                std::string name = sensorName.substr(0, sensorName.find(" "));
 +                if (!parseIpmiDataFromConfig(*sensorData, sensorIpmiConfig, &name))
@@ -265,24 +286,26 @@ index e613494..a861ff2 100644
 +                    std::cerr << "error populating ipmi for "
 +                                << name << "\n";
 +                }
-+
-                 auto presenceConfig =
-                     sensorData->find(baseType + std::string(".Presence"));
  
-@@ -326,31 +404,11 @@ void createSensors(
-                 // presence sensors are optional
-                 if (presenceConfig != sensorData->end())
+-                std::unique_ptr<PresenceSensor> presenceSensor(nullptr);
+ 
+-                // presence sensors are optional
+-                if (presenceConfig != sensorData->end())
++                std::unique_ptr<PresenceSensor> presenceSensor(nullptr);
++                if (!parsePresenceConfig(
++                    *sensorData, baseType,
++                    sensorName, io,
++                    objectServer, dbusConnection, *interfacePath,
++                    presenceSensor))
                  {
 -                    auto findPolarity = presenceConfig->second.find("Polarity");
 -                    auto findPinName = presenceConfig->second.find("PinName");
 -
 -                    if (findPinName == presenceConfig->second.end() ||
 -                        findPolarity == presenceConfig->second.end())
-+                    if (!parsePresenceConfig(presenceConfig,
-+                        sensorName, io, dbusConnection, presenceSensor))
-                     {
-                         std::cerr << "Malformed Presence Configuration\n";
-                     }
+-                    {
+-                        std::cerr << "Malformed Presence Configuration\n";
+-                    }
 -                    else
 -                    {
 -                        bool inverted = std::get<std::string>(
@@ -300,10 +323,13 @@ index e613494..a861ff2 100644
 -                                << sensorName << " \n";
 -                        }
 -                    }
++                    std::cerr << "Malformed Presence Configuration\n";
                  }
++
                  std::optional<RedundancySensor>* redundancy = nullptr;
                  if (fanType == FanTypes::aspeed)
-@@ -370,6 +428,14 @@ void createSensors(
+                 {
+@@ -370,6 +453,14 @@ void createSensors(
                      }
                  }
  
@@ -318,7 +344,7 @@ index e613494..a861ff2 100644
                  constexpr double defaultMaxReading = 25000;
                  constexpr double defaultMinReading = 0;
                  auto limits =
-@@ -381,20 +447,23 @@ void createSensors(
+@@ -381,20 +472,23 @@ void createSensors(
                  std::optional<std::string> led;
                  std::string pwmName;
                  fs::path pwmPath;
@@ -344,7 +370,7 @@ index e613494..a861ff2 100644
                          /* use pwm name override if found in configuration else
                           * use default */
                          auto findOverride = connector->second.find("PwmName");
-@@ -405,7 +474,7 @@ void createSensors(
+@@ -405,7 +499,7 @@ void createSensors(
                          }
                          else
                          {
@@ -353,7 +379,7 @@ index e613494..a861ff2 100644
                          }
                      }
                      else
-@@ -435,15 +504,58 @@ void createSensors(
+@@ -435,15 +529,58 @@ void createSensors(
                  tachSensors[sensorName] = std::make_unique<TachSensor>(
                      path.string(), baseType, objectServer, dbusConnection,
                      std::move(presenceSensor), redundancy, io, sensorName,
@@ -546,7 +572,7 @@ index f76ea50..9113b4e 100644
  
  void PwmSensor::setValue(uint32_t value)
 diff --git a/src/TachSensor.cpp b/src/TachSensor.cpp
-index b3c955c..a704e0c 100644
+index b3c955c..b5e2d3b 100644
 --- a/src/TachSensor.cpp
 +++ b/src/TachSensor.cpp
 @@ -37,8 +37,11 @@
@@ -695,11 +721,15 @@ index b3c955c..a704e0c 100644
      responseStream.clear();
      inputDev.close();
      int fd = open(path.c_str(), O_RDONLY);
-@@ -201,11 +265,38 @@ void TachSensor::checkThresholds(void)
+@@ -201,11 +265,40 @@ void TachSensor::checkThresholds(void)
      }
  }
  
 -PresenceSensor::PresenceSensor(const std::string& gpioName, bool inverted,
+-                               boost::asio::io_service& io,
+-                               const std::string& name) :
+-    inverted(inverted),
+-    gpioLine(gpiod::find_line(gpioName)), gpioFd(io), name(name)
 +/* @brief To pre-check tach value mechanism
 + *        to avoid tach value abruptly changed on the dbus
 + * @param[in] curTachVal - current tach value
@@ -726,32 +756,95 @@ index b3c955c..a704e0c 100644
 +}
 +
 +PresenceSensor::PresenceSensor(presenceMethod&& method,
-+                               const std::string& gpioName, bool inverted,
-                                boost::asio::io_service& io,
--                               const std::string& name) :
--    inverted(inverted),
--    gpioLine(gpiod::find_line(gpioName)), gpioFd(io), name(name)
-+                               const std::string& name,
-+                               std::shared_ptr<sdbusplus::asio::connection>& conn) :
++                   const std::string& gpioName, bool inverted,
++                   boost::asio::io_service& io, const std::string& name,
++                   sdbusplus::asio::object_server& objectServer,
++                   std::shared_ptr<sdbusplus::asio::connection>& conn,
++                   const std::string& configurationPath,
++                   std::vector<ipmidata::IpmiConfig>&& _ipmiinfo):
 +    inverted(inverted),gpioLine(gpiod::find_line(gpioName)),
-+    gpioFd(io), name(name), method(method),conn(conn)
++    gpioFd(io), name(name), method(method), objServer(objectServer), conn(conn)
  {
      if (!gpioLine)
      {
-@@ -239,10 +330,26 @@ PresenceSensor::PresenceSensor(const std::string& gpioName, bool inverted,
+@@ -236,13 +329,93 @@ PresenceSensor::PresenceSensor(const std::string& gpioName, bool inverted,
+         return;
+     }
+ 
++    /* If impiInfo is configured, expose dbus interface.*/
++    if (!_ipmiinfo.empty())
++    {
++        sensorInterface = objectServer.add_interface(
++            PRESENT_SENSOR_PATH + "/" + name,
++            "xyz.openbmc_project.Sensor.Value");
++
++        sensorInterface->register_property("Value", value);
++        sensorInterface->initialize();
++
++        ipmiInterface = objectServer.add_interface(
++            PRESENT_SENSOR_PATH + "/" + name,
++            "xyz.openbmc_project.Sensor.IpmiSensor");
++
++        for (auto& ipmi : _ipmiinfo)
++        {
++            ipmiInterface->register_property("sensorNumber", ipmi.number);
++            ipmiInterface->register_property("entityID", ipmi.entityId);
++            ipmiInterface->register_property("entityInstance", ipmi.entityIns);
++        }
++
++        ipmiInterface->initialize();
++
++        association = objectServer.add_interface(
++            PRESENT_SENSOR_PATH + "/" + name,
++            association::interface);
++
++        createAssociation(association, configurationPath);
++    }
      monitorPresence();
  }
  
 +PresenceSensor::PresenceSensor(presenceMethod&& method,
 +                   double& tachVal, double& hysVal,
 +                   boost::asio::io_service& io, const std::string& name,
-+                   std::shared_ptr<sdbusplus::asio::connection>& conn) :
-+                   gpioFd(io), name(name), method(method), conn(conn)
++                   sdbusplus::asio::object_server& objectServer,
++                   std::shared_ptr<sdbusplus::asio::connection>& conn,
++                   const std::string& configurationPath,
++                   std::vector<ipmidata::IpmiConfig>&& _ipmiinfo) :
++                   gpioFd(io), name(name), method(method), objServer(objectServer), conn(conn)
 +{
 +    // this tach value is used to judge un-presence of this fan
 +    badTach = tachVal;
 +    // this tach value is used to judge presence of this fan
 +    goodTach = tachVal + hysVal;
++
++    /* If impiInfo is configured, expose dbus interface.*/
++    if (!_ipmiinfo.empty())
++    {
++        sensorInterface = objectServer.add_interface(
++            PRESENT_SENSOR_PATH + "/" + name,
++            "xyz.openbmc_project.Sensor.Value");
++        sensorInterface->register_property("Value", value);
++        sensorInterface->initialize();
++
++        ipmiInterface = objectServer.add_interface(
++            PRESENT_SENSOR_PATH + "/" + name,
++            "xyz.openbmc_project.Sensor.IpmiSensor");
++
++        for (auto& ipmi : _ipmiinfo)
++        {
++            ipmiInterface->register_property("sensorNumber", ipmi.number);
++            ipmiInterface->register_property("entityID", ipmi.entityId);
++            ipmiInterface->register_property("entityInstance", ipmi.entityIns);
++        }
++
++        ipmiInterface->initialize();
++
++        association = objectServer.add_interface(
++            PRESENT_SENSOR_PATH + "/" + name,
++            association::interface);
++
++        createAssociation(association, configurationPath);
++    }
 +}
 +
 +
@@ -764,24 +857,26 @@ index b3c955c..a704e0c 100644
 +        gpioFd.close();
 +        gpioLine.release();
 +    }
++    objServer.remove_interface(sensorInterface);
++    objServer.remove_interface(ipmiInterface);
++    objServer.remove_interface(association);
  }
  
  void PresenceSensor::monitorPresence(void)
-@@ -274,11 +381,11 @@ void PresenceSensor::read(void)
-     // Read is invoked when an edge event is detected by monitorPresence
+@@ -275,10 +448,12 @@ void PresenceSensor::read(void)
      if (status)
      {
--        logFanInserted(name);
-+        logFanInserted(name, conn);
+         logFanInserted(name);
++        recordAbsentIPMISel(false);
      }
      else
      {
--        logFanRemoved(name);
-+        logFanRemoved(name, conn);
+         logFanRemoved(name);
++        recordAbsentIPMISel(true);
      }
  }
  
-@@ -287,6 +394,65 @@ bool PresenceSensor::getValue(void)
+@@ -287,6 +462,106 @@ bool PresenceSensor::getValue(void)
      return status;
  }
  
@@ -797,7 +892,7 @@ index b3c955c..a704e0c 100644
 +}
 +
 +/*
-+ * @brief To check presence of the fun
++ * @brief To check presence of the fan
 + * @param[in] tachVal - the current tach value
 + * @return bool, to indecate is under checking or not because we need to check few times.
 + *         true: done checking
@@ -818,7 +913,8 @@ index b3c955c..a704e0c 100644
 +            {
 +                unpresentCount = 0;
 +                status = false;
-+                logFanRemoved(name, conn);
++                logFanRemoved(name);
++                recordAbsentIPMISel(true);
 +                return true; // done checking
 +            }
 +            return false; // under checking
@@ -833,7 +929,8 @@ index b3c955c..a704e0c 100644
 +            {
 +                presentCount = 0;
 +                status = true;
-+                logFanInserted(name, conn);
++                logFanInserted(name);
++                recordAbsentIPMISel(false);
 +                return true; // done checking
 +            }
 +            return false; // under checking
@@ -844,24 +941,26 @@ index b3c955c..a704e0c 100644
 +}
 +
 +
- RedundancySensor::RedundancySensor(size_t count,
-                                    const std::vector<std::string>& children,
-                                    sdbusplus::asio::object_server& objectServer,
-@@ -347,3 +513,31 @@ void RedundancySensor::update(const std::string& name, bool failed)
-         iface->set_property("Status", state);
-     }
- }
-+
-+void recordIPMISel(const std::string& sensorName, bool assert,
-+                   std::shared_ptr<sdbusplus::asio::connection>& conn)
++/*
++ * @brief To record to SEL for fan insert/remove
++ * @param[in] assert - insert/remove
++ * @return void
++*/
++void PresenceSensor::recordAbsentIPMISel(bool assert)
 +{
 +    try
 +    {
-+        std::string sendMessage = "FAN_EVENT " + sensorName;
-+        std::string eventMessage = SENSOR_PATH + sensorType + "/" + sensorName;
++        std::string sendMessage = "FAN_EVENT " + name;
++        std::string eventMessage = PRESENT_SENSOR_PATH + "/" + name;
 +
 +        uint8_t genID = 0x20; // BMC ID
-+        std::vector<uint8_t> eventData = {0x01, 0xFF, 0xFF}; // Unspecified Byte2 and Byte3
++        /*
++         *  Event Data 1 for event reading type: discrete 08h
++         *  00 - Device remove
++         *  01 - Device insert
++         *  Here we record "remove event", and use assert for direction.
++         */
++        std::vector<uint8_t> eventData = {0x00, 0xFF, 0xFF}; // Unspecified Byte2 and Byte3
 +
 +        // Write SEL method
 +        sdbusplus::message::message writeSEL = conn->new_method_call(
@@ -875,9 +974,19 @@ index b3c955c..a704e0c 100644
 +    catch (const std::exception& e)
 +    {
 +        std::cerr << e.what() << '\n';
-+        throw std::runtime_error(sensorName + ", Failed to record event");
++        throw std::runtime_error(name + ", Failed to record event");
 +    }
 +}
++
++
++
+ RedundancySensor::RedundancySensor(size_t count,
+                                    const std::vector<std::string>& children,
+                                    sdbusplus::asio::object_server& objectServer,
+@@ -347,3 +622,4 @@ void RedundancySensor::update(const std::string& name, bool failed)
+         iface->set_property("Status", state);
+     }
+ }
 +
 -- 
 2.17.1

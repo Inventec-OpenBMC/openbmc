@@ -1,4 +1,4 @@
-From 5773264b03b8a66bf9b1c275819303bb9db7feb6 Mon Sep 17 00:00:00 2001
+From 6f26e019709377039b993e2dc78a12f3ace78703 Mon Sep 17 00:00:00 2001
 From: "pj.chen" <chen.pj@inventec.com>
 Date: Wed, 19 May 2021 07:06:55 +0000
 Subject: [PATCH] - Create EventSensor to setup event only sensor on dbus
@@ -80,13 +80,13 @@ xyz.openbmc_project.Sensor.IpmiSensor       interface -         -               
 xyz.openbmc_project.Sensor.Value            interface -         -                                        -
 .Value                                      property  d         0                                        emits-change
 ---
- include/EventSensor.hpp                            |  29 ++
- meson_options.txt                                  |   1 +
- service_files/meson.build                          |   1 +
- .../xyz.openbmc_project.eventsensor.service        |  12 +
- src/EventSensor.cpp                                | 306 +++++++++++++++++++++
- src/meson.build                                    |  16 ++
- 6 files changed, 365 insertions(+)
+ include/EventSensor.hpp                       |  29 ++
+ meson_options.txt                             |   1 +
+ service_files/meson.build                     |   1 +
+ .../xyz.openbmc_project.eventsensor.service   |  12 +
+ src/EventSensor.cpp                           | 307 ++++++++++++++++++
+ src/meson.build                               |  16 +
+ 6 files changed, 366 insertions(+)
  create mode 100644 include/EventSensor.hpp
  create mode 100644 service_files/xyz.openbmc_project.eventsensor.service
  create mode 100644 src/EventSensor.cpp
@@ -171,10 +171,10 @@ index 0000000..2bc9fc9
 \ No newline at end of file
 diff --git a/src/EventSensor.cpp b/src/EventSensor.cpp
 new file mode 100644
-index 0000000..a5980ab
+index 0000000..4790451
 --- /dev/null
 +++ b/src/EventSensor.cpp
-@@ -0,0 +1,306 @@
+@@ -0,0 +1,307 @@
 +#include "EventSensor.hpp"
 +#include "Utils.hpp"
 +
@@ -266,6 +266,7 @@ index 0000000..a5980ab
 +{
 +    objServer.remove_interface(sensorInterface);
 +    objServer.remove_interface(ipmiInterface);
++    objServer.remove_interface(association);
 +}
 +
 +void createSensors(
@@ -482,10 +483,10 @@ index 0000000..a5980ab
 +}
 +
 diff --git a/src/meson.build b/src/meson.build
-index 284f85b..cd7b869 100644
+index 47d07e0..dbf8824 100644
 --- a/src/meson.build
 +++ b/src/meson.build
-@@ -177,6 +177,22 @@ if get_option('wdt').enabled()
+@@ -176,6 +176,22 @@ if get_option('wdt').enabled()
      )
  endif
  
@@ -509,5 +510,5 @@ index 284f85b..cd7b869 100644
  if get_option('intrusion').enabled()
      executable(
 -- 
-2.7.4
+2.17.1
 

@@ -1,4 +1,4 @@
-From 5f23653347a9152f95f29355f51c9229514b12b6 Mon Sep 17 00:00:00 2001
+From a124ba035174374890d9974fb44d588f5d2661f3 Mon Sep 17 00:00:00 2001
 From: "pj.chen" <chen.pj@inventec.com>
 Date: Thu, 20 May 2021 02:32:45 +0000
 Subject: [PATCH] [inventec][common] - Add more sensor type and event type
@@ -23,16 +23,16 @@ busctl call "xyz.openbmc_project.Logging.IPMI" "/xyz/openbmc_project/Logging/IPM
 sysadmin@transformers:~# ipmitool sel elist
    1 |  Pre-Init  |0000000815| System Event DCMI_Power_Off | Transition to Power Off | Asserted
 ---
- include/sdrutils.hpp        | 27 +++++++++++++++++++++++++--
+ include/sdrutils.hpp        | 40 +++++++++++++++++++++++++++++++++++--
  include/storagecommands.hpp |  1 +
  src/sensorcommands.cpp      |  1 +
- 3 files changed, 27 insertions(+), 2 deletions(-)
+ 3 files changed, 40 insertions(+), 2 deletions(-)
 
 diff --git a/include/sdrutils.hpp b/include/sdrutils.hpp
-index 824a1bd..0f3c997 100644
+index 6eab0c1..375bb3a 100644
 --- a/include/sdrutils.hpp
 +++ b/include/sdrutils.hpp
-@@ -409,7 +409,12 @@ enum class SensorTypeCodes : uint8_t
+@@ -568,7 +568,12 @@ enum class SensorTypeCodes : uint8_t
      voltage = 0x2,
      current = 0x3,
      fan = 0x4,
@@ -45,7 +45,7 @@ index 824a1bd..0f3c997 100644
      oem = 0xC0,
  };
  
-@@ -420,7 +425,14 @@ const static boost::container::flat_map<const char*, SensorTypeCodes, CmpStr>
+@@ -579,7 +584,14 @@ const static boost::container::flat_map<const char*, SensorTypeCodes, CmpStr>
                   {"current", SensorTypeCodes::current},
                   {"fan_tach", SensorTypeCodes::fan},
                   {"fan_pwm", SensorTypeCodes::fan},
@@ -61,33 +61,41 @@ index 824a1bd..0f3c997 100644
  
  inline static std::string getSensorTypeStringFromPath(const std::string& path)
  {
-@@ -487,6 +499,8 @@ enum class EventTypeCodes : uint8_t
-     unspecific = 0x00,
-     threshold = 0x01,
-     discrete = 0x03,
-+    discrete_05h = 0x05,
-+    discrete_0ah = 0x0a,
-     specific = 0x6F,
-     oem = 0x70,
- };
-@@ -495,7 +509,16 @@ inline static uint8_t getEventTypeStringFromPath(const std::string& path)
+@@ -654,9 +666,33 @@ inline static uint8_t getEventTypeStringFromPath(const std::string& path)
  {
      uint8_t eventType = 0xFF;
  
--    if (path.find("discrete") != std::string::npos)
 +    /* Add more path key words */
-+    if (path.find("discrete_05h") != std::string::npos)
-+    {
-+        eventType = (uint8_t)EventTypeCodes::discrete_05h;
-+    }
-+    else if (path.find("discrete_0ah") != std::string::npos)
-+    {
-+        eventType = (uint8_t)EventTypeCodes::discrete_0ah;
-+    }
-+    else if (path.find("discrete") != std::string::npos)
+     if (path.find("discrete") != std::string::npos)
      {
-         eventType = (uint8_t)EventTypeCodes::discrete;
+-        eventType = (uint8_t)EventTypeCodes::discrete;
++        /* parsing the path for exactly event type
++         * get sensor type string from path, path is defined as
++         * /xyz/openbmc_project/sensors/<event type>/<sensor type>/label
++         * And disctere should have format "discrete_<hex>h",
++         * For example "discrete_05h", "discrete_0ch"
++         */
++        size_t discreteStart = path.find("discrete");
++        size_t discreteEnd = path.find("/",discreteStart);
++        std::string discreteString = path.substr(
++            discreteStart, discreteEnd - discreteStart);
++
++        size_t hexStart = discreteString.find("_");
++        if(hexStart == std::string::npos)
++        {
++            /* "discrete" only*/
++            eventType = (uint8_t)EventTypeCodes::discrete;
++        }
++        else
++        {
++            /* discrete_<hex_string>h, get the hex_string out*/
++            std::string hexString = discreteString.substr(
++                hexStart+1, 2);
++            eventType = std::stoi(hexString, 0, 16);
++        }
      }
+     else if (path.find("unspecific") != std::string::npos)
+     {
 diff --git a/include/storagecommands.hpp b/include/storagecommands.hpp
 index c9e2bd2..173f936 100644
 --- a/include/storagecommands.hpp
@@ -101,10 +109,10 @@ index c9e2bd2..173f936 100644
  };
  
 diff --git a/src/sensorcommands.cpp b/src/sensorcommands.cpp
-index 8c90e29..e775d6b 100644
+index 01a3c73..4e6c006 100644
 --- a/src/sensorcommands.cpp
 +++ b/src/sensorcommands.cpp
-@@ -81,6 +81,7 @@ const static boost::container::flat_map<const char*, SensorUnits, CmpStr>
+@@ -79,6 +79,7 @@ const static boost::container::flat_map<const char*, SensorUnits, CmpStr>
      sensorUnits{{{"temperature", SensorUnits::degreesC},
                   {"voltage", SensorUnits::volts},
                   {"current", SensorUnits::amps},
@@ -113,5 +121,5 @@ index 8c90e29..e775d6b 100644
                   {"power", SensorUnits::watts}}};
  
 -- 
-2.7.4
+2.17.1
 
