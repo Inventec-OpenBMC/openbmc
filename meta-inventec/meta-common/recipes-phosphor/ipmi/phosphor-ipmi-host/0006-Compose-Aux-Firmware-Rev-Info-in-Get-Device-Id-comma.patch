@@ -1,7 +1,7 @@
-From 9c8bb2f7c6db990290141366b7972dd4fd57a076 Mon Sep 17 00:00:00 2001
+From fd49f6789737a6660bdb058c478b4553d9f349b6 Mon Sep 17 00:00:00 2001
 From: "Lin.TommySC" <lin.tommysc@inventec.com>
 Date: Wed, 24 Mar 2021 06:00:52 +0000
-Subject: [PATCH 06/16] Compose Aux Firmware Rev Info in Get Device Id command
+Subject: [PATCH] Compose Aux Firmware Rev Info in Get Device Id command
 
 Symptom/Reason :
     - Aux Firmware Rev Info in "Get Device Id" command response is null.
@@ -18,13 +18,31 @@ Solution/Change:
 Entry Test:
 ipmitool mc info
 ---
- apphandler.cpp | 42 ++++++++++++++++++++----------------------
- 1 file changed, 20 insertions(+), 22 deletions(-)
+ apphandler.cpp | 50 ++++++++++++++++++++++++--------------------------
+ 1 file changed, 24 insertions(+), 26 deletions(-)
 
 diff --git a/apphandler.cpp b/apphandler.cpp
-index 90818a9..2c653ed 100644
+index 90818a9..8325d3a 100644
 --- a/apphandler.cpp
 +++ b/apphandler.cpp
+@@ -498,7 +498,7 @@ int convertVersion(std::string s, Revision& rev)
+         if (location != std::string::npos)
+         {
+             rev.major =
+-                static_cast<char>(std::stoi(s.substr(0, location), 0, 16));
++                static_cast<char>(std::stoi(s.substr(0, location), 0));
+             token = s.substr(location + 1);
+         }
+ 
+@@ -508,7 +508,7 @@ int convertVersion(std::string s, Revision& rev)
+             if (location != std::string::npos)
+             {
+                 rev.minor = static_cast<char>(
+-                    std::stoi(token.substr(0, location), 0, 16));
++                    std::stoi(token.substr(0, location), 0));
+                 token = token.substr(location + 1);
+             }
+         }
 @@ -516,39 +516,37 @@ int convertVersion(std::string s, Revision& rev)
          // Capture the number of commits on top of the minor tag.
          // I'm using BE format like the ipmi spec asked for
@@ -61,29 +79,39 @@ index 90818a9..2c653ed 100644
          }
  
 +        // Extract RC revision value
-+        location = token.find_first_of("-rc");
++        location = token.find("-rc");
          if (location != std::string::npos)
          {
 -            token = token.substr(location + 1);
-+            token = token.substr(location + 3);
-         }
+-        }
 -
 -        // Any value of the optional parameter forces it to 1
-         location = token.find_first_of(".-");
+-        location = token.find_first_of(".-");
 -        if (location != std::string::npos)
 -        {
 -            token = token.substr(location + 1);
--        }
++            token = token.substr(location + 3);
++            location = token.find_first_of(".-");
++            commits = std::stoi(token.substr(0, location));
++            rev.d[1] |= commits << 8;
+         }
 -        commits = (!token.empty()) ? 1 : 0;
 -
 -        // We do this operation to get this displayed in least significant bytes
 -        // of ipmitool device id command.
 -        rev.d[1] = (commits >> 8) | (commits << 8);
-+        commits = std::stoi(token.substr(0, location));
-+        rev.d[1] |= commits << 8;
      }
  
      return 0;
+@@ -622,7 +620,7 @@ ipmi::RspType<uint8_t,  // Device ID
+             devId.fw[0] = rev.major & ipmiDevIdFw1Mask;
+ 
+             rev.minor = (rev.minor > 99 ? 99 : rev.minor);
+-            devId.fw[1] = rev.minor % 10 + (rev.minor / 10) * 16;
++            devId.fw[1] = rev.minor;
+             std::memcpy(&devId.aux, rev.d, 4);
+         }
+ 
 @@ -640,7 +638,7 @@ ipmi::RspType<uint8_t,  // Device ID
                  devId.addnDevSupport = data.value("addn_dev_support", 0);
                  devId.manufId = data.value("manuf_id", 0);
@@ -94,5 +122,5 @@ index 90818a9..2c653ed 100644
                  // Set the availablitity of the BMC.
                  defaultActivationSetting = data.value("availability", true);
 -- 
-2.7.4
+2.17.1
 
