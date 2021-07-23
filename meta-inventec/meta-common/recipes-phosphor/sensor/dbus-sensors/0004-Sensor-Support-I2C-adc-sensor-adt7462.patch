@@ -1,13 +1,13 @@
-From 841a42e7d908aad13e008db9f9d36460560fa92e Mon Sep 17 00:00:00 2001
+From b4b584ece9bcc2ec1224feb0fa0da9a22f493f9e Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Fri, 21 Aug 2020 19:07:11 -0400
-Subject: [PATCH] Subject: [PATCH] [Sensor] Support I2C adc sensor adt7462
+Subject: [PATCH] [Sensor] Support I2C adc sensor adt7462
 
-Support I2C adc sensor adt7462
+- Support I2C adc sensor adt7462
 ---
  include/ADCSensor.hpp |  2 ++
- src/ADCSensor.cpp     | 22 ++++++++++++++
- src/ADCSensorMain.cpp | 80 +++++++++++++++++++++++++++++++++++----------------
+ src/ADCSensor.cpp     | 22 ++++++++++++
+ src/ADCSensorMain.cpp | 80 +++++++++++++++++++++++++++++--------------
  3 files changed, 79 insertions(+), 25 deletions(-)
 
 diff --git a/include/ADCSensor.hpp b/include/ADCSensor.hpp
@@ -236,5 +236,5 @@ index edc055a..da7d26b 100644
          createSensors(io, objectServer, sensors, systemBus, nullptr);
      });
 -- 
-2.7.4
+2.17.1
 

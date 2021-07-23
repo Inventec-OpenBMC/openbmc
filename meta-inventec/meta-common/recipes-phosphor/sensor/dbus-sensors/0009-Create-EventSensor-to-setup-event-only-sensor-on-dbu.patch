@@ -1,6 +1,6 @@
-From 6f26e019709377039b993e2dc78a12f3ace78703 Mon Sep 17 00:00:00 2001
-From: "pj.chen" <chen.pj@inventec.com>
-Date: Wed, 19 May 2021 07:06:55 +0000
+From b8d66c1c90d79ecd2edb6ec981c10547011dd4fd Mon Sep 17 00:00:00 2001
+From: link <link@inventec.com>
+Date: Thu, 22 Jul 2021 11:37:44 +0000
 Subject: [PATCH] - Create EventSensor to setup event only sensor on dbus
 
 Sympton/Reason:
@@ -84,8 +84,8 @@ xyz.openbmc_project.Sensor.Value            interface -         -               
  meson_options.txt                             |   1 +
  service_files/meson.build                     |   1 +
  .../xyz.openbmc_project.eventsensor.service   |  12 +
- src/EventSensor.cpp                           | 307 ++++++++++++++++++
- src/meson.build                               |  16 +
+ src/EventSensor.cpp                           | 306 ++++++++++++++++++
+ src/meson.build                               |  17 +
  6 files changed, 366 insertions(+)
  create mode 100644 include/EventSensor.hpp
  create mode 100644 service_files/xyz.openbmc_project.eventsensor.service
@@ -127,10 +127,10 @@ index 0000000..ea5cad7
 +    std::shared_ptr<sdbusplus::asio::dbus_interface> ipmiInterface;
 +};
 diff --git a/meson_options.txt b/meson_options.txt
-index 78c5d37..6ed1ab3 100644
+index a1009fd..7047ef8 100644
 --- a/meson_options.txt
 +++ b/meson_options.txt
-@@ -7,6 +7,7 @@ option('gpio', type: 'feature', value: 'enabled', description: 'Enable GPIO even
+@@ -6,6 +6,7 @@ option('hwmon-temp', type: 'feature', value: 'enabled', description: 'Enable HWM
  option('bios', type: 'feature', value: 'enabled', description: 'Enable BIOS event sensor.',)
  option('nm', type: 'feature', value: 'enabled', description: 'Enable NM event sensor.',)
  option('wdt', type: 'feature', value: 'enabled', description: 'Enable Watchdog event sensor.',)
@@ -139,10 +139,10 @@ index 78c5d37..6ed1ab3 100644
  option('ipmb', type: 'feature', value: 'enabled', description: 'Enable IPMB sensor.',)
  option('mcu', type: 'feature', value: 'enabled', description: 'Enable MCU sensor.',)
 diff --git a/service_files/meson.build b/service_files/meson.build
-index 19bea37..9d41e24 100644
+index e39bc76..4c5a32e 100644
 --- a/service_files/meson.build
 +++ b/service_files/meson.build
-@@ -8,6 +8,7 @@ unit_files = [
+@@ -7,6 +7,7 @@ unit_files = [
      ['bios', 'xyz.openbmc_project.bioseventsensor.service'],
      ['nm', 'xyz.openbmc_project.nmeventsensor.service'],
      ['wdt', 'xyz.openbmc_project.wdtsensor.service'],
@@ -171,10 +171,10 @@ index 0000000..2bc9fc9
 \ No newline at end of file
 diff --git a/src/EventSensor.cpp b/src/EventSensor.cpp
 new file mode 100644
-index 0000000..4790451
+index 0000000..a5980ab
 --- /dev/null
 +++ b/src/EventSensor.cpp
-@@ -0,0 +1,307 @@
+@@ -0,0 +1,306 @@
 +#include "EventSensor.hpp"
 +#include "Utils.hpp"
 +
@@ -266,7 +266,6 @@ index 0000000..4790451
 +{
 +    objServer.remove_interface(sensorInterface);
 +    objServer.remove_interface(ipmiInterface);
-+    objServer.remove_interface(association);
 +}
 +
 +void createSensors(
@@ -483,10 +482,10 @@ index 0000000..4790451
 +}
 +
 diff --git a/src/meson.build b/src/meson.build
-index 47d07e0..dbf8824 100644
+index 446669f..8a82897 100644
 --- a/src/meson.build
 +++ b/src/meson.build
-@@ -176,6 +176,22 @@ if get_option('wdt').enabled()
+@@ -154,6 +154,23 @@ if get_option('wdt').enabled()
      )
  endif
  
@@ -506,9 +505,10 @@ index 47d07e0..dbf8824 100644
 +        ],
 +    )
 +endif
- 
++
  if get_option('intrusion').enabled()
      executable(
+         'intrusionsensor',
 -- 
 2.17.1
 

@@ -1,4 +1,4 @@
-From ebaeca90843e1e16cbc15a34d98792d9b64a7d2e Mon Sep 17 00:00:00 2001
+From be8579b4116fb65b5e41c8b8f9d538b845d4f5d3 Mon Sep 17 00:00:00 2001
 From: "pj.chen" <chen.pj@inventec.com>
 Date: Tue, 29 Dec 2020 02:38:02 +0000
 Subject: [PATCH] - Add tmp468 support and Label search for extra thresold and
@@ -86,5 +86,5 @@ index 916a980..0c9166a 100644
                          sensor->setupRead();
                      }
 -- 
-2.7.4
+2.17.1
 

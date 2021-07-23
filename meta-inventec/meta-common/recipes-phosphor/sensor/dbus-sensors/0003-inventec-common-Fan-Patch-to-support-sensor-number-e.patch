@@ -1,4 +1,4 @@
-From fa841de82270983529db109ca47d546c9c026cd9 Mon Sep 17 00:00:00 2001
+From f810dfec1eef3dc5d643383af5f7de668e9a46c1 Mon Sep 17 00:00:00 2001
 From: "pj.chen" <chen.pj@inventec.com>
 Date: Mon, 12 Jul 2021 05:33:39 +0000
 Subject: [PATCH] [inventec][common][Fan] - Patch to support sensor number,

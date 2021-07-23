@@ -1,17 +1,17 @@
-From 30ffd7a819e1b05d19582272f380a96e4fb6818d Mon Sep 17 00:00:00 2001
-From: anonymous <anonymous@inventec.com>
-Date: Fri, 11 Sep 2020 18:03:14 -0400
-Subject: [PATCH] Subject: [Patch][Sensor] Add WATCHDOG sensor DBUS interface
+From d6820631d90f69904c80db4683a26f3d76697ab0 Mon Sep 17 00:00:00 2001
+From: link <link@inventec.com>
+Date: Thu, 15 Jul 2021 13:41:34 +0000
+Subject: [PATCH] [Sensor] Add WATCHDOG sensor DBUS interface
 
  - Add WATCHDOG sensor DBUS interface for watchdog timeout service
    update state and value
 ---
- include/WDTSensor.hpp                              |  29 +++
- meson_options.txt                                  |   1 +
- service_files/meson.build                          |   1 +
- .../xyz.openbmc_project.wdtsensor.service          |  13 ++
- src/WDTSensor.cpp                                  | 259 +++++++++++++++++++++
- src/meson.build                                    |  17 ++
+ include/WDTSensor.hpp                         |  29 ++
+ meson_options.txt                             |   1 +
+ service_files/meson.build                     |   1 +
+ .../xyz.openbmc_project.wdtsensor.service     |  13 +
+ src/WDTSensor.cpp                             | 259 ++++++++++++++++++
+ src/meson.build                               |  17 ++
  6 files changed, 320 insertions(+)
  create mode 100644 include/WDTSensor.hpp
  create mode 100644 service_files/xyz.openbmc_project.wdtsensor.service
@@ -53,11 +53,11 @@ index 0000000..ea32a89
 +    std::string state = "";
 +};
 diff --git a/meson_options.txt b/meson_options.txt
-index e2d4a89..78c5d37 100644
+index cba49f3..a1009fd 100644
 --- a/meson_options.txt
 +++ b/meson_options.txt
-@@ -6,6 +6,7 @@ option('hwmon-temp', type: 'feature', value: 'enabled', description: 'Enable HWM
- option('gpio', type: 'feature', value: 'enabled', description: 'Enable GPIO event sensor.',)
+@@ -5,6 +5,7 @@ option('fan', type: 'feature', value: 'enabled', description: 'Enable fan sensor
+ option('hwmon-temp', type: 'feature', value: 'enabled', description: 'Enable HWMON temperature sensor.',)
  option('bios', type: 'feature', value: 'enabled', description: 'Enable BIOS event sensor.',)
  option('nm', type: 'feature', value: 'enabled', description: 'Enable NM event sensor.',)
 +option('wdt', type: 'feature', value: 'enabled', description: 'Enable Watchdog event sensor.',)
@@ -65,11 +65,11 @@ index e2d4a89..78c5d37 100644
  option('ipmb', type: 'feature', value: 'enabled', description: 'Enable IPMB sensor.',)
  option('mcu', type: 'feature', value: 'enabled', description: 'Enable MCU sensor.',)
 diff --git a/service_files/meson.build b/service_files/meson.build
-index dc79e6b..19bea37 100644
+index ef697b2..e39bc76 100644
 --- a/service_files/meson.build
 +++ b/service_files/meson.build
-@@ -7,6 +7,7 @@ unit_files = [
-     ['gpio', 'xyz.openbmc_project.gpiosensor.service'],
+@@ -6,6 +6,7 @@ unit_files = [
+     ['hwmon-temp', 'xyz.openbmc_project.hwmontempsensor.service'],
      ['bios', 'xyz.openbmc_project.bioseventsensor.service'],
      ['nm', 'xyz.openbmc_project.nmeventsensor.service'],
 +    ['wdt', 'xyz.openbmc_project.wdtsensor.service'],
@@ -361,10 +361,10 @@ index 0000000..d502afd
 +}
 +
 diff --git a/src/meson.build b/src/meson.build
-index fbc4bcb..284f85b 100644
+index 88cec63..446669f 100644
 --- a/src/meson.build
 +++ b/src/meson.build
-@@ -160,6 +160,23 @@ if get_option('nm').enabled()
+@@ -137,6 +137,23 @@ if get_option('nm').enabled()
      )
  endif
  
@@ -385,9 +385,9 @@ index fbc4bcb..284f85b 100644
 +    )
 +endif
 +
- 
  if get_option('intrusion').enabled()
      executable(
+         'intrusionsensor',
 -- 
-2.7.4
+2.17.1
 

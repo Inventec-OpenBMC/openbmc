@@ -1,4 +1,4 @@
-From f9f56080f3f043c293595c4815be86ceda511419 Mon Sep 17 00:00:00 2001
+From 30413c233af0a9ca29044eb5dff3e4de95aaed32 Mon Sep 17 00:00:00 2001
 From: "pj.chen" <chen.pj@inventec.com>
 Date: Sun, 20 Jun 2021 08:17:24 +0000
 Subject: [PATCH] - Add totalThresholdNumber when HwmonTempSensor create
@@ -175,5 +175,5 @@ index cb71886..37539da 100644
  
  HwmonTempSensor::~HwmonTempSensor()
 -- 
-2.7.4
+2.17.1
 

@@ -1,4 +1,4 @@
-From 356d7588a2a8487028ecbd36173a4b93b6b00e3d Mon Sep 17 00:00:00 2001
+From 3b9d4de3ea9dd8e4556380b91f9305674ad03adf Mon Sep 17 00:00:00 2001
 From: "pj.chen" <chen.pj@inventec.com>
 Date: Mon, 18 Jan 2021 01:54:00 +0000
 Subject: [PATCH] - Add support for inventec virtual driver
@@ -8,7 +8,7 @@ Subject: [PATCH] - Add support for inventec virtual driver
  1 file changed, 5 insertions(+), 3 deletions(-)
 
 diff --git a/src/PSUSensorMain.cpp b/src/PSUSensorMain.cpp
-index 5a883c5..58e054b 100644
+index a38ec4a..6700bd7 100644
 --- a/src/PSUSensorMain.cpp
 +++ b/src/PSUSensorMain.cpp
 @@ -40,7 +40,7 @@
@@ -40,5 +40,5 @@ index 5a883c5..58e054b 100644
  namespace fs = std::filesystem;
  
 -- 
-2.7.4
+2.17.1
 

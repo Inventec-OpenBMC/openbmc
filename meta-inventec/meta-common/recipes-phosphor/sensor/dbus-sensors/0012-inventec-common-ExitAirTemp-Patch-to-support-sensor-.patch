@@ -1,4 +1,4 @@
-From 366cb8220c0555a80a16bed87a4d1b235b53cfb6 Mon Sep 17 00:00:00 2001
+From b28cab6b560ffe27c6c51f5ff8f472f3dd806751 Mon Sep 17 00:00:00 2001
 From: "pj.chen" <chen.pj@inventec.com>
 Date: Thu, 8 Jul 2021 09:00:50 +0000
 Subject: [PATCH] [inventec][common][ExitAirTemp] - Patch to support sensor

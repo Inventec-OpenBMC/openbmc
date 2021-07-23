@@ -1,22 +1,21 @@
-From 4cca789bb30676849fe59f57a4bcaea45d5e4fd0 Mon Sep 17 00:00:00 2001
-From: anonymous <anonymous@inventec.com>
-Date: Fri, 4 Sep 2020 15:50:22 -0400
-Subject: [PATCH] Subject: [Patch][Sensor] Add NM and BIOS event DBUS interface
- for IPMI info
+From 0a3caf72f81b7348d33a46fe0fdc0f8eb4d0853e Mon Sep 17 00:00:00 2001
+From: link <link@inventec.com>
+Date: Thu, 15 Jul 2021 13:20:01 +0000
+Subject: [PATCH] [Sensor] Add NM and BIOS event DBUS interface for IPMI info
 
 - Add ME NM event DBUS for IPMI info
 - Add BIOS event DBUS for IPMI info
 ---
- include/BIOSEvent.hpp                              |  28 +++
- include/NMEvent.hpp                                |  28 +++
- meson_options.txt                                  |   2 +
- service_files/meson.build                          |   2 +
- .../xyz.openbmc_project.bioseventsensor.service    |  13 ++
- .../xyz.openbmc_project.nmeventsensor.service      |  13 ++
- src/BIOSEvent.cpp                                  | 256 +++++++++++++++++++++
- src/NMEvent.cpp                                    | 256 +++++++++++++++++++++
- src/meson.build                                    |  35 +++
- 9 files changed, 633 insertions(+)
+ include/BIOSEvent.hpp                         |  28 ++
+ include/NMEvent.hpp                           |  28 ++
+ meson_options.txt                             |   2 +
+ service_files/meson.build                     |   2 +
+ ...yz.openbmc_project.bioseventsensor.service |  13 +
+ .../xyz.openbmc_project.nmeventsensor.service |  13 +
+ src/BIOSEvent.cpp                             | 256 ++++++++++++++++++
+ src/NMEvent.cpp                               | 256 ++++++++++++++++++
+ src/meson.build                               |  34 +++
+ 9 files changed, 632 insertions(+)
  create mode 100644 include/BIOSEvent.hpp
  create mode 100644 include/NMEvent.hpp
  create mode 100644 service_files/xyz.openbmc_project.bioseventsensor.service
@@ -93,26 +92,26 @@ index 0000000..3ee86f1
 +    double status = 0;
 +};
 diff --git a/meson_options.txt b/meson_options.txt
-index 613ec80..e2d4a89 100644
+index 918d206..cba49f3 100644
 --- a/meson_options.txt
 +++ b/meson_options.txt
-@@ -4,6 +4,8 @@ option('exit-air', type: 'feature', value: 'enabled', description: 'Enable exit
+@@ -3,6 +3,8 @@ option('cpu', type: 'feature', value: 'enabled', description: 'Enable CPU sensor
+ option('exit-air', type: 'feature', value: 'enabled', description: 'Enable exit air sensor.',)
  option('fan', type: 'feature', value: 'enabled', description: 'Enable fan sensor.',)
  option('hwmon-temp', type: 'feature', value: 'enabled', description: 'Enable HWMON temperature sensor.',)
- option('gpio', type: 'feature', value: 'enabled', description: 'Enable GPIO event sensor.',)
 +option('bios', type: 'feature', value: 'enabled', description: 'Enable BIOS event sensor.',)
 +option('nm', type: 'feature', value: 'enabled', description: 'Enable NM event sensor.',)
  option('intrusion', type: 'feature', value: 'enabled', description: 'Enable intrusion sensor.',)
  option('ipmb', type: 'feature', value: 'enabled', description: 'Enable IPMB sensor.',)
  option('mcu', type: 'feature', value: 'enabled', description: 'Enable MCU sensor.',)
 diff --git a/service_files/meson.build b/service_files/meson.build
-index 7fc7d41..dc79e6b 100644
+index 37bb261..ef697b2 100644
 --- a/service_files/meson.build
 +++ b/service_files/meson.build
-@@ -5,6 +5,8 @@ unit_files = [
+@@ -4,6 +4,8 @@ unit_files = [
+     ['exit-air', 'xyz.openbmc_project.exitairsensor.service'],
      ['fan', 'xyz.openbmc_project.fansensor.service'],
      ['hwmon-temp', 'xyz.openbmc_project.hwmontempsensor.service'],
-     ['gpio', 'xyz.openbmc_project.gpiosensor.service'],
 +    ['bios', 'xyz.openbmc_project.bioseventsensor.service'],
 +    ['nm', 'xyz.openbmc_project.nmeventsensor.service'],
      ['ipmb', 'xyz.openbmc_project.ipmbsensor.service'],
@@ -681,10 +680,10 @@ index 0000000..5130b08
 +}
 +
 diff --git a/src/meson.build b/src/meson.build
-index 72d6131..fbc4bcb 100644
+index 057f26a..88cec63 100644
 --- a/src/meson.build
 +++ b/src/meson.build
-@@ -126,6 +126,41 @@ if get_option('gpio').enabled()
+@@ -103,6 +103,40 @@ if get_option('hwmon-temp').enabled()
      )
  endif
  
@@ -722,10 +721,9 @@ index 72d6131..fbc4bcb 100644
 +    )
 +endif
 +
-+
  if get_option('intrusion').enabled()
      executable(
          'intrusionsensor',
 -- 
-2.7.4
+2.17.1
 

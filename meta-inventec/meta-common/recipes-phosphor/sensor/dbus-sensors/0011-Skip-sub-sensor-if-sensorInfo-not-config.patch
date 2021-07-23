@@ -1,4 +1,4 @@
-From 32e67a576f67880f4bf4352eebaab58157c94396 Mon Sep 17 00:00:00 2001
+From 8bcf629c56d6e442f973e9a040264dff8f5be296 Mon Sep 17 00:00:00 2001
 From: "pj.chen" <chen.pj@inventec.com>
 Date: Mon, 21 Jun 2021 03:14:12 +0000
 Subject: [PATCH] - Skip sub-sensor if sensorInfo not config
@@ -79,5 +79,5 @@ index 4187f68..1c18087 100644
  
  } // namespace ipmidata
 -- 
-2.7.4
+2.17.1
 
