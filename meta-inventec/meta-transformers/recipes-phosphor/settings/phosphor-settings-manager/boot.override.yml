@@ -1,0 +1,35 @@
+/xyz/openbmc_project/control/host0:
+    - Interface: xyz.openbmc_project.Control.Boot.Mailbox
+      Properties:
+          Selector:
+              Default: 0
+    - Interface: xyz.openbmc_project.Control.Boot.Partition
+      Properties:
+          PartitionSelector:
+              Default: 0
+          PartitionScan:
+              Default: 0   
+    - Interface: xyz.openbmc_project.Control.Boot.Config
+      Properties:
+          SetInProgress:
+              Default: 0
+    - Interface: xyz.openbmc_project.Control.Boot.InitiatorInfo
+      Properties:
+          ChannelId:
+              Default: 0
+    - Interface: xyz.openbmc_project.Control.Boot.Source
+      Properties:
+        BootSource:
+          Default: Source::Sources::Default
+    - Interface: xyz.openbmc_project.Control.Boot.Mode
+      Properties:
+          BootMode:
+              Default: Mode::Modes::Safe
+    - Interface: xyz.openbmc_project.Control.Boot.Type
+      Properties:
+          BootType:
+              Default: Type::Types::EFI
+    - Interface: xyz.openbmc_project.Control.Boot.Flag
+      Properties:
+          BootFlagValid:
+              Default: 'false'
