@@ -1,4 +1,4 @@
-From 542c46b76b85f8a18151f64ab707b2ef1e1cdc38 Mon Sep 17 00:00:00 2001
+From df6efb405bcfd062cbee9eacb66624450464e0d8 Mon Sep 17 00:00:00 2001
 From: "Lin.TommySC" <lin.tommysc@inventec.com>
 Date: Mon, 12 Jul 2021 06:12:28 +0000
 Subject: [PATCH] Add MAC address support for destination address
@@ -27,7 +27,7 @@ Entry Test:
  1 file changed, 24 insertions(+), 20 deletions(-)
 
 diff --git a/transporthandler.cpp b/transporthandler.cpp
-index 45bed1a..f852959 100644
+index 45bed1a..82a791d 100644
 --- a/transporthandler.cpp
 +++ b/transporthandler.cpp
 @@ -1004,7 +1004,7 @@ void asyncRestartService(const std::string& unit, bool reload)
@@ -130,7 +130,7 @@ index 45bed1a..f852959 100644
 -                    return responseSuccess(std::move(ret));
 +                    mac = stringToMAC(macAddr.c_str());
                  }
-+                ret.pack(format, gw_selector, dataRef(ip_addr), dataRef(mac));
++                ret.pack(client_idx, format, gw_selector, dataRef(ip_addr), dataRef(mac));
 +                return responseSuccess(std::move(ret));
              }
              else if (family == AF_INET6) //IPv6
@@ -144,7 +144,7 @@ index 45bed1a..f852959 100644
 -                }
 +                auto ip6_addr = stringToAddr<AF_INET6>(ip.c_str());
 +                format = 0x10; //IPv6
-+                ret.pack(format, dataRef(ip6_addr));
++                ret.pack(client_idx, format, dataRef(ip6_addr));
 +                return responseSuccess(std::move(ret));
              }
              return responseRetBytesUnavailable();
