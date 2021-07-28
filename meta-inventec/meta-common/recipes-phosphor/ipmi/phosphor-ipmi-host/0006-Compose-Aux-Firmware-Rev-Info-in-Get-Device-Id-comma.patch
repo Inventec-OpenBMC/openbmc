@@ -1,4 +1,4 @@
-From fd49f6789737a6660bdb058c478b4553d9f349b6 Mon Sep 17 00:00:00 2001
+From a167eeb6b00c3cf54f2084fbc242411171014623 Mon Sep 17 00:00:00 2001
 From: "Lin.TommySC" <lin.tommysc@inventec.com>
 Date: Wed, 24 Mar 2021 06:00:52 +0000
 Subject: [PATCH] Compose Aux Firmware Rev Info in Get Device Id command
@@ -18,11 +18,11 @@ Solution/Change:
 Entry Test:
 ipmitool mc info
 ---
- apphandler.cpp | 50 ++++++++++++++++++++++++--------------------------
- 1 file changed, 24 insertions(+), 26 deletions(-)
+ apphandler.cpp | 48 +++++++++++++++++++++++-------------------------
+ 1 file changed, 23 insertions(+), 25 deletions(-)
 
 diff --git a/apphandler.cpp b/apphandler.cpp
-index 90818a9..8325d3a 100644
+index 90818a9..9af4c5c 100644
 --- a/apphandler.cpp
 +++ b/apphandler.cpp
 @@ -498,7 +498,7 @@ int convertVersion(std::string s, Revision& rev)
@@ -103,15 +103,6 @@ index 90818a9..8325d3a 100644
      }
  
      return 0;
-@@ -622,7 +620,7 @@ ipmi::RspType<uint8_t,  // Device ID
-             devId.fw[0] = rev.major & ipmiDevIdFw1Mask;
- 
-             rev.minor = (rev.minor > 99 ? 99 : rev.minor);
--            devId.fw[1] = rev.minor % 10 + (rev.minor / 10) * 16;
-+            devId.fw[1] = rev.minor;
-             std::memcpy(&devId.aux, rev.d, 4);
-         }
- 
 @@ -640,7 +638,7 @@ ipmi::RspType<uint8_t,  // Device ID
                  devId.addnDevSupport = data.value("addn_dev_support", 0);
                  devId.manufId = data.value("manuf_id", 0);
