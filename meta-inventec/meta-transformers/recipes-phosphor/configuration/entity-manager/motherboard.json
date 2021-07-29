@@ -3,8 +3,8 @@
         {
             "Bus": 0,
             "Address": "0x30",
-            "CpuID": 0,
-            "Name": "CPU",
+            "CpuID": 1,
+            "Name": "CPU1",
             "Thresholds": [
                 {
                     "Direction": "greater than",
@@ -23,14 +23,14 @@
             ],
             "SensorInfo": [
                 {
-                    "Label": "DTS_CPU0",
+                    "Label": "DTS_CPU1",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x10",
                     "EntityId": "3",
                     "EntityInstance": "0"
                 },
                 {
-                    "Label": "Die_CPU0",
+                    "Label": "Die_CPU1",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x11",
                     "EntityId": "3",
@@ -40,11 +40,10 @@
             "Type": "XeonCPU"
         },
         {
-            "CpuID": 0,
-            "Name": "DTS_CPU0",
+            "Name": "DTS_CPU1",
             "SensorInfo": [
                 {
-                    "Label": "DTS_CPU0",
+                    "Label": "DTS_CPU1",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x10",
                     "EntityId": "3",
@@ -54,11 +53,10 @@
             "Type": "XeonCPU"
         },
         {
-            "CpuID": 0,
-            "Name": "Die_CPU0",
+            "Name": "Die_CPU1",
             "SensorInfo": [
                 {
-                    "Label": "Die_CPU0",
+                    "Label": "Die_CPU1",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x11",
                     "EntityId": "3",
@@ -66,7 +64,73 @@
                 }
             ],
             "Type": "XeonCPU"
-        },        
+        },
+        {
+            "Bus": 0,
+            "Address": "0x31",
+            "CpuID": 2,
+            "Name": "CPU2",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "DTS",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "Die",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DTS_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x12",
+                    "EntityId": "3",
+                    "EntityInstance": "2"
+                },
+                {
+                    "Label": "Die_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x13",
+                    "EntityId": "3",
+                    "EntityInstance": "3"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+        {
+            "Name": "DTS_CPU2",
+            "SensorInfo": [
+                {
+                    "Label": "DTS_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x12",
+                    "EntityId": "3",
+                    "EntityInstance": "2"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+        {
+            "CpuID": 2,
+            "Name": "Die_CPU2",
+            "SensorInfo": [
+                {
+                    "Label": "Die_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x13",
+                    "EntityId": "3",
+                    "EntityInstance": "3"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
         {
             "Address": "0x48",
             "Bus": "6",
