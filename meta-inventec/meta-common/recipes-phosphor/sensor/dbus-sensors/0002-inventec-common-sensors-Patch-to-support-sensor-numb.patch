@@ -1,27 +1,29 @@
-From 0f152779964e96b513ffcc4101291e491ab5307b Mon Sep 17 00:00:00 2001
+From 432df002a98293ce3855b189aa3e64ff7466937b Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Thu, 13 Aug 2020 19:01:10 +0800
-Subject: [PATCH] Subject: [PATCH] [Sensor] Patch to support sensor number,
+Subject: [PATCH] inventec-common-sensors Patch to support sensor number,
  entity number and entity instance
 
 Patch to support IPMI information from entity-manager inventory
 - IPMB PCH temperature sensor
 - Hwmon temperature sensor
 - CPU/DIMM temperature sensor
+  - If sensorInfo is not config, skip this sensor
+  - Shortten the sensor name
 - PSU sensor
 ---
  include/CPUSensor.hpp       |  3 +++
- include/HwmonTempSensor.hpp |  4 +++-
- include/IpmbSensor.hpp      |  4 ++++
- include/PSUSensor.hpp       |  6 +++++-
- src/CPUSensor.cpp           | 28 ++++++++++++++++++++++++++
- src/CPUSensorMain.cpp       | 11 +++++++++-
- src/HwmonTempMain.cpp       | 13 +++++++++---
- src/HwmonTempSensor.cpp     | 23 +++++++++++++++++++++
- src/IpmbSensor.cpp          | 32 ++++++++++++++++++++++++++++-
- src/PSUSensor.cpp           | 37 ++++++++++++++++++++++++++++++++--
- src/PSUSensorMain.cpp       | 49 +++++++++++++++++++++++++++++++++++----------
- 11 files changed, 190 insertions(+), 20 deletions(-)
+ include/HwmonTempSensor.hpp |  4 ++-
+ include/IpmbSensor.hpp      |  4 +++
+ include/PSUSensor.hpp       |  6 ++++-
+ src/CPUSensor.cpp           | 28 +++++++++++++++++++++
+ src/CPUSensorMain.cpp       | 50 +++++++++++++++++++++++++++++--------
+ src/HwmonTempMain.cpp       | 13 +++++++---
+ src/HwmonTempSensor.cpp     | 23 +++++++++++++++++
+ src/IpmbSensor.cpp          | 32 +++++++++++++++++++++++-
+ src/PSUSensor.cpp           | 37 +++++++++++++++++++++++++--
+ src/PSUSensorMain.cpp       | 49 ++++++++++++++++++++++++++++--------
+ 11 files changed, 219 insertions(+), 30 deletions(-)
 
 diff --git a/include/CPUSensor.hpp b/include/CPUSensor.hpp
 index 29b8209..95f45bc 100644
@@ -122,7 +124,7 @@ index e309aeb..c060c53 100644
      uint8_t minMaxReadCounter;
      void handleResponse(const boost::system::error_code& err);
 diff --git a/src/CPUSensor.cpp b/src/CPUSensor.cpp
-index 40b86d1..18edcba 100644
+index 40b86d1..16fb4ae 100644
 --- a/src/CPUSensor.cpp
 +++ b/src/CPUSensor.cpp
 @@ -38,6 +38,7 @@ CPUSensor::CPUSensor(const std::string& path, const std::string& objectType,
@@ -138,7 +140,7 @@ index 40b86d1..18edcba 100644
                                                       association::interface);
  
 +            ipmiInterface = objectServer.add_interface(
-+                "/xyz/openbmc_project/sensors/temperature/" + name,
++                interfacePath,
 +                "xyz.openbmc_project.Sensor.IpmiSensor");
 +
 +            if (_ipmiinfo.empty())
@@ -189,32 +191,81 @@ index 40b86d1..18edcba 100644
          catch (const std::invalid_argument&)
          {
 diff --git a/src/CPUSensorMain.cpp b/src/CPUSensorMain.cpp
-index f304e3f..2f417df 100644
+index f304e3f..dafa0bb 100644
 --- a/src/CPUSensorMain.cpp
 +++ b/src/CPUSensorMain.cpp
-@@ -378,12 +378,21 @@ bool createSensors(boost::asio::io_service& io,
+@@ -100,6 +100,19 @@ void detectCpuAsync(
+     boost::container::flat_set<CPUConfig>& cpuConfigs,
+     ManagedObjectType& sensorConfigs);
+ 
++
++/*the function trys to shorten sensor name as much as it can to avoid it exeed sdr name size limitation*/
++static void replaceSensorName(std::string &name)
++{
++    constexpr std::array<std::pair<const char*, const char*>, 2>
++                    replaceWords = {std::make_pair("Power Average", "Pwr"),
++                                    std::make_pair("Power Cap", "PwrCap")};
++    for (const auto& [find, replace] : replaceWords)
++    {
++        boost::replace_all(name, find, replace);
++    }
++}
++
+ std::string createSensorName(const std::string& label, const std::string& item,
+                              const int& cpuId)
+ {
+@@ -127,6 +140,7 @@ std::string createSensorName(const std::string& label, const std::string& item,
+                        }
+                        return c;
+                    });
++    replaceSensorName(sensorName);
+     return sensorName;
+ }
+ 
+@@ -378,18 +392,32 @@ bool createSensors(boost::asio::io_service& io,
                                << sensorName << "\n";
                  }
              }
+-            auto& sensorPtr = gCpuSensors[sensorName];
+-            // make sure destructor fires before creating a new one
+-            sensorPtr = nullptr;
+-            sensorPtr = std::make_unique<CPUSensor>(
+-                inputPathStr, sensorType, objectServer, dbusConnection, io,
+-                sensorName, std::move(sensorThresholds), *interfacePath, cpuId,
+-                show, dtsOffset);
+-            createdSensors.insert(sensorName);
+-            if (debug)
 +
 +            std::vector<ipmidata::IpmiConfig> sensorIpmiConfig;
 +            labelHead = boost::replace_all_copy(sensorName, " ", "_");
++            /*
++                If not config sensorInfo, don't create sensor
++            */
 +            if (!parseIpmiDataFromConfig(*sensorData, sensorIpmiConfig, &labelHead))
-+            {
+             {
+-                std::cout << "Mapped: " << inputPath << " to " << sensorName
+-                          << "\n";
 +                std::cerr << "error populating ipmi for "
 +                          << sensorName << "\n";
 +            }
-+
-             auto& sensorPtr = gCpuSensors[sensorName];
-             // make sure destructor fires before creating a new one
-             sensorPtr = nullptr;
-             sensorPtr = std::make_unique<CPUSensor>(
-                 inputPathStr, sensorType, objectServer, dbusConnection, io,
--                sensorName, std::move(sensorThresholds), *interfacePath, cpuId,
-+                sensorName, std::move(sensorThresholds), std::move(sensorIpmiConfig), *interfacePath, cpuId,
-                 show, dtsOffset);
-             createdSensors.insert(sensorName);
-             if (debug)
++            else
++            {
++                auto& sensorPtr = gCpuSensors[sensorName];
++                // make sure destructor fires before creating a new one
++                sensorPtr = nullptr;
++                sensorPtr = std::make_unique<CPUSensor>(
++                    inputPathStr, sensorType, objectServer, dbusConnection, io,
++                    sensorName, std::move(sensorThresholds), std::move(sensorIpmiConfig), *interfacePath, cpuId,
++                    show, dtsOffset);
++                createdSensors.insert(sensorName);
++                if (debug)
++                {
++                    std::cout << "Mapped: " << inputPath << " to " << sensorName
++                            << "\n";
++                }
+             }
+         }
+     }
 diff --git a/src/HwmonTempMain.cpp b/src/HwmonTempMain.cpp
 index 60a8fde..916a980 100644
 --- a/src/HwmonTempMain.cpp
@@ -561,5 +612,5 @@ index 6595db9..e6f4b45 100644
      pwmTable = {{"fan1", "Fan_1"}, {"fan2", "Fan_2"}};
  
 -- 
-2.7.4
+2.17.1
 
