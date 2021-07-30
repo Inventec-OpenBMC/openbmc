@@ -1,0 +1,470 @@
+diff --git a/redfish-core/lib/sensors.hpp b/redfish-core/lib/sensors.hpp
+index b20f7eb..ecd1ed6 100644
+--- a/redfish-core/lib/sensors.hpp
++++ b/redfish-core/lib/sensors.hpp
+@@ -1529,7 +1529,12 @@ inline void storeInventoryItemData(
+     {
+         inventoryItem.isPowerSupply = true;
+     }
+-
++    bool flag = true;
++    if(flag)
++    {
++        inventoryItem.isPowerSupply = true;
++    }
++    else{
+     // Get properties from Inventory.Decorator.Asset interface
+     interfaceIt =
+         interfacesDict.find("xyz.openbmc_project.Inventory.Decorator.Asset");
+@@ -1579,6 +1584,7 @@ inline void storeInventoryItemData(
+             }
+         }
+     }
++    }
+ 
+     // Get properties from State.Decorator.OperationalStatus interface
+     interfaceIt = interfacesDict.find(
+@@ -1682,8 +1688,7 @@ static void getInventoryItemsData(
+                     // Store inventory data in InventoryItem
+                     storeInventoryItemData(*inventoryItem, objDictEntry.second);
+                 }
+-            }
+-
++           }
+             // Recurse to get inventory item data from next connection
+             getInventoryItemsData(sensorsAsyncResp, inventoryItems,
+                                   invConnections, objectMgrPaths,
+@@ -2351,6 +2356,423 @@ void getPowerSupplyAttributes(
+     BMCWEB_LOG_DEBUG << "getPowerSupplyAttributes exit";
+ }
+ 
++/**
++ * @brief Gets D-Bus data for Power Supply Attributes such as PartNumber
++ *
++ * Uses the specified connections (services) (currently assumes just one) to
++ * obtain D-Bus data for Power Supply Attributes. Stores the resulting data in
++ * the inventoryItems vector. Only stores data in Power Supply inventoryItems.
++ *
++ * This data is later used to provide sensor property values in the JSON
++ * response.
++ *
++ * Finds the Power Supply Attributes data asynchronously.  Invokes callback
++ * when data has been obtained.
++ *
++ * The callback must have the following signature:
++ *   @code
++ *   callback(std::shared_ptr<std::vector<InventoryItem>> inventoryItems)
++ *   @endcode
++ *
++ * @param sensorsAsyncResp Pointer to object holding response data.
++ * @param inventoryItems D-Bus inventory items associated with sensors.
++ * @param psAttributesConnections Connections that provide data for the Power
++ *        Supply Attributes
++ * @param callback Callback to invoke when data has been obtained.
++ */
++ 
++void getPowerSupplyAttrPartNumber(
++    const std::shared_ptr<SensorsAsyncResp>& sensorsAsyncResp,
++    std::shared_ptr<std::vector<InventoryItem>> inventoryItems,
++    const boost::container::flat_map<std::string, std::string>&
++        psAttributesConnections)
++{
++    BMCWEB_LOG_DEBUG << "getPowerSupplyAttrPartNumber enter";
++
++    if (psAttributesConnections.empty())
++    {
++        BMCWEB_LOG_DEBUG << "Can't find PowerSupplyAttributes, no connections!";
++        return;
++    }
++
++    // Assuming just one connection (service) for now
++    auto it = psAttributesConnections.nth(0);
++
++    const std::string& psAttributesPath = (*it).first;
++    const std::string& psAttributesConnection = (*it).second;
++
++    // Response handler for Get DeratingFactor property
++    auto respHandler = [sensorsAsyncResp, inventoryItems](
++                           const boost::system::error_code ec,
++                           const std::variant<std::string> &PartNumber) {
++        BMCWEB_LOG_DEBUG << "getPowerSupplyAttrPartNumber respHandler enter";
++        if (ec)
++        {
++            BMCWEB_LOG_ERROR
++                << "getPowerSupplyAttributesData respHandler DBus error " << ec;
++            messages::internalError(sensorsAsyncResp->asyncResp->res);
++            return;
++        }
++
++        const std::string* value = std::get_if<std::string>(&PartNumber);
++        if (value != nullptr)
++        {
++            // Store value in Power Supply Inventory Items
++            for (InventoryItem& inventoryItem : *inventoryItems)
++            {
++                if (inventoryItem.isPowerSupply == true)
++                {
++                    inventoryItem.partNumber = *value;
++                }
++            }
++        }
++        else
++        {
++            BMCWEB_LOG_DEBUG
++                << "Failed to find PartNumber value for PowerSupplies";
++        }
++
++        BMCWEB_LOG_DEBUG << "getPowerSupplyAttrPartNumber respHandler exit";
++    };
++
++    // Get the DeratingFactor property for the PowerSupplyAttributes
++    // Currently only property on the interface/only one we care about
++    crow::connections::systemBus->async_method_call(
++        std::move(respHandler), psAttributesConnection, psAttributesPath,
++        "org.freedesktop.DBus.Properties", "Get",
++        "xyz.openbmc_project.Inventory.Decorator.Asset", "PartNumber");
++    BMCWEB_LOG_DEBUG << "getPowerSupplyAttrPartNumber exit";
++}
++
++/**
++ * @brief Gets D-Bus data for Power Supply Attributes such as SerialNumber
++ *
++ * Uses the specified connections (services) (currently assumes just one) to
++ * obtain D-Bus data for Power Supply Attributes. Stores the resulting data in
++ * the inventoryItems vector. Only stores data in Power Supply inventoryItems.
++ *
++ * This data is later used to provide sensor property values in the JSON
++ * response.
++ *
++ * Finds the Power Supply Attributes data asynchronously.  Invokes callback
++ * when data has been obtained.
++ *
++ * The callback must have the following signature:
++ *   @code
++ *   callback(std::shared_ptr<std::vector<InventoryItem>> inventoryItems)
++ *   @endcode
++ *
++ * @param sensorsAsyncResp Pointer to object holding response data.
++ * @param inventoryItems D-Bus inventory items associated with sensors.
++ * @param psAttributesConnections Connections that provide data for the Power
++ *        Supply Attributes
++ * @param callback Callback to invoke when data has been obtained.
++ */
++void getPowerSupplyAttrSerialNumber(
++    const std::shared_ptr<SensorsAsyncResp>& sensorsAsyncResp,
++    std::shared_ptr<std::vector<InventoryItem>> inventoryItems,
++    const boost::container::flat_map<std::string, std::string>&
++        psAttributesConnections)
++{
++    BMCWEB_LOG_DEBUG << "getPowerSupplyAttrSerialNumber enter";
++
++    if (psAttributesConnections.empty())
++    {
++        BMCWEB_LOG_DEBUG << "Can't find PowerSupplyAttributes, no connections!";
++        return;
++    }
++
++    // Assuming just one connection (service) for now
++    auto it = psAttributesConnections.nth(0);
++
++    const std::string& psAttributesPath = (*it).first;
++    const std::string& psAttributesConnection = (*it).second;
++
++    auto respHandler = [sensorsAsyncResp, inventoryItems](
++                           const boost::system::error_code ec,
++                           const std::variant<std::string> &SerialNumber) {
++        BMCWEB_LOG_DEBUG << "getPowerSupplyAttrSerialNumber respHandler enter";
++        if (ec)
++        {
++            BMCWEB_LOG_ERROR
++                << "getPowerSupplyAttrSerialNumber respHandler DBus error " << ec;
++            messages::internalError(sensorsAsyncResp->asyncResp->res);
++            return;
++        }
++
++        const std::string* value = std::get_if<std::string>(&SerialNumber);
++        if (value != nullptr)
++        {
++            // Store value in Power Supply Inventory Items
++            for (InventoryItem& inventoryItem : *inventoryItems)
++            {
++                if (inventoryItem.isPowerSupply == true)
++                {
++                    inventoryItem.serialNumber = *value;
++                }
++            }
++        }
++        else
++        {
++            BMCWEB_LOG_DEBUG
++                << "Failed to find SerialNumber value for PowerSupplies";
++        }
++
++        BMCWEB_LOG_DEBUG << "getPowerSupplyAttrSerialNumber respHandler exit";
++    };
++
++    crow::connections::systemBus->async_method_call(
++        std::move(respHandler), psAttributesConnection, psAttributesPath,
++        "org.freedesktop.DBus.Properties", "Get",
++        "xyz.openbmc_project.Inventory.Decorator.Asset", "SerialNumber");
++    BMCWEB_LOG_DEBUG << "getPowerSupplyAttributesData exit";
++}
++
++/**
++ * @brief Gets D-Bus data for Power Supply Attributes such as Model
++ *
++ * Uses the specified connections (services) (currently assumes just one) to
++ * obtain D-Bus data for Power Supply Attributes. Stores the resulting data in
++ * the inventoryItems vector. Only stores data in Power Supply inventoryItems.
++ *
++ * This data is later used to provide sensor property values in the JSON
++ * response.
++ *
++ * Finds the Power Supply Attributes data asynchronously.  Invokes callback
++ * when data has been obtained.
++ *
++ * The callback must have the following signature:
++ *   @code
++ *   callback(std::shared_ptr<std::vector<InventoryItem>> inventoryItems)
++ *   @endcode
++ *
++ * @param sensorsAsyncResp Pointer to object holding response data.
++ * @param inventoryItems D-Bus inventory items associated with sensors.
++ * @param psAttributesConnections Connections that provide data for the Power
++ *        Supply Attributes
++ * @param callback Callback to invoke when data has been obtained.
++ */
++void getPowerSupplyAttrModel(
++    const std::shared_ptr<SensorsAsyncResp>& sensorsAsyncResp,
++    std::shared_ptr<std::vector<InventoryItem>> inventoryItems,
++    const boost::container::flat_map<std::string, std::string>&
++        psAttributesConnections)
++{
++    BMCWEB_LOG_DEBUG << "getPowerSupplyAttrModel enter";
++
++    if (psAttributesConnections.empty())
++    {
++        BMCWEB_LOG_DEBUG << "Can't find PowerSupplyAttributes, no connections!";
++        return;
++    }
++
++    // Assuming just one connection (service) for now
++    auto it = psAttributesConnections.nth(0);
++
++    const std::string& psAttributesPath = (*it).first;
++    const std::string& psAttributesConnection = (*it).second;
++
++    auto respHandler = [sensorsAsyncResp, inventoryItems](
++                           const boost::system::error_code ec,
++                           const std::variant<std::string> &Model) {
++        BMCWEB_LOG_DEBUG << "getPowerSupplyAttributesData respHandler enter";
++        if (ec)
++        {
++            BMCWEB_LOG_ERROR
++                << "getPowerSupplyAttrModel respHandler DBus error " << ec;
++            messages::internalError(sensorsAsyncResp->asyncResp->res);
++            return;
++        }
++
++        const std::string* value = std::get_if<std::string>(&Model);
++        if (value != nullptr)
++        {
++            // Store value in Power Supply Inventory Items
++            for (InventoryItem& inventoryItem : *inventoryItems)
++            {
++                if (inventoryItem.isPowerSupply == true)
++                {
++                    inventoryItem.model = *value;
++                }
++            }
++        }
++        else
++        {
++            BMCWEB_LOG_DEBUG
++                << "Failed to find Model value for PowerSupplies";
++        }
++
++        BMCWEB_LOG_DEBUG << "getPowerSupplyAttrModel respHandler exit";
++    };
++
++    crow::connections::systemBus->async_method_call(
++        std::move(respHandler), psAttributesConnection, psAttributesPath,
++        "org.freedesktop.DBus.Properties", "Get",
++        "xyz.openbmc_project.Inventory.Decorator.Asset", "Model");
++    BMCWEB_LOG_DEBUG << "getPowerSupplyAttributesData exit";
++}
++
++/**
++ * @brief Gets D-Bus data for Power Supply Attributes such as Manufacturer
++ *
++ * Uses the specified connections (services) (currently assumes just one) to
++ * obtain D-Bus data for Power Supply Attributes. Stores the resulting data in
++ * the inventoryItems vector. Only stores data in Power Supply inventoryItems.
++ *
++ * This data is later used to provide sensor property values in the JSON
++ * response.
++ *
++ * Finds the Power Supply Attributes data asynchronously.  Invokes callback
++ * when data has been obtained.
++ *
++ * The callback must have the following signature:
++ *   @code
++ *   callback(std::shared_ptr<std::vector<InventoryItem>> inventoryItems)
++ *   @endcode
++ *
++ * @param sensorsAsyncResp Pointer to object holding response data.
++ * @param inventoryItems D-Bus inventory items associated with sensors.
++ * @param psAttributesConnections Connections that provide data for the Power
++ *        Supply Attributes
++ * @param callback Callback to invoke when data has been obtained.
++ */
++void getPowerSupplyAttrManufacturer(
++    const std::shared_ptr<SensorsAsyncResp>& sensorsAsyncResp,
++    std::shared_ptr<std::vector<InventoryItem>> inventoryItems,
++    const boost::container::flat_map<std::string, std::string>&
++        psAttributesConnections)
++{
++    BMCWEB_LOG_DEBUG << "getPowerSupplyAttrManufacturer enter";
++
++    if (psAttributesConnections.empty())
++    {
++        BMCWEB_LOG_DEBUG << "Can't find PowerSupplyAttributes, no connections!";
++        return;
++    }
++
++    // Assuming just one connection (service) for now
++    auto it = psAttributesConnections.nth(0);
++
++    const std::string& psAttributesPath = (*it).first;
++    const std::string& psAttributesConnection = (*it).second;
++
++    auto respHandler = [sensorsAsyncResp, inventoryItems](
++                           const boost::system::error_code ec,
++                           const std::variant<std::string> &Manufacturer) {
++        BMCWEB_LOG_DEBUG << "getPowerSupplyAttrManufacturer respHandler enter";
++        if (ec)
++        {
++            BMCWEB_LOG_ERROR
++                << "getPowerSupplyAttributesData respHandler DBus error " << ec;
++            messages::internalError(sensorsAsyncResp->asyncResp->res);
++            return;
++        }
++
++        const std::string* value = std::get_if<std::string>(&Manufacturer);
++        if (value != nullptr)
++        {
++            // Store value in Power Supply Inventory Items
++            for (InventoryItem& inventoryItem : *inventoryItems)
++            {
++                if (inventoryItem.isPowerSupply == true)
++                {
++                    inventoryItem.manufacturer = *value;
++                }
++            }
++        }
++        else
++        {
++            BMCWEB_LOG_DEBUG
++                << "Failed to find Manufacturer value for PowerSupplies";
++        }
++
++        BMCWEB_LOG_DEBUG << "getPowerSupplyAttrManufacturer respHandler exit";
++    };
++
++    crow::connections::systemBus->async_method_call(
++        std::move(respHandler), psAttributesConnection, psAttributesPath,
++        "org.freedesktop.DBus.Properties", "Get",
++        "xyz.openbmc_project.Inventory.Decorator.Asset", "Manufacturer");
++    BMCWEB_LOG_DEBUG << "getPowerSupplyAttributesData exit";
++}
++
++void getPowerSupplyInventoryItemAttr(
++    std::shared_ptr<SensorsAsyncResp> sensorsAsyncResp,
++    std::shared_ptr<std::vector<InventoryItem>> inventoryItems)
++{
++    BMCWEB_LOG_DEBUG << "getPowerSupplyInventoryItemAttr enter";
++
++    // Only need the power supply attributes when the Power Schema
++    if (sensorsAsyncResp->chassisSubNode != sensors::node::power)
++    {
++        BMCWEB_LOG_DEBUG << "getPowerSupplyInventoryItemAttr exit since not Power";
++        return;
++    }
++
++    const std::array<std::string, 1> interfaces = {
++        "xyz.openbmc_project.Inventory.Item.PowerSupply"};
++
++    // Response handler for parsing output from GetSubTree
++    auto respHandler = [sensorsAsyncResp,
++                        inventoryItems](const boost::system::error_code ec,
++                                        const GetSubTreeType& subtree) {
++        BMCWEB_LOG_DEBUG << "getPowerSupplyInventoryItemAttr respHandler enter";
++        if (ec)
++        {
++            messages::internalError(sensorsAsyncResp->asyncResp->res);
++            BMCWEB_LOG_ERROR
++                << "getPowerSupplyInventoryItemAttr respHandler DBus error " << ec;
++            return;
++        }
++        if (subtree.size() == 0)
++        {
++            BMCWEB_LOG_DEBUG << "Can't find Power Supply Attributes!";
++            return;
++        }
++
++        // Currently we only support 1 power supply attribute, use this for
++        // all the power supplies. Build map of object path to connection.
++        // Assume just 1 connection and 1 path for now.
++        boost::container::flat_map<std::string, std::string>
++            psAttributesConnections;
++
++        if (subtree[0].first.empty() || subtree[0].second.empty())
++        {
++            BMCWEB_LOG_DEBUG << "Power Supply Attributes mapper error!";
++            return;
++        }
++
++        const std::string& psAttributesPath = subtree[0].first;
++        const std::string& connection = subtree[0].second.begin()->first;
++
++        if (connection.empty())
++        {
++            BMCWEB_LOG_DEBUG << "Power Supply Attributes mapper error!";
++            return;
++        }
++
++        psAttributesConnections[psAttributesPath] = connection;
++        BMCWEB_LOG_DEBUG << "Added mapping " << psAttributesPath << " -> "
++                         << connection;
++
++        getPowerSupplyAttrManufacturer(sensorsAsyncResp, inventoryItems,
++                                     psAttributesConnections);
++        getPowerSupplyAttrModel(sensorsAsyncResp, inventoryItems,
++                                     psAttributesConnections);
++        getPowerSupplyAttrSerialNumber(sensorsAsyncResp, inventoryItems,
++                                     psAttributesConnections);
++        getPowerSupplyAttrPartNumber(sensorsAsyncResp, inventoryItems,
++                                     psAttributesConnections);
++        BMCWEB_LOG_DEBUG << "getPowerSupplyInventoryItemAttr respHandler exit";
++    };
++    // Make call to ObjectMapper to find the PowerSupplyAttributes service
++    crow::connections::systemBus->async_method_call(
++        std::move(respHandler), "xyz.openbmc_project.ObjectMapper",
++        "/xyz/openbmc_project/object_mapper",
++        "xyz.openbmc_project.ObjectMapper", "GetSubTree",
++        "/xyz/openbmc_project", 0, interfaces);
++    BMCWEB_LOG_DEBUG << "getPowerSupplyInventoryItemAttr exit";
++}
+ /**
+  * @brief Gets inventory items associated with sensors.
+  *
+@@ -2407,6 +2829,9 @@ static void getInventoryItems(
+                                 getPowerSupplyAttributes(sensorsAsyncResp,
+                                                          inventoryItems,
+                                                          std::move(callback));
++				getPowerSupplyInventoryItemAttr(sensorsAsyncResp,
++                                                         inventoryItems);
++
+                                 BMCWEB_LOG_DEBUG << "getInventoryLedsCb exit";
+                             };
+ 
