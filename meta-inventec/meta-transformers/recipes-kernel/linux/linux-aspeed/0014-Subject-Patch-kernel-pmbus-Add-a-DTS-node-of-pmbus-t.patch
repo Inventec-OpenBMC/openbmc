@@ -1,7 +1,7 @@
-From ee2b9674f4142f24daa33834664d3d7d73b03d12 Mon Sep 17 00:00:00 2001
+From 8afda56e099a6c0678e0110ac6b0bb193ae58956 Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Tue, 20 Oct 2020 14:00:04 -0400
-Subject: [PATCH 15/25] Subject: [Patch][kernel][pmbus] Add a DTS node of pmbus
+Subject: [PATCH 14/24] Subject: [Patch][kernel][pmbus] Add a DTS node of pmbus
  to use fixed fan_config date
 
 - Add a DTS node of pmbus to use fixed fan_config date.

@@ -1,7 +1,7 @@
-From 6306c1ba2624f1bdcf36ae0951ee83a1f6cd58f1 Mon Sep 17 00:00:00 2001
+From d701a68f5de9987a1c22e4bbcf32c317f0ca60c6 Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Fri, 15 May 2020 14:35:14 -0400
-Subject: [PATCH 09/25] Correct phy led with speed 1Gbps/100Mbps/10Mbps
+Subject: [PATCH 08/24] Correct phy led with speed 1Gbps/100Mbps/10Mbps
 
 ---
  drivers/net/phy/broadcom.c | 16 ++++++++--------

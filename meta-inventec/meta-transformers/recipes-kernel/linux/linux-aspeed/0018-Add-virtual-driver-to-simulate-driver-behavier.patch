@@ -1,7 +1,7 @@
-From 017e23ba283315889b653aeebc70ef4bd405f151 Mon Sep 17 00:00:00 2001
+From 2040dc48a942251540bbf46c011c8df430959b4d Mon Sep 17 00:00:00 2001
 From: Neil Chen <Chen.NeilZX@inventec.com>
 Date: Fri, 5 Feb 2021 06:21:46 +0000
-Subject: [PATCH 19/25] Add virtual driver to simulate driver behavier
+Subject: [PATCH 18/24] Add virtual driver to simulate driver behavier
 
 ---
  drivers/Kconfig         | 2 ++

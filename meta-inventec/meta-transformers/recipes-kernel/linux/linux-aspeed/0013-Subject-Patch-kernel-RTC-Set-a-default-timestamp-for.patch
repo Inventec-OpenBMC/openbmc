@@ -1,7 +1,7 @@
-From b37dd7701cdbd6785f80d4b0b9d76fc225cf65da Mon Sep 17 00:00:00 2001
+From 0494019ae115c14694551cb09e4f1e2005c1124f Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Tue, 29 Sep 2020 19:26:24 -0400
-Subject: [PATCH 14/25] Subject: [Patch][kernel][RTC] Set a default timestamp
+Subject: [PATCH 13/24] Subject: [Patch][kernel][RTC] Set a default timestamp
  for rtc init failed condition
 
 - If the RTC value read from register is invalid then set it to default timestamp

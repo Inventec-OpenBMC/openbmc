@@ -1,7 +1,7 @@
-From 36a295f8f82b876899a51d810bef6fbe1eeb570d Mon Sep 17 00:00:00 2001
+From 3b23178710f5fb8e26112797bd094796c413b870 Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Tue, 29 Sep 2020 14:14:05 -0400
-Subject: [PATCH 04/25] Subject: [Patch][kernel] Fix MTD partitions were
+Subject: [PATCH 03/24] Subject: [Patch][kernel] Fix MTD partitions were
  deleted due to another flash not found
 
 Sympotom:

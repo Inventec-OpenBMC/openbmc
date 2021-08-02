@@ -1,7 +1,7 @@
-From 0002e70584f143a473e9853e5d722316e41f208d Mon Sep 17 00:00:00 2001
+From 476b2620b68ebc6f6c97466b2548452aaefe926e Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Tue, 27 Oct 2020 20:42:05 -0400
-Subject: [PATCH 06/25] aspeed espi slave feature support
+Subject: [PATCH 05/24] aspeed espi slave feature support
 
 ---
  arch/arm/boot/dts/aspeed-g6.dtsi |  20 +-

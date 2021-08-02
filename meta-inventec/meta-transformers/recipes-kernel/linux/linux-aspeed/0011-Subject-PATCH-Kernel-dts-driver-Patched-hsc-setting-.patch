@@ -1,7 +1,7 @@
-From c87c3a7ab901c6abee4c1bf662fdc9b8019af94e Mon Sep 17 00:00:00 2001
+From 37b83937ad788d10be3296bbcf7000c96c770f89 Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Tue, 20 Oct 2020 14:10:31 -0400
-Subject: [PATCH 12/25] Subject: [PATCH] [Kernel][dts][driver] Patched hsc
+Subject: [PATCH 11/24] Subject: [PATCH] [Kernel][dts][driver] Patched hsc
  setting on dts and Pmbus/HSC driver
 
 - Enabled ADM1278 temperature monitor

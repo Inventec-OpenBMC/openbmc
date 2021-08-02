@@ -1,7 +1,7 @@
-From 824c1c5196e9fb02ac03635d992e154238ebbfbc Mon Sep 17 00:00:00 2001
+From 9607995e896794cfb4717313765f5ec619dd24c1 Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Fri, 21 Aug 2020 12:51:46 +0800
-Subject: [PATCH 13/25] Subject: [Patch][kernel][driver] Set max31790 default
+Subject: [PATCH 12/24] Subject: [Patch][kernel][driver] Set max31790 default
  enable pwm mode
 
 - Default enable pwm mode that fan sensor can read tach value.

@@ -1,7 +1,7 @@
-From d1c979f93086fc9ba0424e356613234e7f7ebe2a Mon Sep 17 00:00:00 2001
+From 95df01b26e802b2f09247b796806175bfb0fca1c Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Tue, 20 Oct 2020 14:32:37 -0400
-Subject: [PATCH 10/25] Subject: [PATCH] [Kernel][GPIO] Add 1.8V GPIO pin
+Subject: [PATCH 09/24] Subject: [PATCH] [Kernel][GPIO] Add 1.8V GPIO pin
  definition
 
 ---

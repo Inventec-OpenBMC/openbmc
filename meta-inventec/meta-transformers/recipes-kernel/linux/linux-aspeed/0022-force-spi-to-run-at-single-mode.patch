@@ -1,7 +1,7 @@
-From 51b096379a642a5354e7bb5298502684bceefc97 Mon Sep 17 00:00:00 2001
+From 2afdcc4cdc6afbfafa963c5cefb20673f78e2c03 Mon Sep 17 00:00:00 2001
 From: "Alang.Huang" <Huang.Alang@inventec.com>
 Date: Thu, 15 Apr 2021 06:01:04 +0000
-Subject: [PATCH 23/25] force spi to run at single mode
+Subject: [PATCH 22/24] force spi to run at single mode
 
 ---
  drivers/mtd/spi-nor/controllers/aspeed-smc.c | 21 +++++++++++++++++++--

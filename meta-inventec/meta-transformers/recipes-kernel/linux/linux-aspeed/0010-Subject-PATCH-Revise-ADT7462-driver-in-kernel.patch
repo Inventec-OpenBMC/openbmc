@@ -1,7 +1,7 @@
-From b4453b41c374d062bac479a0ce5be5021c8f9e9b Mon Sep 17 00:00:00 2001
+From 7ec93ab63d6fa8e26ed3e54db8fffe3d9c91185b Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Tue, 29 Sep 2020 15:47:29 -0400
-Subject: [PATCH 11/25] Subject: [PATCH] Revise ADT7462 driver in kernel
+Subject: [PATCH 10/24] Subject: [PATCH] Revise ADT7462 driver in kernel
 
 - Revise ADT7462 driver in kernel, so we can get voltage value from hwmon
 - Enables the voltage measurement input for Pin 19

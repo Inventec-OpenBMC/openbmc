@@ -1,7 +1,7 @@
-From f6fb9d35a404eae0fafcf939e735f9eebfcc624a Mon Sep 17 00:00:00 2001
+From 6e27705140360ce8e00e397d5f58c520b8af010e Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Fri, 23 Oct 2020 14:10:13 -0400
-Subject: [PATCH 01/25] Subject: [Patch] Replace some aspeed drivers with the
+Subject: [PATCH 01/24] Subject: [Patch] Replace some aspeed drivers with the
  new ones from Aspeed SDK v00.05.07
 
 - Replace aspeed g6.dtsi and g6-pinctrl.dtsi with new ones from Aspeed SDK v00.05.07

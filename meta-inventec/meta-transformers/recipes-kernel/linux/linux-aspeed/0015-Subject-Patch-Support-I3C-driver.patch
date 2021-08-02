@@ -1,7 +1,7 @@
-From d9647fd043c4554e050d2970cdb57e1056ab3150 Mon Sep 17 00:00:00 2001
+From 7efbc49d0c1372602d52fc98dd41353bfeeb9ac7 Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Fri, 23 Oct 2020 14:23:40 -0400
-Subject: [PATCH 16/25] Subject: [Patch] Support I3C driver
+Subject: [PATCH 15/24] Subject: [Patch] Support I3C driver
 
 - Merge I3C driver from Aspeed SDK v00.05.07
 ---

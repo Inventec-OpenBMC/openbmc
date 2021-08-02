@@ -1,7 +1,7 @@
-From 0850a8f2758732e0c6ad28e2ef101233ba5a4da0 Mon Sep 17 00:00:00 2001
+From cd18c714e69ff91f66997345423eff84cba2e82f Mon Sep 17 00:00:00 2001
 From: Vic Ye <ye.vic@inventec.com>
 Date: Sun, 30 May 2021 02:39:48 +0000
-Subject: [PATCH 25/25] Fix bug : virtural UART device node cannot be created.
+Subject: [PATCH 24/24] Fix bug : virtural UART device node cannot be created.
 
 ---
  drivers/tty/serial/8250/8250_aspeed_vuart.c | 1 +

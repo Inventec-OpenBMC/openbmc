@@ -1,7 +1,7 @@
-From 3b95b302ecb5d90743be81a131184ef509da13be Mon Sep 17 00:00:00 2001
+From 4036a0c359139e308660cd11be20533c63032507 Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Tue, 27 Oct 2020 20:35:35 -0400
-Subject: [PATCH 05/25] Add flash layout 64MB
+Subject: [PATCH 04/24] Add flash layout 64MB
 
 ---
  arch/arm/boot/dts/openbmc-flash-layout.dtsi | 18 +++++++++---------

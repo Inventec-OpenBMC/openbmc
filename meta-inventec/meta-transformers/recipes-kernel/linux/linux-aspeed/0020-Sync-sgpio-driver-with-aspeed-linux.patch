@@ -1,7 +1,7 @@
-From ee081d1e899b97e0b82b7691adc482862c9cd258 Mon Sep 17 00:00:00 2001
+From 6fb8a801f2262a6e15e986f7d4cc0a422dedccd8 Mon Sep 17 00:00:00 2001
 From: "pj.chen" <chen.pj@inventec.com>
 Date: Mon, 15 Mar 2021 11:31:05 +0000
-Subject: [PATCH 21/25] - Sync sgpio driver with aspeed linux
+Subject: [PATCH 20/24] - Sync sgpio driver with aspeed linux
 
 Symtom/Reason:
     Sgpio driver not support ast2600 on Openbmc.

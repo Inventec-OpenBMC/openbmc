@@ -1,7 +1,7 @@
-From 0b1d6c816d43a4b0e7ddd363a6b74f30994275d3 Mon Sep 17 00:00:00 2001
+From d9ff5b1313741f58e67d37b1ad4d34161e44078b Mon Sep 17 00:00:00 2001
 From: Neil Chen <Chen.NeilZX@inventec.com>
 Date: Thu, 13 May 2021 03:01:02 +0000
-Subject: [PATCH 24/25] - Modify RGMII TX Clock delay and TX driving strength
+Subject: [PATCH 23/24] - Modify RGMII TX Clock delay and TX driving strength
 
     Symtom/Reason:
         RGMII signal can't pass in EV test

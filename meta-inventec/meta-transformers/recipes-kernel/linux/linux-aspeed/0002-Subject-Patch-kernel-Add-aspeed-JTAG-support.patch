@@ -1,7 +1,7 @@
-From a941b0a006c2e92c7ac126b2b66d92a02009ce0d Mon Sep 17 00:00:00 2001
+From 1a8f1ae0a01f81101cc6abb447185570e9dc4625 Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Tue, 29 Sep 2020 14:44:20 -0400
-Subject: [PATCH 02/25] Subject: [Patch][kernel] Add aspeed JTAG support
+Subject: [PATCH 02/24] Subject: [Patch][kernel] Add aspeed JTAG support
 
 ---
  drivers/soc/aspeed/Kconfig       |    6 +
@@ -11,12 +11,12 @@ Subject: [PATCH 02/25] Subject: [Patch][kernel] Add aspeed JTAG support
  create mode 100644 drivers/soc/aspeed/aspeed-jtag.c
 
 diff --git a/drivers/soc/aspeed/Kconfig b/drivers/soc/aspeed/Kconfig
-index fbc8329..7f965a7 100644
+index 9b9114c..c637ead 100644
 --- a/drivers/soc/aspeed/Kconfig
 +++ b/drivers/soc/aspeed/Kconfig
-@@ -48,6 +48,12 @@ config ASPEED_XDMA
- 	  SoCs. The XDMA engine can perform PCIe DMA operations between the BMC
- 	  and a host processor.
+@@ -57,6 +57,12 @@ config ASPEED_VGA_SHAREDMEM
+ 	  specification, BIOS will transfer whole SMBIOS table to VGA memory,
+ 	  and BMC can get the table from VGA memory through this driver.
  
 +config ASPEED_JTAG
 +        tristate "ASPEED JTAG Controller"
@@ -28,13 +28,13 @@ index fbc8329..7f965a7 100644
  
  endif
 diff --git a/drivers/soc/aspeed/Makefile b/drivers/soc/aspeed/Makefile
-index 04ff763..688ef4f 100644
+index 685bf6e..3ea78e5 100644
 --- a/drivers/soc/aspeed/Makefile
 +++ b/drivers/soc/aspeed/Makefile
-@@ -4,3 +4,4 @@ obj-$(CONFIG_ASPEED_LPC_SNOOP)	+= aspeed-lpc-snoop.o
- obj-$(CONFIG_ASPEED_P2A_CTRL)	+= aspeed-p2a-ctrl.o
+@@ -5,3 +5,4 @@ obj-$(CONFIG_ASPEED_P2A_CTRL)	+= aspeed-p2a-ctrl.o
  obj-$(CONFIG_ASPEED_SOCINFO)	+= aspeed-socinfo.o
  obj-$(CONFIG_ASPEED_XDMA)	+= aspeed-xdma.o
+ obj-$(CONFIG_ASPEED_VGA_SHAREDMEM)	+= aspeed-vga-sharedmem.o
 +obj-$(CONFIG_ASPEED_JTAG)   += aspeed-jtag.o
 diff --git a/drivers/soc/aspeed/aspeed-jtag.c b/drivers/soc/aspeed/aspeed-jtag.c
 new file mode 100644

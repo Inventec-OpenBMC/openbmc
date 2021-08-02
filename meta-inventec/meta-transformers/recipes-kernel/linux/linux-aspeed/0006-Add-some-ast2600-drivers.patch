@@ -1,7 +1,7 @@
-From b423aa378d61d1179da42ef4a0adcc9994e7262c Mon Sep 17 00:00:00 2001
+From acb4f509b918be7123e05c63ebd00443cbaa98c8 Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Tue, 27 Oct 2020 20:47:37 -0400
-Subject: [PATCH 07/25] Add some ast2600 drivers
+Subject: [PATCH 06/24] Add some ast2600 drivers
 
 -ast2600 adc hwmon driver
 -ast2600 pwm driver
@@ -19,7 +19,7 @@ Subject: [PATCH 07/25] Add some ast2600 drivers
  create mode 100644 drivers/spi/spi-aspeed.c
 
 diff --git a/drivers/hwmon/Kconfig b/drivers/hwmon/Kconfig
-index 91a7572..0ada64d 100644
+index 66d360c..c1d412b 100644
 --- a/drivers/hwmon/Kconfig
 +++ b/drivers/hwmon/Kconfig
 @@ -400,6 +400,17 @@ config SENSORS_ASPEED
@@ -41,7 +41,7 @@ index 91a7572..0ada64d 100644
  	tristate "Attansic ATXP1 VID controller"
  	depends on I2C
 diff --git a/drivers/hwmon/Makefile b/drivers/hwmon/Makefile
-index 73b0ac4..668fb29 100644
+index c20c7c5..52ba6a7 100644
 --- a/drivers/hwmon/Makefile
 +++ b/drivers/hwmon/Makefile
 @@ -52,6 +52,7 @@ obj-$(CONFIG_SENSORS_ARM_SCPI)	+= scpi-hwmon.o

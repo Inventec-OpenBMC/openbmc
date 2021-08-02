@@ -1,7 +1,7 @@
-From 7ec28a06aee61d5ccbe6a4a60c7b2ea759fbb404 Mon Sep 17 00:00:00 2001
+From 89504328fbb057cdccd3ddcae247b9aaaa8189e1 Mon Sep 17 00:00:00 2001
 From: Neil Chen <Chen.NeilZX@inventec.com>
 Date: Mon, 22 Feb 2021 05:37:58 +0000
-Subject: [PATCH 20/25] KCS3 can't be created because kcs binding method is
+Subject: [PATCH 19/24] KCS3 can't be created because kcs binding method is
  changed. Modify aspeed-g6.dtsi to fix this problem
 
 ---

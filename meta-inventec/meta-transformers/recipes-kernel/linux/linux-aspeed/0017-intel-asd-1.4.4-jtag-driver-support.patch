@@ -1,7 +1,7 @@
-From fd02bdbd9e5744bebf966aa6182383b7cb750f90 Mon Sep 17 00:00:00 2001
+From 003d52eecaeed12179a9cc7b43f407a17be56971 Mon Sep 17 00:00:00 2001
 From: Neil Chen <Chen.NeilZX@inventec.com>
 Date: Thu, 4 Feb 2021 07:14:33 +0000
-Subject: [PATCH 18/25] intel-asd 1.4.4 jtag driver support
+Subject: [PATCH 17/24] intel-asd 1.4.4 jtag driver support
 
 ---
  drivers/Kconfig               |    3 +-

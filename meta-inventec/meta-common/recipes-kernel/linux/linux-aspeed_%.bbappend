@@ -9,4 +9,5 @@ SRC_URI_append = " file://0001-peci-Add-support-for-PECI-bus-driver-core.patch \
                    file://0007-hwmon-Add-PECI-cputemp-driver.patch \
                    file://0008-peci-cputemp-label-CPU-cores-from-zero-instead-of-on.patch \
                    file://0009-peci-Sync-peci-verion-with-Intel-BMC-linux.patch \
+                   file://0010-Implement-a-memory-driver-share-memory.patch \
                  "

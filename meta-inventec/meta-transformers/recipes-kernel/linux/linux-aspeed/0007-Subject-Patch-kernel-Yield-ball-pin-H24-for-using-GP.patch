@@ -1,7 +1,7 @@
-From 13c74c0c9329061827721674c3804c54c2711b68 Mon Sep 17 00:00:00 2001
+From e7dd085888afca50bda29ec20ac2417a1b4a16fd Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Tue, 29 Sep 2020 14:31:08 -0400
-Subject: [PATCH 08/25] Subject: [Patch][kernel] Yield ball pin H24 for using
+Subject: [PATCH 07/24] Subject: [Patch][kernel] Yield ball pin H24 for using
  GPIO C0
 
 - Modify pinctl group RMII-3, due to the SCM using external clock,

@@ -1,7 +1,7 @@
-From bf23f741d05fdad8575d81122f2c35b2449aa9ee Mon Sep 17 00:00:00 2001
+From c86dc45be14997956e59b1b94921dfe88f9a61a5 Mon Sep 17 00:00:00 2001
 From: "Lin.TommySC" <lin.tommysc@inventec.com>
 Date: Mon, 12 Apr 2021 00:43:11 +0000
-Subject: [PATCH 22/25] Add Aspeed VHUB dirver support on Transformers
+Subject: [PATCH 21/24] Add Aspeed VHUB dirver support on Transformers
 
 Symptom/Reason :
     - Aspeed VHUB driver is not working on Transformers
