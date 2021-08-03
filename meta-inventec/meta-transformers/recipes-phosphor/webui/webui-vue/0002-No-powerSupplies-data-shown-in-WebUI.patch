@@ -1,0 +1,13 @@
+diff --git a/src/store/modules/Health/PowerSupplyStore.js b/src/store/modules/Health/PowerSupplyStore.js
+index 565715f..c653b46 100644
+--- a/src/store/modules/Health/PowerSupplyStore.js
++++ b/src/store/modules/Health/PowerSupplyStore.js
+@@ -40,7 +40,7 @@ const PowerSupplyStore = {
+   actions: {
+     async getPowerSupply({ commit }) {
+       return await api
+-        .get('/redfish/v1/Chassis/chassis/Power')
++        .get('/redfish/v1/Chassis/Transformers_MotherBoard/Power')
+         .then(({ data: { PowerSupplies } }) =>
+           commit('setPowerSupply', PowerSupplies)
+         )
