@@ -1,0 +1,14 @@
+{
+  "gpio_configs":{
+      "NMIOut": "NMI_OUT",
+      "PwrOK": "PS_PWROK",
+      "PwrOut": "POWER_OUT",
+      "RstOut": "RESET_OUT"
+    },
+  "timing_configs":{
+      "PowerPulseMs": 6000,
+      "ForceOffPulseMs": 15000,
+      "ResetPulseMs": 6000,
+      "PowerCycleMs":6000
+   }
+}

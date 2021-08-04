@@ -1,0 +1,3321 @@
+From 1c7370c5e9efa9422ffc6b8cccadf2e9411f3ece Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Fri, 23 Oct 2020 14:10:13 -0400
+Subject: [PATCH 11/34] Subject: [Patch] Replace some aspeed drivers with the
+ new ones from Aspeed SDK v00.05.07
+
+- Replace aspeed g6.dtsi and g6-pinctrl.dtsi with new ones from Aspeed SDK v00.05.07
+- Add aspeed-scu-irq.h due to aspeed-g6.dtsi needs it
+- Replace clk-ast2600.c and ast2600-clock.h with new ones form Aspeed SDK v00.05.07
+---
+ arch/arm/boot/dts/aspeed-g6-pinctrl.dtsi      |  100 +-
+ arch/arm/boot/dts/aspeed-g6.dtsi              | 1169 +++++++++++++++--
+ drivers/clk/clk-ast2600.c                     |  941 ++++++++-----
+ include/dt-bindings/clock/ast2600-clock.h     |  150 ++-
+ .../interrupt-controller/aspeed-scu-irq.h     |   16 +
+ 5 files changed, 1887 insertions(+), 489 deletions(-)
+ create mode 100644 include/dt-bindings/interrupt-controller/aspeed-scu-irq.h
+
+diff --git a/arch/arm/boot/dts/aspeed-g6-pinctrl.dtsi b/arch/arm/boot/dts/aspeed-g6-pinctrl.dtsi
+index 7028e21bdd98..15b70c843d28 100644
+--- a/arch/arm/boot/dts/aspeed-g6-pinctrl.dtsi
++++ b/arch/arm/boot/dts/aspeed-g6-pinctrl.dtsi
+@@ -2,6 +2,11 @@
+ // Copyright 2019 IBM Corp.
+ 
+ &pinctrl {
++	pinctrl_pcie1rc_default: pcie1rc_default {
++		function = "PCIERC1";
++		groups = "PCIERC1";
++	};
++
+ 	pinctrl_adc0_default: adc0_default {
+ 		function = "ADC0";
+ 		groups = "ADC0";
+@@ -208,12 +213,12 @@ pinctrl_gpiu7_default: gpiu7_default {
+ 	};
+ 
+ 	pinctrl_hvi3c3_default: hvi3c3_default {
+-		function = "HVI3C3";
++		function = "I3C3";
+ 		groups = "HVI3C3";
+ 	};
+ 
+ 	pinctrl_hvi3c4_default: hvi3c4_default {
+-		function = "HVI3C4";
++		function = "I3C4";
+ 		groups = "HVI3C4";
+ 	};
+ 
+@@ -297,6 +302,16 @@ pinctrl_i2c9_default: i2c9_default {
+ 		groups = "I2C9";
+ 	};
+ 
++	pinctrl_i3c1_default: i3c1_default {
++		function = "I3C1";
++		groups = "I3C1";
++	};
++
++	pinctrl_i3c2_default: i3c2_default {
++		function = "I3C2";
++		groups = "I3C2";
++	};
++
+ 	pinctrl_i3c3_default: i3c3_default {
+ 		function = "I3C3";
+ 		groups = "I3C3";
+@@ -362,22 +377,22 @@ pinctrl_lsirq_default: lsirq_default {
+ 		groups = "LSIRQ";
+ 	};
+ 
+-	pinctrl_maclink1_default: maclink1_default {
++	pinctrl_mac1link_default: mac1link_default {
+ 		function = "MACLINK1";
+ 		groups = "MACLINK1";
+ 	};
+ 
+-	pinctrl_maclink2_default: maclink2_default {
++	pinctrl_mac2link_default: mac2link_default {
+ 		function = "MACLINK2";
+ 		groups = "MACLINK2";
+ 	};
+ 
+-	pinctrl_maclink3_default: maclink3_default {
++	pinctrl_mac3link_default: mac3link_default {
+ 		function = "MACLINK3";
+ 		groups = "MACLINK3";
+ 	};
+ 
+-	pinctrl_maclink4_default: maclink4_default {
++	pinctrl_mac4link_default: mac4link_default {
+ 		function = "MACLINK4";
+ 		groups = "MACLINK4";
+ 	};
+@@ -653,12 +668,12 @@ pinctrl_pwm9g1_default: pwm9g1_default {
+ 	};
+ 
+ 	pinctrl_qspi1_default: qspi1_default {
+-		function = "QSPI1";
++		function = "SPI1";
+ 		groups = "QSPI1";
+ 	};
+ 
+ 	pinctrl_qspi2_default: qspi2_default {
+-		function = "QSPI2";
++		function = "SPI2";
+ 		groups = "QSPI2";
+ 	};
+ 
+@@ -857,11 +872,21 @@ pinctrl_emmc_default: emmc_default {
+ 		groups = "EMMCG4";
+ 	};
+ 
++	pinctrl_emmcg8_default: emmcg8_default {
++		function = "EMMC";
++		groups = "EMMCG8";
++	};
++
+ 	pinctrl_sgpm1_default: sgpm1_default {
+ 		function = "SGPM1";
+ 		groups = "SGPM1";
+ 	};
+ 
++	pinctrl_sgpm2_default: sgpm2_default {
++		function = "SGPM2";
++		groups = "SGPM2";
++	};
++
+ 	pinctrl_sgps1_default: sgps1_default {
+ 		function = "SGPS1";
+ 		groups = "SGPS1";
+@@ -1112,31 +1137,6 @@ pinctrl_uart9_default: uart9_default {
+ 		groups = "UART9";
+ 	};
+ 
+-	pinctrl_usb2ah_default: usb2ah_default {
+-		function = "USB2AH";
+-		groups = "USBA";
+-	};
+-
+-	pinctrl_usb2ad_default: usb2ad_default {
+-		function = "USB2AD";
+-		groups = "USBA";
+-	};
+-
+-	pinctrl_usb2bh_default: usb2bh_default {
+-		function = "USB2BH";
+-		groups = "USBB";
+-	};
+-
+-	pinctrl_usb2bd_default: usb2bd_default {
+-		function = "USB2BD";
+-		groups = "USBB";
+-	};
+-
+-	pinctrl_usb11bhid_default: usb11bhid_default {
+-		function = "USB11BHID";
+-		groups = "USBB";
+-	};
+-
+ 	pinctrl_vb_default: vb_default {
+ 		function = "VB";
+ 		groups = "VB";
+@@ -1171,4 +1171,38 @@ pinctrl_wdtrst4_default: wdtrst4_default {
+ 		function = "WDTRST4";
+ 		groups = "WDTRST4";
+ 	};
++
++	pinctrl_fwspi18_default: fwspi18_default {
++		function = "FWSPI18";
++		groups = "FWSPI18";
++	};
++
++	pinctrl_usb2ah_default: usb2ah_default {
++		function = "USB2AH";
++		groups = "USB2AH";
++	};
++	pinctrl_usb2ad_default: usb2ad_default {
++		function = "USB2AD";
++		groups = "USB2AD";
++	};
++
++	pinctrl_usb2adp_default: usb2adp_default {
++		function = "USB2ADP";
++		groups = "USB2ADP";
++	};
++
++	pinctrl_usb11bhid_default: usb11bhid_default {
++		function = "USB11BHID";
++		groups = "USB11BHID";
++	};
++
++	pinctrl_usb2bd_default: usb2bd_default {
++		function = "USB2BD";
++		groups = "USB2BD";
++	};
++
++	pinctrl_usb2bh_default: usb2bh_default {
++		function = "USB2BH";
++		groups = "USB2BH";
++	};
+ };
+diff --git a/arch/arm/boot/dts/aspeed-g6.dtsi b/arch/arm/boot/dts/aspeed-g6.dtsi
+index f96607b7b4e2..56f9a74cb287 100644
+--- a/arch/arm/boot/dts/aspeed-g6.dtsi
++++ b/arch/arm/boot/dts/aspeed-g6.dtsi
+@@ -1,9 +1,8 @@
+-// SPDX-License-Identifier: GPL-2.0-or-later
+-// Copyright 2019 IBM Corp.
+-
++// SPDX-License-Identifier: GPL-2.0+
+ #include <dt-bindings/interrupt-controller/arm-gic.h>
+-#include <dt-bindings/interrupt-controller/aspeed-scu-ic.h>
+ #include <dt-bindings/clock/ast2600-clock.h>
++#include <dt-bindings/gpio/aspeed-gpio.h>
++#include <dt-bindings/interrupt-controller/aspeed-scu-irq.h>
+ 
+ / {
+ 	model = "Aspeed BMC";
+@@ -13,6 +12,12 @@ / {
+ 	interrupt-parent = <&gic>;
+ 
+ 	aliases {
++		i3c0 = &i3c0;
++		i3c1 = &i3c1;
++		i3c2 = &i3c2;
++		i3c3 = &i3c3;
++		i3c4 = &i3c4;
++		i3c5 = &i3c5;
+ 		i2c0 = &i2c0;
+ 		i2c1 = &i2c1;
+ 		i2c2 = &i2c2;
+@@ -34,26 +39,38 @@ aliases {
+ 		serial2 = &uart3;
+ 		serial3 = &uart4;
+ 		serial4 = &uart5;
+-		serial5 = &vuart1;
+-		serial6 = &vuart2;
++		serial5 = &uart6;
++		serial6 = &uart7;
++		serial7 = &uart8;
++		serial8 = &uart9;
++		serial9 = &uart10;
++		serial10 = &uart11;
++		serial11 = &uart12;
++		serial12 = &uart13;
++		serial13 = &vuart0;
++		serial14 = &vuart1;
++		serial15 = &vuart2;
++		serial16 = &vuart3;
++		peci0 = &peci0;
+ 	};
+ 
+-
+ 	cpus {
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 		enable-method = "aspeed,ast2600-smp";
+ 
+-		cpu@f00 {
++		CPU0: cpu@0 {
+ 			compatible = "arm,cortex-a7";
+ 			device_type = "cpu";
+ 			reg = <0xf00>;
++			clocks = <&syscon ASPEED_CLK_HPLL>;
+ 		};
+ 
+-		cpu@f01 {
++		CPU1: cpu@1 {
+ 			compatible = "arm,cortex-a7";
+ 			device_type = "cpu";
+ 			reg = <0xf01>;
++			clocks = <&syscon ASPEED_CLK_HPLL>;
+ 		};
+ 	};
+ 
+@@ -64,7 +81,6 @@ timer {
+ 			     <GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(2) | IRQ_TYPE_LEVEL_LOW)>,
+ 			     <GIC_PPI 11 (GIC_CPU_MASK_SIMPLE(2) | IRQ_TYPE_LEVEL_LOW)>,
+ 			     <GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(2) | IRQ_TYPE_LEVEL_LOW)>;
+-		clocks = <&syscon ASPEED_CLK_HPLL>;
+ 		arm,cpu-registers-not-fw-configured;
+ 		always-on;
+ 	};
+@@ -92,17 +108,69 @@ gic: interrupt-controller@40461000 {
+ 			    <0x40462000 0x1000>,
+ 			    <0x40464000 0x2000>,
+ 			    <0x40466000 0x2000>;
+-			};
++		};
++
++		cvic: copro-interrupt-controller@1e6c0000 {
++			compatible = "aspeed,ast2600-cvic", "aspeed-cvic";
++			valid-sources = <0xffffffff>;
++			copro-sw-interrupts = <1>;
++			reg = <0x1e6c0000 0x80>;
++		};
++
++		sram: sram@10000000 {
++			compatible = "mmio-sram";
++			/* the first 64K is with parity check */
++			reg = <0x10000000 0x16000>;
++		};
++
++		ssp_tcm: sram@1a000000 {
++			compatible = "mmio-sram";
++			reg = <0x1a000000 0x2000>;
++		};
++
++		ssp: secondary-service-processor {
++			compatible = "aspeed,ast2600-ssp";
++			#address-cells = <2>;
++			#size-cells = <0>;
++
++			aspeed,cvic = <&cvic>;
++			interrupts = 	<GIC_SPI 182 IRQ_TYPE_LEVEL_HIGH>,
++					<GIC_SPI 183 IRQ_TYPE_LEVEL_HIGH>,
++					<GIC_SPI 184 IRQ_TYPE_LEVEL_HIGH>,
++					<GIC_SPI 185 IRQ_TYPE_LEVEL_HIGH>,
++					<GIC_SPI 186 IRQ_TYPE_LEVEL_HIGH>,
++					<GIC_SPI 187 IRQ_TYPE_LEVEL_HIGH>,
++					<GIC_SPI 188 IRQ_TYPE_LEVEL_HIGH>,
++					<GIC_SPI 189 IRQ_TYPE_LEVEL_HIGH>,
++					<GIC_SPI 190 IRQ_TYPE_LEVEL_HIGH>,
++					<GIC_SPI 191 IRQ_TYPE_LEVEL_HIGH>,
++					<GIC_SPI 192 IRQ_TYPE_LEVEL_HIGH>,
++					<GIC_SPI 193 IRQ_TYPE_LEVEL_HIGH>,
++					<GIC_SPI 194 IRQ_TYPE_LEVEL_HIGH>,
++					<GIC_SPI 195 IRQ_TYPE_LEVEL_HIGH>,
++					<GIC_SPI 196 IRQ_TYPE_LEVEL_HIGH>;
++		};
+ 
+ 		fmc: spi@1e620000 {
+-			reg = < 0x1e620000 0xc4
+-				0x20000000 0x10000000 >;
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
++#if 1
++			reg = < 0x1e620000 0xc4
++				0x20000000 0x10000000 >;
+ 			compatible = "aspeed,ast2600-fmc";
++#else
++			/* reg : cs0 : cs1 : cs2 */
++			reg = <0x1e620000 0x100
++				0x20000000 0x200000
++				0x24000000 0x200000
++				0x28000000 0x200000>;
++			compatible = "aspeed,ast2600-fmc-spi";
++			number_of_chip_select = /bits/ 16 <3>;
++#endif
+ 			clocks = <&syscon ASPEED_CLK_AHB>;
+ 			status = "disabled";
+ 			interrupts = <GIC_SPI 39 IRQ_TYPE_LEVEL_HIGH>;
++
+ 			flash@0 {
+ 				reg = < 0 >;
+ 				compatible = "jedec,spi-nor";
+@@ -124,11 +192,20 @@ flash@2 {
+ 		};
+ 
+ 		spi1: spi@1e630000 {
+-			reg = < 0x1e630000 0xc4
+-				0x30000000 0x10000000 >;
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
++#if 1
++			reg = < 0x1e630000 0xc4
++				0x30000000 0x10000000 >;
+ 			compatible = "aspeed,ast2600-spi";
++#else
++			/* reg : cs0 : cs1 */
++			reg = <0x1e630000 0x100
++				0x30000000 0x200000
++				0x32000000 0x200000>;
++			compatible = "aspeed,ast2600-fmc-spi";
++			number_of_chip_select = /bits/ 16 <2>;
++#endif
+ 			clocks = <&syscon ASPEED_CLK_AHB>;
+ 			status = "disabled";
+ 			flash@0 {
+@@ -146,11 +223,21 @@ flash@1 {
+ 		};
+ 
+ 		spi2: spi@1e631000 {
+-			reg = < 0x1e631000 0xc4
+-				0x50000000 0x10000000 >;
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+-			compatible = "aspeed,ast2600-spi";
++#if 1
++			reg = < 0x1e631000 0xc4
++				0x50000000 0x10000000 >;
++			compatible = "aspeed,ast2600-spi2";
++#else
++			/* reg : cs0 : cs1 */
++			reg = <0x1e631000 0x100
++				0x50000000 0x200000
++				0x52000000 0x200000
++				0x54000000 0x200000>;
++			compatible = "aspeed,ast2600-fmc-spi";
++			number_of_chip_select = /bits/ 16 <3>;
++#endif
+ 			clocks = <&syscon ASPEED_CLK_AHB>;
+ 			status = "disabled";
+ 			flash@0 {
+@@ -181,6 +268,7 @@ mdio0: mdio@1e650000 {
+ 			status = "disabled";
+ 			pinctrl-names = "default";
+ 			pinctrl-0 = <&pinctrl_mdio1_default>;
++			resets = <&syscon ASPEED_RESET_MII>;
+ 		};
+ 
+ 		mdio1: mdio@1e650008 {
+@@ -191,6 +279,7 @@ mdio1: mdio@1e650008 {
+ 			status = "disabled";
+ 			pinctrl-names = "default";
+ 			pinctrl-0 = <&pinctrl_mdio2_default>;
++			resets = <&syscon ASPEED_RESET_MII>;
+ 		};
+ 
+ 		mdio2: mdio@1e650010 {
+@@ -201,6 +290,7 @@ mdio2: mdio@1e650010 {
+ 			status = "disabled";
+ 			pinctrl-names = "default";
+ 			pinctrl-0 = <&pinctrl_mdio3_default>;
++			resets = <&syscon ASPEED_RESET_MII>;
+ 		};
+ 
+ 		mdio3: mdio@1e650018 {
+@@ -211,6 +301,7 @@ mdio3: mdio@1e650018 {
+ 			status = "disabled";
+ 			pinctrl-names = "default";
+ 			pinctrl-0 = <&pinctrl_mdio4_default>;
++			resets = <&syscon ASPEED_RESET_MII>;
+ 		};
+ 
+ 		mac0: ftgmac@1e660000 {
+@@ -220,6 +311,7 @@ mac0: ftgmac@1e660000 {
+ 			#size-cells = <0>;
+ 			interrupts = <GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>;
+ 			clocks = <&syscon ASPEED_CLK_GATE_MAC1CLK>;
++			resets = <&syscon ASPEED_RESET_MAC1>;
+ 			status = "disabled";
+ 		};
+ 
+@@ -230,6 +322,7 @@ mac1: ftgmac@1e680000 {
+ 			#size-cells = <0>;
+ 			interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
+ 			clocks = <&syscon ASPEED_CLK_GATE_MAC2CLK>;
++			resets = <&syscon ASPEED_RESET_MAC2>;
+ 			status = "disabled";
+ 		};
+ 
+@@ -240,6 +333,7 @@ mac2: ftgmac@1e670000 {
+ 			#size-cells = <0>;
+ 			interrupts = <GIC_SPI 32 IRQ_TYPE_LEVEL_HIGH>;
+ 			clocks = <&syscon ASPEED_CLK_GATE_MAC3CLK>;
++			resets = <&syscon ASPEED_RESET_MAC3>;
+ 			status = "disabled";
+ 		};
+ 
+@@ -250,6 +344,7 @@ mac3: ftgmac@1e690000 {
+ 			#size-cells = <0>;
+ 			interrupts = <GIC_SPI 33 IRQ_TYPE_LEVEL_HIGH>;
+ 			clocks = <&syscon ASPEED_CLK_GATE_MAC4CLK>;
++			resets = <&syscon ASPEED_RESET_MAC4>;
+ 			status = "disabled";
+ 		};
+ 
+@@ -280,21 +375,21 @@ uhci: usb@1e6b0000 {
+ 			#ports = <2>;
+ 			clocks = <&syscon ASPEED_CLK_GATE_USBUHCICLK>;
+ 			status = "disabled";
+-			/*
+-			 * No default pinmux, it will follow EHCI, use an
+-			 * explicit pinmux override if EHCI is not enabled.
+-			 */
+ 		};
+ 
+ 		vhub: usb-vhub@1e6a0000 {
+ 			compatible = "aspeed,ast2600-usb-vhub";
+-			reg = <0x1e6a0000 0x350>;
++			reg = <0x1e6a0000 0x300>;
+ 			interrupts = <GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>;
+ 			clocks = <&syscon ASPEED_CLK_GATE_USBPORT1CLK>;
+-			aspeed,vhub-downstream-ports = <7>;
+-			aspeed,vhub-generic-endpoints = <21>;
+-			pinctrl-names = "default";
+-			pinctrl-0 = <&pinctrl_usb2ad_default>;
++			status = "disabled";
++		};
++
++		udc: udc@1e6a2000 {
++			compatible = "aspeed,ast2600-udc";
++			reg = <0x1e6a2000 0x300>;
++			interrupts = <GIC_SPI 9 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&syscon ASPEED_CLK_GATE_USBPORT2CLK>;
+ 			status = "disabled";
+ 		};
+ 
+@@ -304,17 +399,29 @@ apb {
+ 			#size-cells = <1>;
+ 			ranges;
+ 
++			pwm_tacho: pwm-tacho-controller@1e610000 {
++				compatible = "aspeed,ast2600-pwm-tachometer";
++				#address-cells = <1>;
++				#size-cells = <0>;
++				reg = <0x1e610000 0x100>;
++				clocks = <&syscon ASPEED_CLK_AHB>;
++				resets = <&syscon ASPEED_RESET_PWM>;
++				status = "disabled";
++
++			};
++
+ 			syscon: syscon@1e6e2000 {
+-				compatible = "aspeed,ast2600-scu", "syscon", "simple-mfd";
++				compatible = "aspeed,aspeed-scu", "aspeed,ast2600-scu", "syscon", "simple-mfd";
+ 				reg = <0x1e6e2000 0x1000>;
+ 				ranges = <0 0x1e6e2000 0x1000>;
+ 				#address-cells = <1>;
+ 				#size-cells = <1>;
+ 				#clock-cells = <1>;
+ 				#reset-cells = <1>;
++				uart-clk-source = <0x0>; /* uart clock source selection: 0: uxclk 1: huxclk*/
+ 
+-				pinctrl: pinctrl {
+-					compatible = "aspeed,ast2600-pinctrl";
++				vga_scratch: scratch {
++					compatible = "aspeed,bmc-misc";
+ 				};
+ 
+ 				silicon-id@14 {
+@@ -322,26 +429,39 @@ silicon-id@14 {
+ 					reg = <0x14 0x4 0x5b0 0x8>;
+ 				};
+ 
+-				smp-memram@180 {
+-					compatible = "aspeed,ast2600-smpmem";
+-					reg = <0x180 0x40>;
++				pinctrl: pinctrl {
++					compatible = "aspeed,ast2600-pinctrl";
+ 				};
+ 
+-				scu_ic0: interrupt-controller@560 {
++				scu_ic0: interrupt-controller@0 {
+ 					#interrupt-cells = <1>;
+-					compatible = "aspeed,ast2600-scu-ic0";
+-					reg = <0x560 0x4>;
++					compatible = "aspeed,ast2600-scu-ic";
++					reg = <0x560 0x10>;
++					interrupt-parent = <&gic>;
+ 					interrupts = <GIC_SPI 12 IRQ_TYPE_LEVEL_HIGH>;
+ 					interrupt-controller;
++					parity-check;
+ 				};
+ 
+-				scu_ic1: interrupt-controller@570 {
++				scu_ic1: interrupt-controller@1 {
+ 					#interrupt-cells = <1>;
+-					compatible = "aspeed,ast2600-scu-ic1";
+-					reg = <0x570 0x4>;
++					compatible = "aspeed,ast2600-scu-ic";
++					reg = <0x570 0x10>;
++					interrupt-parent = <&gic>;
+ 					interrupts = <GIC_SPI 41 IRQ_TYPE_LEVEL_HIGH>;
+ 					interrupt-controller;
+ 				};
++
++			};
++
++			smp-memram@0 {
++				compatible = "aspeed,ast2600-smpmem", "syscon";
++				reg = <0x1e6e2180 0x40>;
++			};
++
++			reboot@0 {
++				compatible = "aspeed,ast2600-reboot", "syscon";
++				reg = <0x1e785000 0x40>;
+ 			};
+ 
+ 			rng: hwrng@1e6e2524 {
+@@ -351,19 +471,263 @@ rng: hwrng@1e6e2524 {
+ 				quality = <100>;
+ 			};
+ 
+-			xdma: xdma@1e6e7000 {
++			hace: hace@1e6d0000 {
++				compatible = "aspeed,ast2600-hace";
++				reg = <0x1e6d0000 0x200>;
++				interrupts = <GIC_SPI 4 IRQ_TYPE_LEVEL_HIGH>;
++				clocks = <&syscon ASPEED_CLK_GATE_YCLK>;
++				clock-names = "yclk";
++				resets = <&syscon ASPEED_RESET_HACE>;
++				status = "disabled";
++			};
++
++			acry: acry@1e6fa000 {
++				compatible = "aspeed,ast2600-acry";
++				reg = <0x1e6fa000 0x400 0x1e710000 0x1800>;
++				interrupts = <GIC_SPI 160 IRQ_TYPE_LEVEL_HIGH>;
++				clocks = <&syscon ASPEED_CLK_GATE_RSACLK>;
++				clock-names = "rsaclk";
++				status = "disabled";
++			};
++
++			hid: hid@1e6e1000 {
++				compatible = "aspeed,ast2600-hid";
++				reg= <0x1e6e1000 0x20>;
++				interrupts = <GIC_SPI 9 IRQ_TYPE_LEVEL_HIGH>;
++				clocks = <&syscon ASPEED_CLK_GATE_USBPORT2CLK>;
++				resets = <&syscon ASPEED_RESET_EHCI_P2>;
++				reset-names = "hid";
++				pinctrl-names = "default";
++				pinctrl-0 = <&pinctrl_usb11bhid_default>;
++			};
++
++			jtag0: jtag@1e6e4000 {
++				compatible = "aspeed,ast2600-jtag";
++				reg= <0x1e6e4000 0x20>;
++				interrupts = <GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>;
++				clocks = <&syscon ASPEED_CLK_AHB>;
++				resets = <&syscon ASPEED_RESET_JTAG_MASTER>;
++				reset-names = "jtag";
++				status = "disabled";
++			};
++
++			jtag1: jtag@1e6e4100 {
++				compatible = "aspeed,ast2600-jtag";
++				reg= <0x1e6e4100 0x20>;
++				interrupts = <GIC_SPI 53 IRQ_TYPE_LEVEL_HIGH>;
++				clocks = <&syscon ASPEED_CLK_AHB>;
++				resets = <&syscon ASPEED_RESET_JTAG_MASTER2>;
++				reset-names = "jtag";
++				pinctrl-names = "default";
++				pinctrl-0 = <&pinctrl_jtagm_default>;
++				status = "disabled";
++			};
++
++			gfx: display@1e6e6000 {
++				compatible = "aspeed,ast2600-gfx", "syscon";
++				reg = <0x1e6e6000 0x1000>;
++				reg-io-width = <4>;
++				clocks = <&syscon ASPEED_CLK_GATE_D1CLK>;
++				resets = <&syscon ASPEED_RESET_CRT>, <&syscon ASPEED_RESET_GRAPHICS>;
++				reset-names = "crt", "engine";
++				interrupts = <GIC_SPI 14 IRQ_TYPE_LEVEL_HIGH>;
++				status = "disabled";
++			};
++
++			pcie_ep:pcie_ep@1e6ed000 {
++				compatible = "aspeed,aspeed-pcie";
++				reg = <0x1e6ed000 0x100>;
++
++				resets = <&syscon ASPEED_RESET_PCIE_DEV_O>;
++				rc_offset = <0x80>;
++				msi_address = <0x1e770058>;
++
++				status = "disabled";
++			};
++
++			pcie: pcie@1e6ed2000 {
++				compatible = "aspeed,ast2600-pcie";
++				reg = <0x1e6ed200 0x100>;
++				device_type = "pci";
++				bus-range = <0x00 0xff>;
++
++				#address-cells = <3>;
++				#size-cells = <2>;
++				ranges = <0x01000000 0 0x00010000 0x00010000 0x0 0x10000   /* I/O */
++					  0x02000000 0x0 0x70000000 0x70000000 0 0x0fffffff>; /* memory */
++				#interrupt-cells = <1>;
++
++				interrupt-map-mask = <0 0 0 7>;
++				interrupt-map = <0 0 0 1 &pcie_intc0 0>, /* INT A */
++						<0 0 0 2 &pcie_intc0 1>, /* INT B */
++						<0 0 0 3 &pcie_intc0 2>, /* INT C */
++						<0 0 0 4 &pcie_intc0 3>; /* INT D */
++
++				resets = <&syscon ASPEED_RESET_PCIE_RC_O>;
++				rc_offset = <0xC0>;
++				msi_address = <0x1e77005C>;
++#if 0
++				pinctrl-names = "default";
++				pinctrl-0 = <&pinctrl_pcie1rc_default>;
++#endif
++				status = "disabled";
++
++				pcie_intc0: legacy-interrupt-controller {
++					interrupt-controller;
++					#interrupt-cells = <1>;
++					interrupt-parent = <&gic>;
++				};
++			};
++
++			xdma0: xdma@1e6e7000 {
++				compatible = "aspeed,ast2600-xdma";
++				reg = <0x1e6e7000 0x80>;
++				interrupts-extended = <&gic GIC_SPI 6 IRQ_TYPE_LEVEL_HIGH>, <&scu_ic0 ASPEED_SCU_PCIE_REST_LOW_TO_HIGH>;
++				interrupt-names = "xdma", "pcie";
++				resets = <&syscon ASPEED_RESET_DEV_XDMA>;
++				status = "disabled";
++			};
++
++			xdma1: xdma@1e6f8000 {
+ 				compatible = "aspeed,ast2600-xdma";
+-				reg = <0x1e6e7000 0x100>;
+-				clocks = <&syscon ASPEED_CLK_GATE_BCLK>;
+-				resets = <&syscon ASPEED_RESET_DEV_XDMA>, <&syscon ASPEED_RESET_RC_XDMA>;
+-				reset-names = "device", "root-complex";
+-				interrupts-extended = <&gic GIC_SPI 6 IRQ_TYPE_LEVEL_HIGH>,
+-						      <&scu_ic0 ASPEED_AST2600_SCU_IC0_PCIE_PERST_LO_TO_HI>;
+-				aspeed,pcie-device = "bmc";
+-				aspeed,scu = <&syscon>;
++				reg = <0x1e6f8000 0x80>;
++				interrupts-extended = <&scu_ic0 ASPEED_SCU_PCIE_REST_LOW_TO_HIGH>;
++				interrupt-names = "pcie";
++				resets = <&syscon ASPEED_RESET_RC_XDMA>;
++				status = "disabled";
++			};
++
++			mctp0: mctp@1e6e8000 {
++				compatible = "aspeed,ast2600-mctp";
++				reg = <0x1e6e8000 0x30>;
++	 			interrupts-extended = <&gic GIC_SPI 26 IRQ_TYPE_LEVEL_HIGH>, <&scu_ic0 ASPEED_SCU_PCIE_REST_LOW_TO_HIGH>;
++				interrupt-names = "mctp", "pcie";
++				no-reset-on-reboot;
++				resets = <&syscon ASPEED_RESET_DEV_MCTP>;
++				status = "disabled";
++			};
++
++			mctp1: mctp@1e6f9000 {
++				compatible = "aspeed,ast2600-mctp";
++				reg = <0x1e6f9000 0x30>;
++	 			interrupts-extended = <&scu_ic0 ASPEED_SCU_PCIE_REST_LOW_TO_HIGH>;
++				interrupt-names = "pcie";
++				resets = <&syscon ASPEED_RESET_RC_MCTP>;
++				status = "disabled";
++			};
++
++			adc0: adc@1e6e9000 {
++				compatible = "aspeed,ast2600-adc";
++				reg = <0x1e6e9000 0x100>;
++				clocks = <&syscon ASPEED_CLK_APB2>;
++				resets = <&syscon ASPEED_RESET_ADC>;
++				interrupts = <GIC_SPI 46 IRQ_TYPE_LEVEL_HIGH>;
++				#io-channel-cells = <1>;
++				trim_locate = <0x5D0 0 0xf>;
++				status = "disabled"; 
++			}; 
++
++			adc1: adc@1e6e9100 {
++				compatible = "aspeed,ast2600-adc";
++				reg = <0x1e6e9100 0x100>;
++				clocks = <&syscon ASPEED_CLK_APB2>;
++				resets = <&syscon ASPEED_RESET_ADC>;
++				interrupts = <GIC_SPI 46 IRQ_TYPE_LEVEL_HIGH>;
++				#io-channel-cells = <1>;
++				trim_locate = <0x5D0 4 0xf>;
++				status = "disabled";
++			};
++
++			espi: espi@1e6ee000 {
++				compatible = "aspeed,ast2600-espi", "simple-mfd", "syscon";
++				reg = <0x1e6ee000 0x200>;
++				reg-io-width = <4>;
++
++				interrupts-extended = <&gic GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>, <&gpio0 ASPEED_GPIO(W, 7) IRQ_TYPE_EDGE_FALLING>;
++				status = "disabled";
++
++				#address-cells = <1>;
++				#size-cells = <1>;
++				interrupt-controller;
++				#interrupt-cells = <1>;
++
++				ranges = <0x0 0x1e6ee000 0x200>;
++
++				peripheral: peripheral-channel@0 {
++					compatible = "aspeed,ast2600-espi-peripheral";
++					reg = <0x0 0x200>;
++					interrupts-extended = <&espi 0>, <&espi 4>;
++					dma-mode;
++					aspeed,espi-mmbi = <&espi_mmbi>;
++					status = "disabled";
++				};
++
++				virtial_wire: vw-channel@0 {
++					compatible = "aspeed,ast2600-espi-virtial-wire";
++					reg = <0x0 0x200>;
++					interrupts-extended = <&espi 1>, <&espi 4>;
++					status = "disabled";
++				};
++
++				oob: oob-channel@0 {
++					compatible = "aspeed,ast2600-espi-oob";
++					reg = <0x0 0x200>;
++					interrupts-extended = <&espi 2>, <&espi 4>;
++					dma-mode;
++					status = "disabled";
++				};
++
++				flash: flash-channel@0 {
++					compatible = "aspeed,ast2600-espi-flash";
++					reg = <0x0 0x200>;
++					interrupts-extended = <&espi 3>, <&espi 4>;
++					dma-mode;
++					status = "disabled";
++				};
++			};
++
++			espi_mmbi: espi_mmbi@1e6ee800 {
++				compatible = "aspeed,ast2600-espi-mmbi";
++				interrupts-extended = <&gic GIC_SPI 108 IRQ_TYPE_LEVEL_HIGH>;
++				dma-mode;
++				status = "disabled";
++			};
++
++			video: video@1e700000 {
++#if 0
++				compatible = "aspeed,ast2600-video-engine";
++#else
++				compatible = "aspeed,ast2600-video";
++#endif
++				reg = <0x1e700000 0x1000>;
++				clocks = <&syscon ASPEED_CLK_GATE_VCLK>,
++					 <&syscon ASPEED_CLK_GATE_ECLK>;
++				clock-names = "vclk", "eclk";
++				interrupts = <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>;
++				resets = <&syscon ASPEED_RESET_VIDEO>;
+ 				status = "disabled";
+ 			};
+ 
++			h2x: h2x@1e770000 {
++				compatible = "aspeed,ast2600-h2x";
++				reg = <0x1e770000 0x100>;
++				interrupts = <GIC_SPI 29 IRQ_TYPE_LEVEL_HIGH>;
++				resets = <&syscon ASPEED_RESET_H2X>;
++				#address-cells = <1>;
++				#size-cells = <1>;
++				ranges = <0x0 0x1e770000 0x100>;
++
++				status = "disabled";
++
++					pcie_cfg0: cfg0@80 {
++						reg = <0x80 0x80>;
++					};
++
++					pcie_cfg1: cfg1@C0 {
++						reg = <0xC0 0x80>;
++					};
++			};
++
+ 			gpio0: gpio@1e780000 {
+ 				#gpio-cells = <2>;
+ 				gpio-controller;
+@@ -377,6 +741,47 @@ gpio0: gpio@1e780000 {
+ 				#interrupt-cells = <2>;
+ 			};
+ 
++			sgpiom0: sgpiom@1e780500 {
++				#gpio-cells = <2>;
++				gpio-controller;
++				compatible = "aspeed,ast2600-sgpiom";
++				reg = <0x1e780500 0x100>;
++				interrupts = <GIC_SPI 51 IRQ_TYPE_LEVEL_HIGH>;
++				ngpios = <128>;
++				clocks = <&syscon ASPEED_CLK_APB2>;
++				interrupt-controller;
++				bus-frequency = <12000000>;
++
++				pinctrl-names = "default";
++				pinctrl-0 = <&pinctrl_sgpm1_default>;
++				status = "disabled";
++			};
++
++			sgpiom1: sgpiom@1e780600 {
++				#gpio-cells = <2>;
++				gpio-controller;
++				compatible = "aspeed,ast2600-sgpiom";
++				reg = <0x1e780600 0x100>;
++				interrupts = <GIC_SPI 70 IRQ_TYPE_LEVEL_HIGH>;
++				ngpios = <80>;
++				clocks = <&syscon ASPEED_CLK_APB2>;
++				interrupt-controller;
++				bus-frequency = <12000000>;
++
++				pinctrl-names = "default";
++				pinctrl-0 = <&pinctrl_sgpm2_default>;
++				status = "disabled";
++			};
++
++			sgpios0: sgpios@1e780700 {
++				#gpio-cells = <2>;
++				gpio-controller;
++				compatible = "aspeed,ast2600-sgpios";
++				reg = <0x1e780700 0x100>;
++				interrupts = <GIC_SPI 52 IRQ_TYPE_LEVEL_HIGH>;
++				clocks = <&syscon ASPEED_CLK_APB2>;
++			};
++
+ 			gpio1: gpio@1e780800 {
+ 				#gpio-cells = <2>;
+ 				gpio-controller;
+@@ -388,6 +793,7 @@ gpio1: gpio@1e780800 {
+ 				clocks = <&syscon ASPEED_CLK_APB1>;
+ 				interrupt-controller;
+ 				#interrupt-cells = <2>;
++				status = "disabled";
+ 			};
+ 
+ 			rtc: rtc@1e781000 {
+@@ -411,7 +817,7 @@ timer: timer@1e782000 {
+ 				clocks = <&syscon ASPEED_CLK_APB1>;
+ 				clock-names = "PCLK";
+ 				status = "disabled";
+-                        };
++			};
+ 
+ 			uart1: serial@1e783000 {
+ 				compatible = "ns16550a";
+@@ -431,6 +837,7 @@ uart5: serial@1e784000 {
+ 				compatible = "ns16550a";
+ 				reg = <0x1e784000 0x1000>;
+ 				reg-shift = <2>;
++				reg-io-width = <4>;
+ 				interrupts = <GIC_SPI 8 IRQ_TYPE_LEVEL_HIGH>;
+ 				clocks = <&syscon ASPEED_CLK_GATE_UART5CLK>;
+ 				no-loopback-test;
+@@ -444,56 +851,106 @@ wdt1: watchdog@1e785000 {
+ 			wdt2: watchdog@1e785040 {
+ 				compatible = "aspeed,ast2600-wdt";
+ 				reg = <0x1e785040 0x40>;
+-				status = "disabled";
+ 			};
+ 
+ 			wdt3: watchdog@1e785080 {
+ 				compatible = "aspeed,ast2600-wdt";
+ 				reg = <0x1e785080 0x40>;
+-				status = "disabled";
+ 			};
+ 
+-			wdt4: watchdog@1e7850c0 {
++			wdt4: watchdog@1e7850C0 {
+ 				compatible = "aspeed,ast2600-wdt";
+ 				reg = <0x1e7850C0 0x40>;
++			};
++
++			vuart0: serial@1e787000 {
++				compatible = "aspeed,ast2600-vuart";
++				reg = <0x1e787000 0x40>;
++				reg-shift = <2>;
++				interrupts = <GIC_SPI 147 IRQ_TYPE_LEVEL_HIGH>;
++				clocks = <&syscon ASPEED_CLK_APB1>;
++				no-loopback-test;
++				port_address = <0x3f8>;
++				serial_irq = <4>;
++
++				status = "disabled";
++			};
++
++			//pcie vuart1
++			vuart2: serial@1e787800 {
++				compatible = "aspeed,ast2600-vuart";
++				reg = <0x1e787800 0x40>;
++				reg-shift = <2>;
++				interrupts = <GIC_SPI 180 IRQ_TYPE_LEVEL_HIGH>;
++				clocks = <&syscon ASPEED_CLK_APB1>;
++				no-loopback-test;
++				port_address = <0x3f8>;
++				serial_irq = <4>;
++
++				status = "disabled";
++			};
++
++			vuart1: serial@1e788000 {
++				compatible = "aspeed,ast2600-vuart";
++				reg = <0x1e788000 0x40>;
++				reg-shift = <2>;
++				interrupts = <GIC_SPI 148 IRQ_TYPE_LEVEL_HIGH>;
++				clocks = <&syscon ASPEED_CLK_APB2>;
++				no-loopback-test;
++				port_address = <0x2f8>;
++				serial_irq = <3>;
++
++				status = "disabled";
++			};
++
++			//pcie vuart2
++			vuart3: serial@1e788800 {
++				compatible = "aspeed,ast2600-vuart";
++				reg = <0x1e788800 0x40>;
++				reg-shift = <2>;
++				interrupts = <GIC_SPI 181 IRQ_TYPE_LEVEL_HIGH>;
++				clocks = <&syscon ASPEED_CLK_APB2>;
++				no-loopback-test;
++				port_address = <0x2f8>;
++				serial_irq = <3>;
++
+ 				status = "disabled";
+ 			};
+ 
+ 			lpc: lpc@1e789000 {
+ 				compatible = "aspeed,ast2600-lpc-v2", "simple-mfd", "syscon";
+-				reg = <0x1e789000 0x1000>;
++				reg = <0x1e789000 0x200>;
+ 				reg-io-width = <4>;
+ 
+ 				#address-cells = <1>;
+ 				#size-cells = <1>;
+ 				ranges = <0x0 0x1e789000 0x1000>;
+ 
+-				kcs1: kcs@24 {
+-					compatible = "aspeed,ast2500-kcs-bmc-v2";
+-					reg = <0x24 0x1>, <0x30 0x1>, <0x3c 0x1>;
++				kcs1: kcs1@0 {
++					compatible = "aspeed,ast2600-kcs-bmc";
+ 					interrupts = <GIC_SPI 138 IRQ_TYPE_LEVEL_HIGH>;
+ 					kcs_chan = <1>;
+ 					status = "disabled";
+ 				};
+-
+-				kcs2: kcs@28 {
+-					compatible = "aspeed,ast2500-kcs-bmc-v2";
+-					reg = <0x28 0x1>, <0x34 0x1>, <0x40 0x1>;
++				
++				kcs2: kcs2@0 {
++					compatible = "aspeed,ast2600-kcs-bmc";
+ 					interrupts = <GIC_SPI 139 IRQ_TYPE_LEVEL_HIGH>;
++					kcs_chan = <2>;
+ 					status = "disabled";
+ 				};
+-
+-				kcs3: kcs@2c {
+-					compatible = "aspeed,ast2500-kcs-bmc-v2";
+-					reg = <0x2c 0x1>, <0x38 0x1>, <0x44 0x1>;
++				
++				kcs3: kcs3@0 {
++					compatible = "aspeed,ast2600-kcs-bmc";
+ 					interrupts = <GIC_SPI 140 IRQ_TYPE_LEVEL_HIGH>;
++					kcs_chan = <3>;
+ 					status = "disabled";
+ 				};
+ 
+-				kcs4: kcs@114 {
+-					compatible = "aspeed,ast2500-kcs-bmc-v2";
+-					reg = <0x114 0x1>, <0x118 0x1>, <0x11c 0x1>;
++				kcs4: kcs4@0 {
++					compatible = "aspeed,ast2600-kcs-bmc";
+ 					interrupts = <GIC_SPI 141 IRQ_TYPE_LEVEL_HIGH>;
++					kcs_chan = <4>;
+ 					status = "disabled";
+ 				};
+ 
+@@ -509,9 +966,19 @@ lpc_snoop: lpc-snoop@80 {
+ 					reg = <0x80 0x80>;
+ 					interrupts = <GIC_SPI 144 IRQ_TYPE_LEVEL_HIGH>;
+ 					clocks = <&syscon ASPEED_CLK_GATE_LCLK>;
++					snoop-ports = <0x80>;
++					status = "disabled";
++				};
++
++
++				lpc_pcc: lpc-pcc@0 {
++					compatible = "aspeed,ast2600-lpc-pcc";
++					reg = <0x0 0x80>;
++					interrupts = <GIC_SPI 145 IRQ_TYPE_LEVEL_HIGH>;
+ 					status = "disabled";
+ 				};
+ 
++
+ 				lhc: lhc@a0 {
+ 					compatible = "aspeed,ast2600-lhc";
+ 					reg = <0xa0 0x24 0xc8 0x8>;
+@@ -529,6 +996,13 @@ ibt: ibt@140 {
+ 					interrupts = <GIC_SPI 143 IRQ_TYPE_LEVEL_HIGH>;
+ 					status = "disabled";
+ 				};
++				
++				mbox: mbox@180 {
++					compatible = "aspeed,ast2600-mbox";
++					reg = <0x180 0x5c>;
++					interrupts = <GIC_SPI 54 IRQ_TYPE_LEVEL_HIGH>;
++					#mbox-cells = <1>;
++				};
+ 			};
+ 
+ 			sdc: sdc@1e740000 {
+@@ -546,6 +1020,10 @@ sdhci0: sdhci@1e740100 {
+ 					interrupts = <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>;
+ 					sdhci,auto-cmd12;
+ 					clocks = <&syscon ASPEED_CLK_SDIO>;
++					power-gpio = <&gpio0 ASPEED_GPIO(V, 0) GPIO_ACTIVE_LOW>;
++					power-switch-gpio = <&gpio0 ASPEED_GPIO(V, 1) GPIO_ACTIVE_LOW>;
++					pinctrl-names = "default";
++					pinctrl-0 = <&pinctrl_sd1_default>;
+ 					status = "disabled";
+ 				};
+ 
+@@ -555,6 +1033,10 @@ sdhci1: sdhci@1e740200 {
+ 					interrupts = <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>;
+ 					sdhci,auto-cmd12;
+ 					clocks = <&syscon ASPEED_CLK_SDIO>;
++					power-gpio = <&gpio0 ASPEED_GPIO(V, 2) GPIO_ACTIVE_LOW>;
++					power-switch-gpio = <&gpio0 ASPEED_GPIO(V, 3) GPIO_ACTIVE_LOW>;
++					pinctrl-names = "default";
++					pinctrl-0 = <&pinctrl_sd2_default>;
+ 					status = "disabled";
+ 				};
+ 			};
+@@ -576,27 +1058,16 @@ emmc: sdhci@1e750100 {
+ 					clocks = <&syscon ASPEED_CLK_EMMC>;
+ 					pinctrl-names = "default";
+ 					pinctrl-0 = <&pinctrl_emmc_default>;
++					status = "disabled";
+ 				};
+ 			};
+ 
+-			vuart1: serial@1e787000 {
+-				compatible = "aspeed,ast2500-vuart";
+-				reg = <0x1e787000 0x40>;
+-				reg-shift = <2>;
+-				interrupts = <GIC_SPI 147 IRQ_TYPE_LEVEL_HIGH>;
+-				clocks = <&syscon ASPEED_CLK_APB1>;
+-				no-loopback-test;
+-				status = "disabled";
+-			};
+ 
+-			vuart2: serial@1e788000 {
+-				compatible = "aspeed,ast2500-vuart";
+-				reg = <0x1e788000 0x40>;
+-				reg-shift = <2>;
+-				interrupts = <GIC_SPI 148 IRQ_TYPE_LEVEL_HIGH>;
+-				clocks = <&syscon ASPEED_CLK_APB1>;
+-				no-loopback-test;
+-				status = "disabled";
++			peci: bus@1e78b000 {
++				compatible = "simple-bus";
++				#address-cells = <1>;
++				#size-cells = <1>;
++				ranges = <0x0 0x1e78b000 0x100>;
+ 			};
+ 
+ 			uart2: serial@1e78d000 {
+@@ -648,6 +1119,118 @@ i2c: bus@1e78a000 {
+ 				ranges = <0 0x1e78a000 0x1000>;
+ 			};
+ 
++			uart6: serial@1e790000 {
++				compatible = "ns16550a";
++				reg = <0x1e790000 0x20>;
++				reg-shift = <2>;
++				reg-io-width = <4>;
++				interrupts = <GIC_SPI 57 IRQ_TYPE_LEVEL_HIGH>;
++				clocks = <&syscon ASPEED_CLK_GATE_UART6CLK>;
++				no-loopback-test;
++				pinctrl-names = "default";
++				pinctrl-0 = <&pinctrl_uart6_default>;
++
++				status = "disabled";
++			};
++
++			uart7: serial@1e790100 {
++				compatible = "ns16550a";
++				reg = <0x1e790100 0x20>;
++				reg-shift = <2>;
++				reg-io-width = <4>;
++				interrupts = <GIC_SPI 58 IRQ_TYPE_LEVEL_HIGH>;
++				clocks = <&syscon ASPEED_CLK_GATE_UART7CLK>;
++				no-loopback-test;
++				pinctrl-names = "default";
++				pinctrl-0 = <&pinctrl_uart7_default>;
++
++				status = "disabled";
++			};
++
++			uart8: serial@1e790200 {
++				compatible = "ns16550a";
++				reg = <0x1e790200 0x20>;
++				reg-shift = <2>;
++				reg-io-width = <4>;
++				interrupts = <GIC_SPI 59 IRQ_TYPE_LEVEL_HIGH>;
++				clocks = <&syscon ASPEED_CLK_GATE_UART8CLK>;
++				no-loopback-test;
++				pinctrl-names = "default";
++				pinctrl-0 = <&pinctrl_uart8_default>;
++
++				status = "disabled";
++			};
++
++			uart9: serial@1e790300 {
++				compatible = "ns16550a";
++				reg = <0x1e790300 0x20>;
++				reg-shift = <2>;
++				reg-io-width = <4>;
++				interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
++				clocks = <&syscon ASPEED_CLK_GATE_UART9CLK>;
++				no-loopback-test;
++				pinctrl-names = "default";
++                                pinctrl-0 = <&pinctrl_uart9_default>;
++
++				status = "disabled";
++			};
++
++			uart10: serial@1e790400 {
++				compatible = "ns16550a";
++				reg = <0x1e790400 0x20>;
++				reg-shift = <2>;
++				reg-io-width = <4>;
++				interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
++				clocks = <&syscon ASPEED_CLK_GATE_UART10CLK>;
++				no-loopback-test;
++				pinctrl-names = "default";
++				pinctrl-0 = <&pinctrl_uart10_default>;
++
++				status = "disabled";
++			};
++
++			uart11: serial@1e790500 {
++				compatible = "ns16550a";
++				reg = <0x1e790500 0x20>;
++				reg-shift = <2>;
++				reg-io-width = <4>;
++				interrupts = <GIC_SPI 62 IRQ_TYPE_LEVEL_HIGH>;
++				clocks = <&syscon ASPEED_CLK_GATE_UART11CLK>;
++				no-loopback-test;
++				pinctrl-names = "default";
++				pinctrl-0 = <&pinctrl_uart11_default>;
++
++				status = "disabled";
++			};
++
++			uart12: serial@1e790600 {
++				compatible = "ns16550a";
++				reg = <0x1e790600 0x20>;
++				reg-shift = <2>;
++				reg-io-width = <4>;
++				interrupts = <GIC_SPI 63 IRQ_TYPE_LEVEL_HIGH>;
++				clocks = <&syscon ASPEED_CLK_GATE_UART12CLK>;
++				no-loopback-test;
++				pinctrl-names = "default";
++				pinctrl-0 = <&pinctrl_uart12g1_default>;
++
++				status = "disabled";
++			};
++
++			uart13: serial@1e790700 {
++				compatible = "ns16550a";
++				reg = <0x1e790700 0x20>;
++				reg-shift = <2>;
++				reg-io-width = <4>;
++				interrupts = <GIC_SPI 64 IRQ_TYPE_LEVEL_HIGH>;
++				clocks = <&syscon ASPEED_CLK_GATE_UART13CLK>;
++				no-loopback-test;
++				pinctrl-names = "default";
++				pinctrl-0 = <&pinctrl_uart13g1_default>;
++
++				status = "disabled";
++			};
++
+ 			fsim0: fsi@1e79b000 {
+ 				compatible = "aspeed,ast2600-fsi-master", "fsi-master";
+ 				reg = <0x1e79b000 0x94>;
+@@ -667,18 +1250,219 @@ fsim1: fsi@1e79b100 {
+ 				clocks = <&syscon ASPEED_CLK_GATE_FSICLK>;
+ 				status = "disabled";
+ 			};
++
++			dma: dma-controller@1e79e000 {
++				compatible = "aspeed,ast-uart-sdma";
++				reg = <0x1e79e000 0x400>;
++				interrupts = <GIC_SPI 56 IRQ_TYPE_LEVEL_HIGH>;
++				#dma-cells = <1>;
++			};
++
++			dma_uart0: dma_uart0@1e78e000 {
++				compatible = "aspeed,ast-sdma-uart";
++				reg = <0x1e78e000 0x20>;
++				interrupts = <GIC_SPI 49 IRQ_TYPE_LEVEL_HIGH>;
++				clock-frequency = <1846154>;
++				reg-shift = <2>;
++				dma-channel = <2>;
++				no-loopback-test;
++				status = "disabled";
++			};
++
++			dma_uart1: dma_uart1@1e78f000 {
++				compatible = "aspeed,ast-sdma-uart";
++				reg = <0x1e78f000 0x20>;
++				interrupts = <GIC_SPI 50 IRQ_TYPE_LEVEL_HIGH>;
++				clock-frequency = <1846154>;
++				reg-shift = <2>;
++				dma-channel = <3>;
++				no-loopback-test;
++				status = "disabled";
++			};
++
++			dma_uart2: dma_uart2@1e790000{
++				compatible = "aspeed,ast-sdma-uart";
++				reg = <0x1e790000 0x20>;
++				interrupts = <GIC_SPI 57 IRQ_TYPE_LEVEL_HIGH>;
++				clock-frequency = <1846154>;
++				reg-shift = <2>;
++				dma-channel = <4>;
++				no-loopback-test;
++				status = "disabled";
++			};
++
++			dma_uart3: dma_uart3@1e790100{
++				compatible = "aspeed,ast-sdma-uart";
++				reg = <0x1e790100 0x20>;
++				interrupts = <GIC_SPI 58 IRQ_TYPE_LEVEL_HIGH>;
++				clock-frequency = <1846154>;
++				reg-shift = <2>;
++				dma-channel = <5>;
++				no-loopback-test;
++				status = "disabled";
++			};
++
++			dma_uart4: dma_uart4@1e790200{
++				compatible = "aspeed,ast-sdma-uart";
++				reg = <0x1e790200 0x20>;
++				interrupts = <GIC_SPI 59 IRQ_TYPE_LEVEL_HIGH>;
++				clock-frequency = <1846154>;
++				reg-shift = <2>;
++				dma-channel = <6>;
++				no-loopback-test;
++				status = "disabled";
++			};
++
++			dma_uart5: dma_uart5@1e790300{
++				compatible = "aspeed,ast-sdma-uart";
++				reg = <0x1e790300 0x20>;
++				interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
++				clock-frequency = <1846154>;
++				reg-shift = <2>;
++				dma-channel = <7>;
++				no-loopback-test;
++				status = "disabled";
++			};
++
++			dma_uart6: dma_uart6@1e790400{
++				compatible = "aspeed,ast-sdma-uart";
++				reg = <0x1e790400 0x20>;
++				interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
++				clock-frequency = <1846154>;
++				reg-shift = <2>;
++				dma-channel = <8>;
++				no-loopback-test;
++				status = "disabled";
++			};
++
++			dma_uart7: dma_uart7@1e790500{
++				compatible = "aspeed,ast-sdma-uart";
++				reg = <0x1e790500 0x20>;
++				interrupts = <GIC_SPI 62 IRQ_TYPE_LEVEL_HIGH>;
++				clock-frequency = <1846154>;
++				reg-shift = <2>;
++				dma-channel = <9>;
++				no-loopback-test;
++				status = "disabled";
++			};
++
++			dma_uart8: dma_uart8@1e790600{
++				compatible = "aspeed,ast-sdma-uart";
++				reg = <0x1e790600 0x20>;
++				interrupts = <GIC_SPI 63 IRQ_TYPE_LEVEL_HIGH>;
++				clock-frequency = <1846154>;
++				reg-shift = <2>;
++				dma-channel = <10>;
++				no-loopback-test;
++				status = "disabled";
++			};
++
++			dma_uart9: dma_uart9@1e790700{
++				compatible = "aspeed,ast-sdma-uart";
++				reg = <0x1e790700 0x20>;
++				interrupts = <GIC_SPI 64 IRQ_TYPE_LEVEL_HIGH>;
++				clock-frequency = <1846154>;
++				reg-shift = <2>;
++				dma-channel = <11>;
++				no-loopback-test;
++				status = "disabled";
++			};
++
++			dma_vuart0: dma_vuart0@1e787000 {
++				compatible = "aspeed,ast-sdma-uart";
++				reg = <0x1e787000 0x40>;
++				interrupts = <GIC_SPI 147 IRQ_TYPE_LEVEL_HIGH>;
++				clock-frequency = <1846154>;
++				reg-shift = <2>;
++				dma-channel = <12>;
++				no-loopback-test;
++				status = "disabled";
++			};
++
++			dma_vuart1: dma_vuart1@1e788000 {
++				compatible = "aspeed,ast-sdma-uart";
++				reg = <0x1e788000 0x40>;
++				interrupts = <GIC_SPI 148 IRQ_TYPE_LEVEL_HIGH>;
++				clock-frequency = <1846154>;
++				reg-shift = <2>;
++				dma-channel = <13>;
++				no-loopback-test;
++				status = "disabled";
++			};
++
++			i3c: bus@1e7a0000 {
++				compatible = "simple-bus";
++				#address-cells = <1>;
++				#size-cells = <1>;
++				ranges = <0 0x1e7a0000 0x8000>;
++			};
++
++			i2csec: bus@1e7a8000 {
++				compatible = "simple-bus";
++				#address-cells = <1>;
++				#size-cells = <1>;
++				ranges = <0 0x1e7a8000 0x1000>;
++			};
++
++			rvas: rvas@1e7c8000 {
++				compatible = "aspeed,ast2600-rvas";
++				reg = <0x1e7c8000 0x800 0x1e6ec000 0x800 0x1e7c0000 0x2000>;
++				clocks = <&syscon ASPEED_CLK_GATE_RVASCLK>;
++				clock-names = "rvasclk-gate";
++				interrupts = <GIC_SPI 98 IRQ_TYPE_LEVEL_HIGH>;
++				resets = <&syscon ASPEED_RESET_RVAS>;
++				status = "disabled";
++			};
++
++			bmc_dev: bmc_dev@1e7e0000 {
++				compatible = "aspeed,ast2600-bmc-device";
++				reg = <0x1e7e0000 0xB000>;
++				interrupts = <GIC_SPI 99 IRQ_TYPE_LEVEL_HIGH>;
++				status = "disabled";
++			};
++
+ 		};
++
+ 	};
++
+ };
+ 
+ #include "aspeed-g6-pinctrl.dtsi"
+ 
++&peci {
++	peci0: peci-bus@0 {
++		compatible = "aspeed,ast2600-peci";
++		reg = <0x0 0x100>;
++		#address-cells = <1>;
++		#size-cells = <0>;
++		interrupts = <GIC_SPI 38 IRQ_TYPE_LEVEL_HIGH>;
++		clocks = <&syscon ASPEED_CLK_GATE_REF1CLK>, <&syscon ASPEED_CLK_AHB>;
++		resets = <&syscon ASPEED_RESET_PECI>;
++		clock-frequency = <25000000>; //target peci clk 
++		clk-div = <1>;
++		msg-timing = <3>;
++		addr-timing = <3>;
++		rd-sampling-point = <8>;
++		cmd-timeout-ms = <1000>;
++		64byte-mode;
++		status = "disabled";
++	};
++};
++
+ &i2c {
++
++	i2c_gr: i2c-global-regs@0 {
++		compatible = "aspeed,ast2600-i2c-global", "syscon";
++		reg = <0x0 0x20>;
++		clocks = <&syscon ASPEED_CLK_APB2>;
++		resets = <&syscon ASPEED_RESET_I2C>;
++	};
++
+ 	i2c0: i2c-bus@80 {
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 		#interrupt-cells = <1>;
+-		reg = <0x80 0x80>;
++		reg = <0x80 0x80>, <0xC00 0x20>;
+ 		compatible = "aspeed,ast2600-i2c-bus";
+ 		clocks = <&syscon ASPEED_CLK_APB2>;
+ 		resets = <&syscon ASPEED_RESET_I2C>;
+@@ -693,7 +1477,7 @@ i2c1: i2c-bus@100 {
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 		#interrupt-cells = <1>;
+-		reg = <0x100 0x80>;
++		reg = <0x100 0x80>, <0xC20 0x20>;
+ 		compatible = "aspeed,ast2600-i2c-bus";
+ 		clocks = <&syscon ASPEED_CLK_APB2>;
+ 		resets = <&syscon ASPEED_RESET_I2C>;
+@@ -708,7 +1492,7 @@ i2c2: i2c-bus@180 {
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 		#interrupt-cells = <1>;
+-		reg = <0x180 0x80>;
++		reg = <0x180 0x80>, <0xC40 0x20>;
+ 		compatible = "aspeed,ast2600-i2c-bus";
+ 		clocks = <&syscon ASPEED_CLK_APB2>;
+ 		resets = <&syscon ASPEED_RESET_I2C>;
+@@ -723,7 +1507,7 @@ i2c3: i2c-bus@200 {
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 		#interrupt-cells = <1>;
+-		reg = <0x200 0x80>;
++		reg = <0x200 0x80>, <0xC60 0x20>;
+ 		compatible = "aspeed,ast2600-i2c-bus";
+ 		clocks = <&syscon ASPEED_CLK_APB2>;
+ 		resets = <&syscon ASPEED_RESET_I2C>;
+@@ -738,7 +1522,7 @@ i2c4: i2c-bus@280 {
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 		#interrupt-cells = <1>;
+-		reg = <0x280 0x80>;
++		reg = <0x280 0x80>, <0xC80 0x20>;
+ 		compatible = "aspeed,ast2600-i2c-bus";
+ 		clocks = <&syscon ASPEED_CLK_APB2>;
+ 		resets = <&syscon ASPEED_RESET_I2C>;
+@@ -753,7 +1537,7 @@ i2c5: i2c-bus@300 {
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 		#interrupt-cells = <1>;
+-		reg = <0x300 0x80>;
++		reg = <0x300 0x80>, <0xCA0 0x20>;
+ 		compatible = "aspeed,ast2600-i2c-bus";
+ 		clocks = <&syscon ASPEED_CLK_APB2>;
+ 		resets = <&syscon ASPEED_RESET_I2C>;
+@@ -768,7 +1552,7 @@ i2c6: i2c-bus@380 {
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 		#interrupt-cells = <1>;
+-		reg = <0x380 0x80>;
++		reg = <0x380 0x80>, <0xCC0 0x20>;
+ 		compatible = "aspeed,ast2600-i2c-bus";
+ 		clocks = <&syscon ASPEED_CLK_APB2>;
+ 		resets = <&syscon ASPEED_RESET_I2C>;
+@@ -783,7 +1567,7 @@ i2c7: i2c-bus@400 {
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 		#interrupt-cells = <1>;
+-		reg = <0x400 0x80>;
++		reg = <0x400 0x80>, <0xCE0 0x20>;
+ 		compatible = "aspeed,ast2600-i2c-bus";
+ 		clocks = <&syscon ASPEED_CLK_APB2>;
+ 		resets = <&syscon ASPEED_RESET_I2C>;
+@@ -798,7 +1582,7 @@ i2c8: i2c-bus@480 {
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 		#interrupt-cells = <1>;
+-		reg = <0x480 0x80>;
++		reg = <0x480 0x80>, <0xD00 0x20>;
+ 		compatible = "aspeed,ast2600-i2c-bus";
+ 		clocks = <&syscon ASPEED_CLK_APB2>;
+ 		resets = <&syscon ASPEED_RESET_I2C>;
+@@ -813,7 +1597,7 @@ i2c9: i2c-bus@500 {
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 		#interrupt-cells = <1>;
+-		reg = <0x500 0x80>;
++		reg = <0x500 0x80>, <0xD20 0x20>;
+ 		compatible = "aspeed,ast2600-i2c-bus";
+ 		clocks = <&syscon ASPEED_CLK_APB2>;
+ 		resets = <&syscon ASPEED_RESET_I2C>;
+@@ -828,7 +1612,7 @@ i2c10: i2c-bus@580 {
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 		#interrupt-cells = <1>;
+-		reg = <0x580 0x80>;
++		reg = <0x580 0x80>, <0xD40 0x20>;
+ 		compatible = "aspeed,ast2600-i2c-bus";
+ 		clocks = <&syscon ASPEED_CLK_APB2>;
+ 		resets = <&syscon ASPEED_RESET_I2C>;
+@@ -843,7 +1627,7 @@ i2c11: i2c-bus@600 {
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 		#interrupt-cells = <1>;
+-		reg = <0x600 0x80>;
++		reg = <0x600 0x80>, <0xD60 0x20>;
+ 		compatible = "aspeed,ast2600-i2c-bus";
+ 		clocks = <&syscon ASPEED_CLK_APB2>;
+ 		resets = <&syscon ASPEED_RESET_I2C>;
+@@ -858,7 +1642,7 @@ i2c12: i2c-bus@680 {
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 		#interrupt-cells = <1>;
+-		reg = <0x680 0x80>;
++		reg = <0x680 0x80>, <0xD80 0x20>;
+ 		compatible = "aspeed,ast2600-i2c-bus";
+ 		clocks = <&syscon ASPEED_CLK_APB2>;
+ 		resets = <&syscon ASPEED_RESET_I2C>;
+@@ -873,7 +1657,7 @@ i2c13: i2c-bus@700 {
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 		#interrupt-cells = <1>;
+-		reg = <0x700 0x80>;
++		reg = <0x700 0x80>, <0xDA0 0x20>;
+ 		compatible = "aspeed,ast2600-i2c-bus";
+ 		clocks = <&syscon ASPEED_CLK_APB2>;
+ 		resets = <&syscon ASPEED_RESET_I2C>;
+@@ -888,7 +1672,7 @@ i2c14: i2c-bus@780 {
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 		#interrupt-cells = <1>;
+-		reg = <0x780 0x80>;
++		reg = <0x780 0x80>, <0xDC0 0x20>;
+ 		compatible = "aspeed,ast2600-i2c-bus";
+ 		clocks = <&syscon ASPEED_CLK_APB2>;
+ 		resets = <&syscon ASPEED_RESET_I2C>;
+@@ -903,7 +1687,7 @@ i2c15: i2c-bus@800 {
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 		#interrupt-cells = <1>;
+-		reg = <0x800 0x80>;
++		reg = <0x800 0x80>, <0xDE0 0x20>;
+ 		compatible = "aspeed,ast2600-i2c-bus";
+ 		clocks = <&syscon ASPEED_CLK_APB2>;
+ 		resets = <&syscon ASPEED_RESET_I2C>;
+@@ -914,3 +1698,188 @@ i2c15: i2c-bus@800 {
+ 		status = "disabled";
+ 	};
+ };
++
++&i2csec {
++
++	i2c_gr0: i2c-global-regs@0 {
++		compatible = "aspeed,ast2600-i2c-global", "syscon";
++		reg = <0x0 0x20>;
++		clocks = <&syscon ASPEED_CLK_APB2>;
++/*		resets = <&syscon ASPEED_RESET_I2C>;*/
++		status = "disabled";
++	};
++
++	i2c16: i2c-bus@80 {
++		#address-cells = <1>;
++		#size-cells = <0>;
++		#interrupt-cells = <1>;
++		reg = <0x80 0x80>, <0xC00 0x20>;
++		compatible = "aspeed,ast2600-i2c-bus";
++		clocks = <&syscon ASPEED_CLK_APB2>;
++/*		resets = <&syscon ASPEED_RESET_I2C>;*/
++		interrupts = <GIC_SPI 75 IRQ_TYPE_LEVEL_HIGH>;
++		bus-frequency = <100000>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_i2c1_default>;
++		status = "disabled";
++	};
++
++	i2c17: i2c-bus@100 {
++		#address-cells = <1>;
++		#size-cells = <0>;
++		#interrupt-cells = <1>;
++		reg = <0x100 0x80>, <0xC20 0x20>;
++		compatible = "aspeed,ast2600-i2c-bus";
++		clocks = <&syscon ASPEED_CLK_APB2>;
++/*		resets = <&syscon ASPEED_RESET_I2C>;*/
++		interrupts = <GIC_SPI 76 IRQ_TYPE_LEVEL_HIGH>;
++		bus-frequency = <100000>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_i2c2_default>;
++		status = "disabled";
++	};
++
++	i2c18: i2c-bus@180 {
++		#address-cells = <1>;
++		#size-cells = <0>;
++		#interrupt-cells = <1>;
++		reg = <0x180 0x80>, <0xC40 0x20>;
++		compatible = "aspeed,ast2600-i2c-bus";
++		clocks = <&syscon ASPEED_CLK_APB2>;
++/*		resets = <&syscon ASPEED_RESET_I2C>;*/
++		interrupts = <GIC_SPI 77 IRQ_TYPE_LEVEL_HIGH>;
++		bus-frequency = <100000>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_i2c3_default>;
++		status = "disabled";
++	};
++
++	i2c19: i2c-bus@200 {
++		#address-cells = <1>;
++		#size-cells = <0>;
++		#interrupt-cells = <1>;
++		reg = <0x200 0x80>, <0xC60 0x20>;
++		compatible = "aspeed,ast2600-i2c-bus";
++		clocks = <&syscon ASPEED_CLK_APB2>;
++/*		resets = <&syscon ASPEED_RESET_I2C>;*/
++		interrupts = <GIC_SPI 78 IRQ_TYPE_LEVEL_HIGH>;
++		bus-frequency = <100000>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_i2c4_default>;
++		status = "disabled";
++	};
++
++};
++
++&i3c{
++	i3cglobal: i3cg@00 {
++		reg = <0x0 0x1000>;
++		compatible = "aspeed,ast2600-i3c-global";
++		resets = <&syscon ASPEED_RESET_I3C>;
++	};
++
++	i3c0: i3c0@2000 {
++		#address-cells = <1>;
++		#size-cells = <0>;
++		#interrupt-cells = <1>;
++
++		reg = <0x2000 0x1000>;
++		compatible = "snps,dw-i3c-master-1.00a", "aspeed,ast2600-i3c";
++		clocks = <&syscon ASPEED_CLK_GATE_I3C0CLK>;
++		resets = <&syscon ASPEED_RESET_I3C0>;
++		i2c-scl-hz = <400000>;
++		i3c-scl-hz = <12500000>;
++		interrupts = <GIC_SPI 102 IRQ_TYPE_LEVEL_HIGH>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_i3c1_default>;
++
++		status = "disabled";
++	};
++
++	i3c1: i3c1@3000 {
++		#address-cells = <1>;
++		#size-cells = <0>;
++		#interrupt-cells = <1>;
++
++		reg = <0x3000 0x1000>;
++		compatible = "snps,dw-i3c-master-1.00a";
++		clocks = <&syscon ASPEED_CLK_GATE_I3C1CLK>;
++		resets = <&syscon ASPEED_RESET_I3C1>;
++		i2c-scl-hz = <400000>;
++		i3c-scl-hz = <12500000>;
++		interrupts = <GIC_SPI 103 IRQ_TYPE_LEVEL_HIGH>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_i3c2_default>;
++
++		status = "disabled";
++	};
++
++	i3c2: i3c2@4000 {
++		#address-cells = <1>;
++		#size-cells = <0>;
++		#interrupt-cells = <1>;
++
++		reg = <0x4000 0x1000>;
++		compatible = "snps,dw-i3c-master-1.00a";
++		clocks = <&syscon ASPEED_CLK_GATE_I3C2CLK>;
++		resets = <&syscon ASPEED_RESET_I3C2>;
++		i2c-scl-hz = <400000>;
++		i3c-scl-hz = <12500000>;
++		interrupts = <GIC_SPI 104 IRQ_TYPE_LEVEL_HIGH>;
++
++		status = "disabled";
++	};
++
++	i3c3: i3c3@5000 {
++		#address-cells = <1>;
++		#size-cells = <0>;
++		#interrupt-cells = <1>;
++
++		reg = <0x5000 0x1000>;
++		compatible = "snps,dw-i3c-master-1.00a";
++		clocks = <&syscon ASPEED_CLK_GATE_I3C3CLK>;
++		resets = <&syscon ASPEED_RESET_I3C3>;
++		i2c-scl-hz = <400000>;
++		i3c-scl-hz = <12500000>;
++		interrupts = <GIC_SPI 105 IRQ_TYPE_LEVEL_HIGH>;
++
++		status = "disabled";
++	};
++
++	i3c4: i3c4@6000 {
++		#address-cells = <1>;
++		#size-cells = <0>;
++		#interrupt-cells = <1>;
++
++		reg = <0x6000 0x1000>;
++		compatible = "snps,dw-i3c-master-1.00a";
++		clocks = <&syscon ASPEED_CLK_GATE_I3C4CLK>;
++		resets = <&syscon ASPEED_RESET_I3C4>;
++		i2c-scl-hz = <400000>;
++		i3c-scl-hz = <12500000>;
++		interrupts = <GIC_SPI 106 IRQ_TYPE_LEVEL_HIGH>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_i3c5_default>;
++
++		status = "disabled";
++	};
++
++	i3c5: i3c5@7000 {
++		#address-cells = <1>;
++		#size-cells = <0>;
++		#interrupt-cells = <1>;
++
++		reg = <0x7000 0x1000>;
++		compatible = "snps,dw-i3c-master-1.00a";
++		clocks = <&syscon ASPEED_CLK_GATE_I3C5CLK>;
++		resets = <&syscon ASPEED_RESET_I3C5>;
++		i2c-scl-hz = <400000>;
++		i3c-scl-hz = <12500000>;
++		interrupts = <GIC_SPI 107 IRQ_TYPE_LEVEL_HIGH>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_i3c6_default>;
++
++		status = "disabled";
++	};
++
++};
+diff --git a/drivers/clk/clk-ast2600.c b/drivers/clk/clk-ast2600.c
+index 8933bd1506b3..fc98686eaf78 100644
+--- a/drivers/clk/clk-ast2600.c
++++ b/drivers/clk/clk-ast2600.c
+@@ -1,48 +1,60 @@
+-// SPDX-License-Identifier: GPL-2.0-or-later
+-// Copyright IBM Corp
+-// Copyright ASPEED Technology
++// SPDX-License-Identifier: GPL-2.0+
+ 
+-#define pr_fmt(fmt) "clk-ast2600: " fmt
++#define pr_fmt(fmt) "clk-aspeed: " fmt
+ 
++#include <linux/clk-provider.h>
+ #include <linux/mfd/syscon.h>
+ #include <linux/of_address.h>
+ #include <linux/of_device.h>
+ #include <linux/platform_device.h>
+ #include <linux/regmap.h>
++#include <linux/reset-controller.h>
+ #include <linux/slab.h>
++#include <linux/spinlock.h>
+ 
+ #include <dt-bindings/clock/ast2600-clock.h>
+-
+ #include "clk-aspeed.h"
+ 
+-#define ASPEED_G6_NUM_CLKS		71
+-
++#define ASPEED_G6_NUM_CLKS		75
+ #define ASPEED_G6_SILICON_REV		0x014
+ #define CHIP_REVISION_ID			GENMASK(23, 16)
+ 
+-#define ASPEED_G6_RESET_CTRL		0x040
+-#define ASPEED_G6_RESET_CTRL2		0x050
+-
+-#define ASPEED_G6_CLK_STOP_CTRL		0x080
+-#define ASPEED_G6_CLK_STOP_CTRL2	0x090
+-
+-#define ASPEED_G6_MISC_CTRL		0x0C0
+-#define  UART_DIV13_EN			BIT(12)
++#define ASPEED_CLK2_OFFSET		32
++#define ASPEED_G6_RESET_CTRL		0x40
++#define ASPEED_G6_RESET_CTRL2		0x50
+ 
+ #define ASPEED_G6_CLK_SELECTION1	0x300
+ #define ASPEED_G6_CLK_SELECTION2	0x304
+ #define ASPEED_G6_CLK_SELECTION4	0x310
++#define ASPEED_G6_CLK_SELECTION5	0x314
++
++#define ASPEED_G6_MAC12_CLK_CTRL0	0x340
++#define ASPEED_G6_MAC12_CLK_CTRL1	0x348
++#define ASPEED_G6_MAC12_CLK_CTRL2	0x34C
++
++#define ASPEED_G6_MAC34_CLK_CTRL0	0x350
++#define ASPEED_G6_MAC34_CLK_CTRL1	0x358
++#define ASPEED_G6_MAC34_CLK_CTRL2	0x35C
++
++#define ASPEED_G6_MAC34_DRIVING_CTRL	0x458
+ 
+-#define ASPEED_HPLL_PARAM		0x200
+-#define ASPEED_APLL_PARAM		0x210
+-#define ASPEED_MPLL_PARAM		0x220
+-#define ASPEED_EPLL_PARAM		0x240
+-#define ASPEED_DPLL_PARAM		0x260
++#define ASPEED_G6_DEF_MAC12_DELAY_1G	0x0041b410
++#define ASPEED_G6_DEF_MAC12_DELAY_100M	0x00417410
++#define ASPEED_G6_DEF_MAC12_DELAY_10M	0x00417410
++#define ASPEED_G6_DEF_MAC34_DELAY_1G	0x00104208
++#define ASPEED_G6_DEF_MAC34_DELAY_100M	0x00104208
++#define ASPEED_G6_DEF_MAC34_DELAY_10M	0x00104208
+ 
+-#define ASPEED_G6_STRAP1		0x500
++#define ASPEED_G6_CLK_STOP_CTRL		0x80
++#define ASPEED_G6_CLK_STOP_CTRL2	0x90
+ 
+-#define ASPEED_MAC12_CLK_DLY		0x340
+-#define ASPEED_MAC34_CLK_DLY		0x350
++#define ASPEED_G6_MISC_CTRL			0xC0
++#define  UART_DIV13_EN		BIT(12)
++
++#define ASPEED_APLL_PARAM	0x210
++#define ASPEED_MPLL_PARAM	0x220
++#define ASPEED_EPLL_PARAM	0x240
++#define ASPEED_DPLL_PARAM	0x260
+ 
+ /* Globally visible clocks */
+ static DEFINE_SPINLOCK(aspeed_g6_clk_lock);
+@@ -52,72 +64,77 @@ static struct clk_hw_onecell_data *aspeed_g6_clk_data;
+ 
+ static void __iomem *scu_g6_base;
+ 
+-/*
+- * Clocks marked with CLK_IS_CRITICAL:
+- *
+- *  ref0 and ref1 are essential for the SoC to operate
+- *  mpll is required if SDRAM is used
+- */
+-static const struct aspeed_gate_data aspeed_g6_gates[] = {
+-	/*				    clk rst  name		parent	 flags */
+-	[ASPEED_CLK_GATE_MCLK]		= {  0, -1, "mclk-gate",	"mpll",	 CLK_IS_CRITICAL }, /* SDRAM */
+-	[ASPEED_CLK_GATE_ECLK]		= {  1, -1, "eclk-gate",	"eclk",	 0 },	/* Video Engine */
+-	[ASPEED_CLK_GATE_GCLK]		= {  2,  7, "gclk-gate",	NULL,	 0 },	/* 2D engine */
+-	/* vclk parent - dclk/d1clk/hclk/mclk */
+-	[ASPEED_CLK_GATE_VCLK]		= {  3,  6, "vclk-gate",	NULL,	 0 },	/* Video Capture */
+-	[ASPEED_CLK_GATE_BCLK]		= {  4,  8, "bclk-gate",	"bclk",	 CLK_IS_CRITICAL }, /* PCIe/PCI */
+-	/* From dpll */
+-	[ASPEED_CLK_GATE_DCLK]		= {  5, -1, "dclk-gate",	NULL,	 CLK_IS_CRITICAL }, /* DAC */
+-	[ASPEED_CLK_GATE_REF0CLK]	= {  6, -1, "ref0clk-gate",	"clkin", CLK_IS_CRITICAL },
+-	[ASPEED_CLK_GATE_USBPORT2CLK]	= {  7,  3, "usb-port2-gate",	NULL,	 0 },	/* USB2.0 Host port 2 */
+-	/* Reserved 8 */
+-	[ASPEED_CLK_GATE_USBUHCICLK]	= {  9, 15, "usb-uhci-gate",	NULL,	 0 },	/* USB1.1 (requires port 2 enabled) */
+-	/* From dpll/epll/40mhz usb p1 phy/gpioc6/dp phy pll */
+-	[ASPEED_CLK_GATE_D1CLK]		= { 10, 13, "d1clk-gate",	"d1clk", 0 },	/* GFX CRT */
+-	/* Reserved 11/12 */
+-	[ASPEED_CLK_GATE_YCLK]		= { 13,  4, "yclk-gate",	NULL,	 0 },	/* HAC */
+-	[ASPEED_CLK_GATE_USBPORT1CLK]	= { 14, 14, "usb-port1-gate",	NULL,	 0 },	/* USB2 hub/USB2 host port 1/USB1.1 dev */
+-	[ASPEED_CLK_GATE_UART5CLK]	= { 15, -1, "uart5clk-gate",	"uart",	 0 },	/* UART5 */
+-	/* Reserved 16/19 */
+-	[ASPEED_CLK_GATE_MAC1CLK]	= { 20, 11, "mac1clk-gate",	"mac12", 0 },	/* MAC1 */
+-	[ASPEED_CLK_GATE_MAC2CLK]	= { 21, 12, "mac2clk-gate",	"mac12", 0 },	/* MAC2 */
+-	/* Reserved 22/23 */
+-	[ASPEED_CLK_GATE_RSACLK]	= { 24,  4, "rsaclk-gate",	NULL,	 0 },	/* HAC */
+-	[ASPEED_CLK_GATE_RVASCLK]	= { 25,  9, "rvasclk-gate",	NULL,	 0 },	/* RVAS */
+-	/* Reserved 26 */
+-	[ASPEED_CLK_GATE_EMMCCLK]	= { 27, 16, "emmcclk-gate",	NULL,	 0 },	/* For card clk */
+-	/* Reserved 28/29/30 */
+-	[ASPEED_CLK_GATE_LCLK]		= { 32, 32, "lclk-gate",	NULL,	 0 }, /* LPC */
+-	[ASPEED_CLK_GATE_ESPICLK]	= { 33, -1, "espiclk-gate",	NULL,	 0 }, /* eSPI */
+-	[ASPEED_CLK_GATE_REF1CLK]	= { 34, -1, "ref1clk-gate",	"clkin", CLK_IS_CRITICAL },
+-	/* Reserved 35 */
+-	[ASPEED_CLK_GATE_SDCLK]		= { 36, 56, "sdclk-gate",	NULL,	 0 },	/* SDIO/SD */
+-	[ASPEED_CLK_GATE_LHCCLK]	= { 37, -1, "lhclk-gate",	"lhclk", 0 },	/* LPC master/LPC+ */
+-	/* Reserved 38 RSA: no longer used */
+-	/* Reserved 39 */
+-	[ASPEED_CLK_GATE_I3C0CLK]	= { 40,  40, "i3c0clk-gate",	NULL,	 0 },	/* I3C0 */
+-	[ASPEED_CLK_GATE_I3C1CLK]	= { 41,  41, "i3c1clk-gate",	NULL,	 0 },	/* I3C1 */
+-	[ASPEED_CLK_GATE_I3C2CLK]	= { 42,  42, "i3c2clk-gate",	NULL,	 0 },	/* I3C2 */
+-	[ASPEED_CLK_GATE_I3C3CLK]	= { 43,  43, "i3c3clk-gate",	NULL,	 0 },	/* I3C3 */
+-	[ASPEED_CLK_GATE_I3C4CLK]	= { 44,  44, "i3c4clk-gate",	NULL,	 0 },	/* I3C4 */
+-	[ASPEED_CLK_GATE_I3C5CLK]	= { 45,  45, "i3c5clk-gate",	NULL,	 0 },	/* I3C5 */
+-	[ASPEED_CLK_GATE_I3C6CLK]	= { 46,  46, "i3c6clk-gate",	NULL,	 0 },	/* I3C6 */
+-	[ASPEED_CLK_GATE_I3C7CLK]	= { 47,  47, "i3c7clk-gate",	NULL,	 0 },	/* I3C7 */
+-	[ASPEED_CLK_GATE_UART1CLK]	= { 48,  -1, "uart1clk-gate",	"uart",	 0 },	/* UART1 */
+-	[ASPEED_CLK_GATE_UART2CLK]	= { 49,  -1, "uart2clk-gate",	"uart",	 0 },	/* UART2 */
+-	[ASPEED_CLK_GATE_UART3CLK]	= { 50,  -1, "uart3clk-gate",	"uart",  0 },	/* UART3 */
+-	[ASPEED_CLK_GATE_UART4CLK]	= { 51,  -1, "uart4clk-gate",	"uart",	 0 },	/* UART4 */
+-	[ASPEED_CLK_GATE_MAC3CLK]	= { 52,  52, "mac3clk-gate",	"mac34", 0 },	/* MAC3 */
+-	[ASPEED_CLK_GATE_MAC4CLK]	= { 53,  53, "mac4clk-gate",	"mac34", 0 },	/* MAC4 */
+-	[ASPEED_CLK_GATE_UART6CLK]	= { 54,  -1, "uart6clk-gate",	"uartx", 0 },	/* UART6 */
+-	[ASPEED_CLK_GATE_UART7CLK]	= { 55,  -1, "uart7clk-gate",	"uartx", 0 },	/* UART7 */
+-	[ASPEED_CLK_GATE_UART8CLK]	= { 56,  -1, "uart8clk-gate",	"uartx", 0 },	/* UART8 */
+-	[ASPEED_CLK_GATE_UART9CLK]	= { 57,  -1, "uart9clk-gate",	"uartx", 0 },	/* UART9 */
+-	[ASPEED_CLK_GATE_UART10CLK]	= { 58,  -1, "uart10clk-gate",	"uartx", 0 },	/* UART10 */
+-	[ASPEED_CLK_GATE_UART11CLK]	= { 59,  -1, "uart11clk-gate",	"uartx", 0 },	/* UART11 */
+-	[ASPEED_CLK_GATE_UART12CLK]	= { 60,  -1, "uart12clk-gate",	"uartx", 0 },	/* UART12 */
+-	[ASPEED_CLK_GATE_UART13CLK]	= { 61,  -1, "uart13clk-gate",	"uartx", 0 },	/* UART13 */
+-	[ASPEED_CLK_GATE_FSICLK]	= { 62,  59, "fsiclk-gate",	NULL,	 0 },	/* FSI */
++//TODO list
++//64 ~ xx : 0x300 ext emmc bit 15 -> --- map to 64 -->0x40
++//64 ~ xx : 0x310 ext sd bit -> --- map to 65 -->0x41
++
++static struct aspeed_gate_data aspeed_g6_gates[] = {
++	/*  					     clk rst   			name		parent	flags */
++	[ASPEED_CLK_GATE_MCLK] 			= {  0, -1, 			"mclk-gate",	"mpll",	CLK_IS_CRITICAL }, 	/* SDRAM */
++	[ASPEED_CLK_GATE_ECLK] 			= {  1, -1, 			"eclk-gate",	"eclk",	0 }, 			/* Video Engine */
++	[ASPEED_CLK_GATE_GCLK] 			= {  2,  ASPEED_RESET_2D,	"gclk-gate",	NULL,	0 }, 			/* 2D engine */
++	//vclk parent - dclk/d1clk/hclk/mclk
++	[ASPEED_CLK_GATE_VCLK] 			= {  3,  ASPEED_RESET_VIDEO,	"vclk-gate",	NULL,	0 }, 			/* Video Capture */
++	[ASPEED_CLK_GATE_BCLK] 			= {  4,  ASPEED_RESET_PCI_VGA,	"bclk-gate",	"bclk",	CLK_IS_CRITICAL }, 	/* PCIe/PCI */
++	//From dpll
++	[ASPEED_CLK_GATE_DCLK] 			= {  5, -1, 			"dclk-gate",	NULL,	CLK_IS_CRITICAL }, 	/* DAC */
++	[ASPEED_CLK_GATE_REF0CLK] 		= {  6, -1, 			"ref0clk-gate",	"clkin", CLK_IS_CRITICAL },
++	[ASPEED_CLK_GATE_USBPORT2CLK] 		= {  7,  ASPEED_RESET_EHCI_P2, 	"usb-port2-gate",NULL,	0 }, 			/* USB2.0 Host port 2 */
++	//reserved 8
++	[ASPEED_CLK_GATE_USBUHCICLK] 		= {  9,  ASPEED_RESET_UHCI, 	"usb-uhci-gate", NULL,	0 }, 			/* USB1.1 (requires port 2 enabled) */
++	//from dpll/epll/40mhz usb p1 phy/gpioc6/dp phy pll
++	[ASPEED_CLK_GATE_D1CLK] 		= { 10,  ASPEED_RESET_CRT, 	"d1clk-gate",	"d1clk",0 }, 			/* GFX CRT */
++	//reserved 11/12
++	[ASPEED_CLK_GATE_YCLK] 			= { 13,  ASPEED_RESET_HACE, 	"yclk-gate",	NULL,	0 }, 			/* HAC */
++	[ASPEED_CLK_GATE_USBPORT1CLK]		= { 14,  ASPEED_RESET_EHCI_P1, 	"usb-port1-gate",NULL,	0 }, 			/* USB2 hub/USB2 host port 1/USB1.1 dev */
++	[ASPEED_CLK_GATE_UART5CLK] 		= { 15, -1, 			"uart5clk-gate", "uart",	0 }, 			/* UART5 */
++	//reserved 16/19
++	[ASPEED_CLK_GATE_MAC1CLK] 		= { 20,  ASPEED_RESET_MAC1, 	"mac1clk-gate",	"mac12",	0 }, 			/* MAC1 */
++	[ASPEED_CLK_GATE_MAC2CLK] 		= { 21,  ASPEED_RESET_MAC2, 	"mac2clk-gate",	"mac12",	0 }, 			/* MAC2 */
++	//reserved 22/23
++	[ASPEED_CLK_GATE_RSACLK] 		= { 24,  ASPEED_RESET_HACE, 	"rsaclk-gate",	NULL,	0 }, 				/* HAC */
++	[ASPEED_CLK_GATE_RVASCLK] 		= { 25,  ASPEED_RESET_RVAS, 	"rvasclk-gate",	NULL,	0 }, 				/* RVAS */
++	//reserved 26
++	[ASPEED_CLK_GATE_EMMCCLK]       = { 27, 16, "emmcclk-gate",     NULL,    0 },   /* For card clk */
++	//SCU90
++	[ASPEED_CLK_GATE_LCLK] 			= { 32,  ASPEED_RESET_LPC_ESPI, "lclk-gate",	NULL,	CLK_IS_CRITICAL }, 	/* LPC */
++	[ASPEED_CLK_GATE_ESPICLK] 		= { 33, -1, 					"espiclk-gate",	NULL,	CLK_IS_CRITICAL }, 	/* eSPI */
++	[ASPEED_CLK_GATE_REF1CLK] 		= { 34, -1, 					"ref1clk-gate",		"clkin", CLK_IS_CRITICAL },	
++	//reserved 35
++	[ASPEED_CLK_GATE_SDCLK] 		= { 36,  ASPEED_RESET_SD,	"sdclk-gate",	NULL,	0 },			/* SDIO/SD */
++	[ASPEED_CLK_GATE_LHCCLK] 		= { 37, -1, 			"lhclk-gate",	"lhclk", 0 }, 			/* LPC master/LPC+ */
++	//reserved 38 rsa no ues anymore
++	[ASPEED_CLK_GATE_I3CDMACLK] 		= { 39,  ASPEED_RESET_I3C,	"i3cclk-gate",	NULL,	0 }, 			/* I3C_DMA */
++	[ASPEED_CLK_GATE_I3C0CLK] 		= { 40,  ASPEED_RESET_I3C0, 	"i3c0clk-gate",	"i3cclk",	0 }, 		/* I3C0 */
++	[ASPEED_CLK_GATE_I3C1CLK] 		= { 41,  ASPEED_RESET_I3C1, 	"i3c1clk-gate",	"i3cclk",	0 }, 		/* I3C1 */
++	[ASPEED_CLK_GATE_I3C2CLK] 		= { 42,  ASPEED_RESET_I3C2, 	"i3c2clk-gate",	"i3cclk",	0 }, 				/* I3C2 */
++	[ASPEED_CLK_GATE_I3C3CLK] 		= { 43,  ASPEED_RESET_I3C3, 	"i3c3clk-gate",	"i3cclk",	0 }, 				/* I3C3 */
++	[ASPEED_CLK_GATE_I3C4CLK] 		= { 44,  ASPEED_RESET_I3C4, 	"i3c4clk-gate",	"i3cclk",	0 }, 				/* I3C4 */
++	[ASPEED_CLK_GATE_I3C5CLK] 		= { 45,  ASPEED_RESET_I3C5, 	"i3c5clk-gate",	"i3cclk",	0 }, 				/* I3C5 */
++	
++	[ASPEED_CLK_GATE_I3C6CLK] 		= { 46,  ASPEED_RESET_I3C6, 	"i3c6clk-gate",	"i3cclk",	0 }, 				/* I3C6 */
++	
++	[ASPEED_CLK_GATE_UART1CLK] 		= { 48, -1, 					"uart1clk-gate",	"uxclk",		0 }, /* UART1 */
++	[ASPEED_CLK_GATE_UART2CLK] 		= { 49, -1, 					"uart2clk-gate",	"uxclk",		0 }, /* UART2 */
++	[ASPEED_CLK_GATE_UART3CLK] 		= { 50, -1, 					"uart3clk-gate",	"uxclk",		0 }, /* UART3 */
++	[ASPEED_CLK_GATE_UART4CLK] 		= { 51, -1, 					"uart4clk-gate",	"uxclk",		0 }, /* UART4 */
++	[ASPEED_CLK_GATE_MAC3CLK] 		= { 52,  ASPEED_RESET_MAC3, 	"mac3clk-gate",		"mac34",	0 }, 			/* MAC3 */
++	[ASPEED_CLK_GATE_MAC4CLK] 		= { 53,  ASPEED_RESET_MAC4, 	"mac4clk-gate",		"mac34",	0 }, 			/* MAC4 */
++	[ASPEED_CLK_GATE_UART6CLK] 		= { 54, -1, 					"uart6clk-gate",	"uxclk",	0 }, /* UART6 */
++	[ASPEED_CLK_GATE_UART7CLK] 		= { 55, -1, 					"uart7clk-gate",	"uxclk",	0 }, /* UART7 */
++	[ASPEED_CLK_GATE_UART8CLK] 		= { 56, -1, 					"uart8clk-gate",	"uxclk",	0 }, /* UART8 */
++	[ASPEED_CLK_GATE_UART9CLK] 		= { 57, -1, 					"uart9clk-gate",	"uxclk",	0 }, /* UART9 */
++	[ASPEED_CLK_GATE_UART10CLK] 	= { 58, -1, 					"uart10clk-gate",	"uxclk",	0 }, /* UART10 */
++	[ASPEED_CLK_GATE_UART11CLK] 	= { 59, -1, 					"uart11clk-gate",	"uxclk",	0 }, /* UART11 */
++	[ASPEED_CLK_GATE_UART12CLK] 	= { 60, -1, 					"uart12clk-gate",	"uxclk",	0 }, /* UART12 */
++	[ASPEED_CLK_GATE_UART13CLK] 	= { 61, -1, 					"uart13clk-gate",	"uxclk",	0 }, /* UART13 */
++	[ASPEED_CLK_GATE_FSICLK] 		= { 62, ASPEED_RESET_FSI, 		"fsiclk-gate",	NULL,	0 }, 		/* fsi */
++};
++
++static const char * const eclk_parent_names[] = {
++	"mpll",
++	"hpll",
++	"dpll",
+ };
+ 
+ static const struct clk_div_table ast2600_eclk_div_table[] = {
+@@ -132,8 +149,8 @@ static const struct clk_div_table ast2600_eclk_div_table[] = {
+ 	{ 0 }
+ };
+ 
+-static const struct clk_div_table ast2600_emmc_extclk_div_table[] = {
+-	{ 0x0, 2 },
++static const struct clk_div_table ast2600_mac_div_table[] = {
++	{ 0x0, 4 }, /* Yep, really. Aspeed confirmed this is correct */
+ 	{ 0x1, 4 },
+ 	{ 0x2, 6 },
+ 	{ 0x3, 8 },
+@@ -144,8 +161,20 @@ static const struct clk_div_table ast2600_emmc_extclk_div_table[] = {
+ 	{ 0 }
+ };
+ 
+-static const struct clk_div_table ast2600_mac_div_table[] = {
++static const struct clk_div_table ast2600_div_table[] = {
+ 	{ 0x0, 4 },
++	{ 0x1, 8 },
++	{ 0x2, 12 },
++	{ 0x3, 16 },
++	{ 0x4, 20 },
++	{ 0x5, 24 },
++	{ 0x6, 28 },
++	{ 0x7, 32 },
++	{ 0 }
++};
++
++static const struct clk_div_table ast2600_sd_div_table[] = {
++	{ 0x0, 2 },
+ 	{ 0x1, 4 },
+ 	{ 0x2, 6 },
+ 	{ 0x3, 8 },
+@@ -156,23 +185,44 @@ static const struct clk_div_table ast2600_mac_div_table[] = {
+ 	{ 0 }
+ };
+ 
+-static const struct clk_div_table ast2600_div_table[] = {
+-	{ 0x0, 4 },
+-	{ 0x1, 8 },
+-	{ 0x2, 12 },
+-	{ 0x3, 16 },
+-	{ 0x4, 20 },
+-	{ 0x5, 24 },
+-	{ 0x6, 28 },
+-	{ 0x7, 32 },
++static const struct clk_div_table ast2600_uart_div_table[] = {
++	{ 0x0, 4 }, 
++	{ 0x1, 2 },
+ 	{ 0 }
+ };
+ 
+-/* For hpll/dpll/epll/mpll */
+-static struct clk_hw *ast2600_calc_pll(const char *name, u32 val)
++//for dpll/epll/mpll
++static struct clk_hw *aspeed_ast2600_calc_pll(const char *name, u32 val)
+ {
+ 	unsigned int mult, div;
++	if (val & BIT(24)) {
++		/* Pass through mode */
++		mult = div = 1;
++	} else {
++		/* F = 25Mhz * [(M + 2) / (n + 1)] / (p + 1) */
++		u32 m = val  & 0x1fff;
++		u32 n = (val >> 13) & 0x3f;
++		u32 p = (val >> 19) & 0xf;
++		mult = (m + 1) / (n + 1);
++		div = (p + 1);
++	}
++	return clk_hw_register_fixed_factor(NULL, name, "clkin", 0,
++			mult, div);
++};
+ 
++static struct clk_hw *aspeed_ast2600_calc_hpll(const char *name, u32 hwstrap, u32 val)
++{
++	unsigned int mult, div;
++	/* 
++	HPLL Numerator (M) = fix 0x5F when SCU500[10]=1
++						 fix 0xBF when SCU500[10]=0 and SCU500[8]=1
++	SCU200[12:0] (default 0x8F) when SCU510[10]=0 and SCU510[8]=0 
++	HPLL Denumerator (N) =	SCU200[18:13] (default 0x2)
++	HPLL Divider (P)	 =	SCU200[22:19] (default 0x0)
++	HPLL Bandwidth Adj (NB) =  fix 0x2F when SCU500[10]=1
++							   fix 0x5F when SCU500[10]=0 and SCU500[8]=1
++	SCU204[11:0] (default 0x31) when SCU500[10]=0 and SCU500[8]=0 
++	*/
+ 	if (val & BIT(24)) {
+ 		/* Pass through mode */
+ 		mult = div = 1;
+@@ -181,6 +231,13 @@ static struct clk_hw *ast2600_calc_pll(const char *name, u32 val)
+ 		u32 m = val  & 0x1fff;
+ 		u32 n = (val >> 13) & 0x3f;
+ 		u32 p = (val >> 19) & 0xf;
++		if(hwstrap & BIT(10))
++			m = 0x5F;
++		else {
++			if(hwstrap & BIT(8))
++				m = 0xBF;
++			//otherwise keep default 0x8F
++		}
+ 		mult = (m + 1) / (n + 1);
+ 		div = (p + 1);
+ 	}
+@@ -188,7 +245,8 @@ static struct clk_hw *ast2600_calc_pll(const char *name, u32 val)
+ 			mult, div);
+ };
+ 
+-static struct clk_hw *ast2600_calc_apll(const char *name, u32 val)
++//for apll
++static struct clk_hw *aspeed_ast2600_calc_apll(const char *name, u32 val)
+ {
+ 	unsigned int mult, div;
+ 	u32 chip_id = readl(scu_g6_base + ASPEED_G6_SILICON_REV);
+@@ -222,92 +280,161 @@ static struct clk_hw *ast2600_calc_apll(const char *name, u32 val)
+ 	}
+ 	return clk_hw_register_fixed_factor(NULL, name, "clkin", 0,
+ 			mult, div);
+-};
+-
+-static u32 get_bit(u8 idx)
+-{
+-	return BIT(idx % 32);
+-}
+ 
+-static u32 get_reset_reg(struct aspeed_clk_gate *gate)
+-{
+-	if (gate->reset_idx < 32)
+-		return ASPEED_G6_RESET_CTRL;
+-
+-	return ASPEED_G6_RESET_CTRL2;
+-}
++};
+ 
+-static u32 get_clock_reg(struct aspeed_clk_gate *gate)
+-{
+-	if (gate->clock_idx < 32)
+-		return ASPEED_G6_CLK_STOP_CTRL;
++struct aspeed_g6_clk_soc_data {
++	const struct clk_div_table *div_table;
++	const struct clk_div_table *eclk_div_table;
++	const struct clk_div_table *mac_div_table;
++	struct clk_hw *(*calc_pll)(const char *name, u32 val);
++	unsigned int nr_resets;
++};
+ 
+-	return ASPEED_G6_CLK_STOP_CTRL2;
+-}
++static const struct aspeed_clk_soc_data ast2600_data = {
++	.div_table = ast2600_div_table,
++	.mac_div_table = ast2600_mac_div_table,
++	.eclk_div_table = ast2600_eclk_div_table,	
++};
+ 
+ static int aspeed_g6_clk_is_enabled(struct clk_hw *hw)
+ {
++	u32 clk = 0;
++	u32 rst = 0;
++	u32 reg;	
++	u32 enval = 0;
++	int clk_sel_flag = 0;
+ 	struct aspeed_clk_gate *gate = to_aspeed_clk_gate(hw);
+-	u32 clk = get_bit(gate->clock_idx);
+-	u32 rst = get_bit(gate->reset_idx);
+-	u32 reg;
+-	u32 enval;
+ 
+-	/*
+-	 * If the IP is in reset, treat the clock as not enabled,
+-	 * this happens with some clocks such as the USB one when
+-	 * coming from cold reset. Without this, aspeed_clk_enable()
+-	 * will fail to lift the reset.
+-	 */
+-	if (gate->reset_idx >= 0) {
+-		regmap_read(gate->map, get_reset_reg(gate), &reg);
++	if(gate->reset_idx & 0x20)
++		rst = BIT(gate->reset_idx - 32);
++	else
++		rst = BIT((gate->reset_idx));
+ 
+-		if (reg & rst)
++	if(gate->clock_idx & 0x40)
++		clk_sel_flag = 1;
++	else if(gate->clock_idx & 0x20)
++		clk = BIT(gate->clock_idx - 32);
++	else
++		clk = BIT((gate->clock_idx));
++
++	if(clk_sel_flag) {
++		if (gate->clock_idx == 64) {
++			//ext emmc 
++			regmap_read(gate->map, ASPEED_G6_CLK_SELECTION1, &reg);
++			printk("ext emmc 0x300 %x \n", reg);
++			return (reg & BIT(15)) ? 1 : 0;
++		} else if (gate->clock_idx == 65) {
++			//ext sd
++			regmap_read(gate->map, ASPEED_G6_CLK_SELECTION4, &reg);
++			printk("ext sd 0x310 %x \n", reg);
++			return (reg & BIT(31)) ? 1 : 0;
++		} else {
++			printk("error \n");
+ 			return 0;
+-	}
++		}
++	} else {
++		enval = (gate->flags & CLK_GATE_SET_TO_DISABLE) ? 0 : clk;
++		/*
++		 * If the IP is in reset, treat the clock as not enabled,
++		 * this happens with some clocks such as the USB one when
++		 * coming from cold reset. Without this, aspeed_clk_enable()
++		 * will fail to lift the reset.
++		 */
++		if (gate->reset_idx >= 0) {
++			if(gate->reset_idx & 0x20)
++				regmap_read(gate->map, ASPEED_G6_RESET_CTRL2, &reg);
++			else
++				regmap_read(gate->map, ASPEED_G6_RESET_CTRL, &reg);
+ 
+-	regmap_read(gate->map, get_clock_reg(gate), &reg);
++			if (reg & rst)
++				return 0;
++		}
+ 
+-	enval = (gate->flags & CLK_GATE_SET_TO_DISABLE) ? 0 : clk;
++		if(gate->clock_idx & 0x20)
++			regmap_read(gate->map, ASPEED_G6_CLK_STOP_CTRL2, &reg);
++		else
++			regmap_read(gate->map, ASPEED_G6_CLK_STOP_CTRL, &reg);
+ 
+-	return ((reg & clk) == enval) ? 1 : 0;
++		return ((reg & clk) == enval) ? 1 : 0;
++	}
+ }
+ 
+ static int aspeed_g6_clk_enable(struct clk_hw *hw)
+ {
+ 	struct aspeed_clk_gate *gate = to_aspeed_clk_gate(hw);
+ 	unsigned long flags;
+-	u32 clk = get_bit(gate->clock_idx);
+-	u32 rst = get_bit(gate->reset_idx);
++	u32 enval;
++	u32 clk = 0;
++	u32 rst = 0;
++	int clk_sel_flag = 0;
+ 
+-	spin_lock_irqsave(gate->lock, flags);
++	if(gate->reset_idx & 0x20)
++		rst = BIT(gate->reset_idx - 32);
++	else
++		rst = BIT((gate->reset_idx));
++	if(gate->clock_idx & 0x40)
++		clk_sel_flag = 1;
++	else if(gate->clock_idx & 0x20)
++		clk = BIT(gate->clock_idx - 32);
++	else
++		clk = BIT((gate->clock_idx));
++		
+ 
++	spin_lock_irqsave(gate->lock, flags);
+ 	if (aspeed_g6_clk_is_enabled(hw)) {
+ 		spin_unlock_irqrestore(gate->lock, flags);
+ 		return 0;
+ 	}
+ 
+-	if (gate->reset_idx >= 0) {
+-		/* Put IP in reset */
+-		regmap_write(gate->map, get_reset_reg(gate), rst);
+-		/* Delay 100us */
+-		udelay(100);
+-	}
+-
+-	/* Enable clock */
+-	if (gate->flags & CLK_GATE_SET_TO_DISABLE) {
+-		/* Clock is clear to enable, so use set to clear register */
+-		regmap_write(gate->map, get_clock_reg(gate) + 0x04, clk);
++	if (clk_sel_flag) {
++		printk("todo ext emmc /sd clk \n");
+ 	} else {
+-		/* Clock is set to enable, so use write to set register */
+-		regmap_write(gate->map, get_clock_reg(gate), clk);
+-	}
++		if (gate->reset_idx >= 0) {
++			/* Put IP in reset */
++			if(gate->reset_idx & 0x20)
++				regmap_write(gate->map, ASPEED_G6_RESET_CTRL2, rst);
++			else
++				regmap_write(gate->map, ASPEED_G6_RESET_CTRL, rst);
++			/* Delay 100us */
++			udelay(100);
++		}
+ 
+-	if (gate->reset_idx >= 0) {
+-		/* A delay of 10ms is specified by the ASPEED docs */
+-		mdelay(10);
+-		/* Take IP out of reset */
+-		regmap_write(gate->map, get_reset_reg(gate) + 0x4, rst);
++		/* Enable clock */
++#if 0		
++		if(gate->clock_idx == aspeed_g6_gates[ASPEED_CLK_GATE_SDEXTCLK].clock_idx) {
++			/* sd ext clk */
++			printk("enable sd card clk xxxxx\n");
++			regmap_update_bits(gate->map, ASPEED_G6_CLK_SELECTION4, BIT(31), BIT(31));
++		} else if(gate->clock_idx == aspeed_g6_gates[ASPEED_CLK_GATE_EMMCEXTCLK].clock_idx) {
++			/* emmc ext clk */
++			regmap_update_bits(gate->map, ASPEED_G6_CLK_SELECTION1, BIT(15), BIT(15));
++			printk("enable emmc card clk xxxxx\n");
++		} else {
++#endif			
++			enval = (gate->flags & CLK_GATE_SET_TO_DISABLE) ? 0 : clk;
++			if(enval) {
++				if(gate->clock_idx & 0x20)
++					regmap_write(gate->map, ASPEED_G6_CLK_STOP_CTRL2, clk);
++				else
++					regmap_write(gate->map, ASPEED_G6_CLK_STOP_CTRL, clk);
++			} else {
++				if(gate->clock_idx & 0x20)
++					regmap_write(gate->map, ASPEED_G6_CLK_STOP_CTRL2 + 0x04, clk);
++				else
++					regmap_write(gate->map, ASPEED_G6_CLK_STOP_CTRL + 0x04, clk);
++			}
++//		}
++
++		if (gate->reset_idx >= 0) {
++			/* A delay of 10ms is specified by the ASPEED docs */
++			mdelay(10);
++			/* Take IP out of reset */
++			if(gate->reset_idx & 0x20)
++				regmap_write(gate->map, ASPEED_G6_RESET_CTRL2 + 0x04, rst);
++			else
++				regmap_write(gate->map, ASPEED_G6_RESET_CTRL + 0x04, rst);
++		}
+ 	}
+ 
+ 	spin_unlock_irqrestore(gate->lock, flags);
+@@ -319,17 +446,41 @@ static void aspeed_g6_clk_disable(struct clk_hw *hw)
+ {
+ 	struct aspeed_clk_gate *gate = to_aspeed_clk_gate(hw);
+ 	unsigned long flags;
+-	u32 clk = get_bit(gate->clock_idx);
++	u32 clk;
++	u32 enval;
++	int clk_sel_flag = 0;
++
++	if(gate->clock_idx & 0x40) {
++		clk_sel_flag = 1;
++	} else if(gate->clock_idx & 0x1f)
++		clk = BIT((gate->clock_idx));
++	else
++		clk = BIT(gate->clock_idx - 32);
+ 
+ 	spin_lock_irqsave(gate->lock, flags);
+ 
+-	if (gate->flags & CLK_GATE_SET_TO_DISABLE) {
+-		regmap_write(gate->map, get_clock_reg(gate), clk);
++	if(clk_sel_flag) {
++		if(gate->clock_idx == 64) {
++			regmap_update_bits(gate->map, ASPEED_G6_CLK_SELECTION1, BIT(15), 0);
++		} else if(gate->clock_idx == 65) {
++			regmap_update_bits(gate->map, ASPEED_G6_CLK_SELECTION4, BIT(31), 0);
++		} else 	
++			printk("todo disable clk \n");
+ 	} else {
+-		/* Use set to clear register */
+-		regmap_write(gate->map, get_clock_reg(gate) + 0x4, clk);
+-	}
++		enval = (gate->flags & CLK_GATE_SET_TO_DISABLE) ? clk : 0;
+ 
++		if(enval) {
++			if(gate->clock_idx & 0x20)
++				regmap_write(gate->map, ASPEED_G6_CLK_STOP_CTRL2, clk);
++			else
++				regmap_write(gate->map, ASPEED_G6_CLK_STOP_CTRL, clk);
++		} else {
++			if(gate->clock_idx & 0x20)
++				regmap_write(gate->map, ASPEED_G6_CLK_STOP_CTRL2 + 0x04, clk);
++			else
++				regmap_write(gate->map, ASPEED_G6_CLK_STOP_CTRL + 0x04, clk);
++		}
++	}
+ 	spin_unlock_irqrestore(gate->lock, flags);
+ }
+ 
+@@ -340,40 +491,44 @@ static const struct clk_ops aspeed_g6_clk_gate_ops = {
+ };
+ 
+ static int aspeed_g6_reset_deassert(struct reset_controller_dev *rcdev,
+-				    unsigned long id)
++				 unsigned long id)
+ {
+ 	struct aspeed_reset *ar = to_aspeed_reset(rcdev);
+-	u32 rst = get_bit(id);
+-	u32 reg = id >= 32 ? ASPEED_G6_RESET_CTRL2 : ASPEED_G6_RESET_CTRL;
+ 
+-	/* Use set to clear register */
+-	return regmap_write(ar->map, reg + 0x04, rst);
++	if(id >= 32) 
++		return regmap_write(ar->map, ASPEED_G6_RESET_CTRL2 + 0x04, BIT(id - 32));
++	else
++		return regmap_write(ar->map, ASPEED_G6_RESET_CTRL + 0x04, BIT(id));
+ }
+ 
+ static int aspeed_g6_reset_assert(struct reset_controller_dev *rcdev,
+-				  unsigned long id)
++			       unsigned long id)
+ {
+ 	struct aspeed_reset *ar = to_aspeed_reset(rcdev);
+-	u32 rst = get_bit(id);
+-	u32 reg = id >= 32 ? ASPEED_G6_RESET_CTRL2 : ASPEED_G6_RESET_CTRL;
+ 
+-	return regmap_write(ar->map, reg, rst);
++	if(id >= 32) 
++		return regmap_write(ar->map, ASPEED_G6_RESET_CTRL2, BIT(id - 32));
++	else
++		return regmap_write(ar->map, ASPEED_G6_RESET_CTRL, BIT(id));
+ }
+ 
+ static int aspeed_g6_reset_status(struct reset_controller_dev *rcdev,
+-				  unsigned long id)
++			       unsigned long id)
+ {
+ 	struct aspeed_reset *ar = to_aspeed_reset(rcdev);
+-	int ret;
+-	u32 val;
+-	u32 rst = get_bit(id);
+-	u32 reg = id >= 32 ? ASPEED_G6_RESET_CTRL2 : ASPEED_G6_RESET_CTRL;
++	u32 reg = ASPEED_G6_RESET_CTRL;
++	int ret, val;
++
++	if (id >= 32) {
++		id -= 32;
++		reg = ASPEED_G6_RESET_CTRL2;
++	}
+ 
+ 	ret = regmap_read(ar->map, reg, &val);
+ 	if (ret)
+ 		return ret;
+ 
+-	return !!(val & rst);
++	return !!(val & BIT(id));
+ }
+ 
+ static const struct reset_control_ops aspeed_g6_reset_ops = {
+@@ -419,11 +574,6 @@ static struct clk_hw *aspeed_g6_clk_hw_register_gate(struct device *dev,
+ 	return hw;
+ }
+ 
+-static const char *const emmc_extclk_parent_names[] = {
+-	"emmc_extclk_hpll_in",
+-	"mpll",
+-};
+-
+ static const char * const vclk_parent_names[] = {
+ 	"dpll",
+ 	"d1pll",
+@@ -441,11 +591,12 @@ static const char * const d1clk_parent_names[] = {
+ 
+ static int aspeed_g6_clk_probe(struct platform_device *pdev)
+ {
++	const struct aspeed_clk_soc_data *soc_data;
+ 	struct device *dev = &pdev->dev;
+ 	struct aspeed_reset *ar;
+ 	struct regmap *map;
+ 	struct clk_hw *hw;
+-	u32 val, rate;
++	u32 val, div, mult;
+ 	int i, ret;
+ 
+ 	map = syscon_node_to_regmap(dev->of_node);
+@@ -471,70 +622,96 @@ static int aspeed_g6_clk_probe(struct platform_device *pdev)
+ 		return ret;
+ 	}
+ 
+-	/* UART clock div13 setting */
+-	regmap_read(map, ASPEED_G6_MISC_CTRL, &val);
+-	if (val & UART_DIV13_EN)
+-		rate = 24000000 / 13;
+-	else
+-		rate = 24000000;
+-	hw = clk_hw_register_fixed_rate(dev, "uart", NULL, 0, rate);
+-	if (IS_ERR(hw))
+-		return PTR_ERR(hw);
+-	aspeed_g6_clk_data->hws[ASPEED_CLK_UART] = hw;
++	/* SoC generations share common layouts but have different divisors */
++	soc_data = of_device_get_match_data(dev);
++	if (!soc_data) {
++		dev_err(dev, "no match data for platform\n");
++		return -EINVAL;
++	}
+ 
+-	/* UART6~13 clock div13 setting */
+-	regmap_read(map, 0x80, &val);
+-	if (val & BIT(31))
+-		rate = 24000000 / 13;
+-	else
+-		rate = 24000000;
+-	hw = clk_hw_register_fixed_rate(dev, "uartx", NULL, 0, rate);
+-	if (IS_ERR(hw))
+-		return PTR_ERR(hw);
+-	aspeed_g6_clk_data->hws[ASPEED_CLK_UARTX] = hw;
++	//uxclk
++	regmap_read(map, 0x338, &val);
++	div = ((val >> 8) & 0x3ff) * 2;
++	mult = val & 0xff;
+ 
+-	/* EMMC ext clock */
+-	hw = clk_hw_register_fixed_factor(dev, "emmc_extclk_hpll_in", "hpll",
+-					  0, 1, 2);
++	hw = clk_hw_register_fixed_factor(dev, "uxclk", "uartx", 0,
++			mult, div);
+ 	if (IS_ERR(hw))
+ 		return PTR_ERR(hw);
++	aspeed_g6_clk_data->hws[ASPEED_CLK_UXCLK] = hw;
+ 
+-	hw = clk_hw_register_mux(dev, "emmc_extclk_mux",
+-				 emmc_extclk_parent_names,
+-				 ARRAY_SIZE(emmc_extclk_parent_names), 0,
+-				 scu_g6_base + ASPEED_G6_CLK_SELECTION1, 11, 1,
+-				 0, &aspeed_g6_clk_lock);
+-	if (IS_ERR(hw))
+-		return PTR_ERR(hw);
++	//huxclk
++	regmap_read(map, 0x33c, &val);
++	div = ((val >> 8) & 0x3ff) * 2;
++	mult = val & 0xff;
+ 
+-	hw = clk_hw_register_gate(dev, "emmc_extclk_gate", "emmc_extclk_mux",
+-				  0, scu_g6_base + ASPEED_G6_CLK_SELECTION1,
+-				  15, 0, &aspeed_g6_clk_lock);
++	hw = clk_hw_register_fixed_factor(dev, "huxclk", "uartx", 0,
++			mult, div);
+ 	if (IS_ERR(hw))
+ 		return PTR_ERR(hw);
++	aspeed_g6_clk_data->hws[ASPEED_CLK_HUXCLK] = hw;
+ 
+-	hw = clk_hw_register_divider_table(dev, "emmc_extclk",
+-					   "emmc_extclk_gate", 0,
+-					   scu_g6_base +
+-						ASPEED_G6_CLK_SELECTION1, 12,
+-					   3, 0, ast2600_emmc_extclk_div_table,
+-					   &aspeed_g6_clk_lock);
+-	if (IS_ERR(hw))
+-		return PTR_ERR(hw);
+-	aspeed_g6_clk_data->hws[ASPEED_CLK_EMMC] = hw;
++	regmap_read(map, 0x04, &val);
++	if((val & GENMASK(23, 16)) >> 16) {
++		//A1 use mpll for fit 200Mhz
++		regmap_update_bits(map, ASPEED_G6_CLK_SELECTION1, GENMASK(14, 11), BIT(11));
+ 
+-	/* SD/SDIO clock divider and gate */
+-	hw = clk_hw_register_gate(dev, "sd_extclk_gate", "hpll", 0,
+-			scu_g6_base + ASPEED_G6_CLK_SELECTION4, 31, 0,
+-			&aspeed_g6_clk_lock);
+-	if (IS_ERR(hw))
+-		return PTR_ERR(hw);
++		/* EMMC ext clock divider */
++		hw = clk_hw_register_gate(dev, "emmc_extclk_gate", "mpll", 0,
++						scu_g6_base + ASPEED_G6_CLK_SELECTION1, 15, 0,
++						&aspeed_g6_clk_lock);
++		if (IS_ERR(hw))
++				return PTR_ERR(hw);
++
++		//ast2600 emmc clk should under 200Mhz
++		hw = clk_hw_register_divider_table(dev, "emmc_extclk", "emmc_extclk_gate", 0,
++						scu_g6_base + ASPEED_G6_CLK_SELECTION1, 12, 3, 0,
++						ast2600_sd_div_table,
++						&aspeed_g6_clk_lock);
++		if (IS_ERR(hw))
++			return PTR_ERR(hw);
++		aspeed_g6_clk_data->hws[ASPEED_CLK_EMMC] = hw;
++	} else {
++		/* EMMC ext clock divider */
++		hw = clk_hw_register_gate(dev, "emmc_extclk_gate", "hpll", 0,
++						scu_g6_base + ASPEED_G6_CLK_SELECTION1, 15, 0,
++						&aspeed_g6_clk_lock);
++		if (IS_ERR(hw))
++				return PTR_ERR(hw);
++		
++		//ast2600 emmc clk should under 200Mhz
++		hw = clk_hw_register_divider_table(dev, "emmc_extclk", "emmc_extclk_gate", 0,
++						scu_g6_base + ASPEED_G6_CLK_SELECTION1, 12, 3, 0,
++						ast2600_div_table,
++						&aspeed_g6_clk_lock);
++		if (IS_ERR(hw))
++			return PTR_ERR(hw);
++		aspeed_g6_clk_data->hws[ASPEED_CLK_EMMC] = hw;
++	}
++
++	regmap_read(map, 0x310, &val);
++	if(val & BIT(8)) {
++		/* SD/SDIO clock divider and gate */
++		hw = clk_hw_register_gate(dev, "sd_extclk_gate", "apll", 0,
++						scu_g6_base + ASPEED_G6_CLK_SELECTION4, 31, 0,
++						&aspeed_g6_clk_lock);
++		if (IS_ERR(hw))
++				return PTR_ERR(hw);
++	} else {
++		/* SD/SDIO clock divider and gate */
++		hw = clk_hw_register_gate(dev, "sd_extclk_gate", "hclk", 0,
++						scu_g6_base + ASPEED_G6_CLK_SELECTION4, 31, 0,
++						&aspeed_g6_clk_lock);
++		if (IS_ERR(hw))
++				return PTR_ERR(hw);
++	}
++	
+ 	hw = clk_hw_register_divider_table(dev, "sd_extclk", "sd_extclk_gate",
+-			0, scu_g6_base + ASPEED_G6_CLK_SELECTION4, 28, 3, 0,
+-			ast2600_div_table,
+-			&aspeed_g6_clk_lock);
++					0, scu_g6_base + ASPEED_G6_CLK_SELECTION4, 28, 3, 0,
++					ast2600_sd_div_table,
++					&aspeed_g6_clk_lock);
+ 	if (IS_ERR(hw))
+-		return PTR_ERR(hw);
++			return PTR_ERR(hw);
+ 	aspeed_g6_clk_data->hws[ASPEED_CLK_SDIO] = hw;
+ 
+ 	/* MAC1/2 RMII 50MHz RCLK */
+@@ -542,10 +719,11 @@ static int aspeed_g6_clk_probe(struct platform_device *pdev)
+ 	if (IS_ERR(hw))
+ 		return PTR_ERR(hw);
+ 
+-	/* MAC1/2 AHB bus clock divider */
++	//mac12 clk - check
++	/* MAC AHB bus clock divider */
+ 	hw = clk_hw_register_divider_table(dev, "mac12", "hpll", 0,
+-			scu_g6_base + ASPEED_G6_CLK_SELECTION1, 16, 3, 0,
+-			ast2600_mac_div_table,
++			scu_g6_base + 0x300, 16, 3, 0,
++			soc_data->mac_div_table,
+ 			&aspeed_g6_clk_lock);
+ 	if (IS_ERR(hw))
+ 		return PTR_ERR(hw);
+@@ -553,16 +731,16 @@ static int aspeed_g6_clk_probe(struct platform_device *pdev)
+ 
+ 	/* RMII1 50MHz (RCLK) output enable */
+ 	hw = clk_hw_register_gate(dev, "mac1rclk", "mac12rclk", 0,
+-			scu_g6_base + ASPEED_MAC12_CLK_DLY, 29, 0,
+-			&aspeed_g6_clk_lock);
++				  scu_g6_base + ASPEED_G6_MAC12_CLK_CTRL0, 29, 0,
++				  &aspeed_g6_clk_lock);
+ 	if (IS_ERR(hw))
+ 		return PTR_ERR(hw);
+ 	aspeed_g6_clk_data->hws[ASPEED_CLK_MAC1RCLK] = hw;
+ 
+ 	/* RMII2 50MHz (RCLK) output enable */
+ 	hw = clk_hw_register_gate(dev, "mac2rclk", "mac12rclk", 0,
+-			scu_g6_base + ASPEED_MAC12_CLK_DLY, 30, 0,
+-			&aspeed_g6_clk_lock);
++				  scu_g6_base + ASPEED_G6_MAC12_CLK_CTRL0, 30, 0,
++				  &aspeed_g6_clk_lock);
+ 	if (IS_ERR(hw))
+ 		return PTR_ERR(hw);
+ 	aspeed_g6_clk_data->hws[ASPEED_CLK_MAC2RCLK] = hw;
+@@ -572,10 +750,11 @@ static int aspeed_g6_clk_probe(struct platform_device *pdev)
+ 	if (IS_ERR(hw))
+ 		return PTR_ERR(hw);
+ 
+-	/* MAC3/4 AHB bus clock divider */
++	//mac34 clk - check
++	/* MAC AHB bus clock divider */
+ 	hw = clk_hw_register_divider_table(dev, "mac34", "hpll", 0,
+ 			scu_g6_base + 0x310, 24, 3, 0,
+-			ast2600_mac_div_table,
++			soc_data->mac_div_table,
+ 			&aspeed_g6_clk_lock);
+ 	if (IS_ERR(hw))
+ 		return PTR_ERR(hw);
+@@ -583,7 +762,7 @@ static int aspeed_g6_clk_probe(struct platform_device *pdev)
+ 
+ 	/* RMII3 50MHz (RCLK) output enable */
+ 	hw = clk_hw_register_gate(dev, "mac3rclk", "mac34rclk", 0,
+-			scu_g6_base + ASPEED_MAC34_CLK_DLY, 29, 0,
++			scu_g6_base + ASPEED_G6_MAC34_CLK_CTRL0, 29, 0,
+ 			&aspeed_g6_clk_lock);
+ 	if (IS_ERR(hw))
+ 		return PTR_ERR(hw);
+@@ -591,7 +770,7 @@ static int aspeed_g6_clk_probe(struct platform_device *pdev)
+ 
+ 	/* RMII4 50MHz (RCLK) output enable */
+ 	hw = clk_hw_register_gate(dev, "mac4rclk", "mac34rclk", 0,
+-			scu_g6_base + ASPEED_MAC34_CLK_DLY, 30, 0,
++			scu_g6_base + ASPEED_G6_MAC34_CLK_CTRL0, 30, 0,
+ 			&aspeed_g6_clk_lock);
+ 	if (IS_ERR(hw))
+ 		return PTR_ERR(hw);
+@@ -600,59 +779,95 @@ static int aspeed_g6_clk_probe(struct platform_device *pdev)
+ 	/* LPC Host (LHCLK) clock divider */
+ 	hw = clk_hw_register_divider_table(dev, "lhclk", "hpll", 0,
+ 			scu_g6_base + ASPEED_G6_CLK_SELECTION1, 20, 3, 0,
+-			ast2600_div_table,
++			soc_data->div_table,
+ 			&aspeed_g6_clk_lock);
+ 	if (IS_ERR(hw))
+ 		return PTR_ERR(hw);
+ 	aspeed_g6_clk_data->hws[ASPEED_CLK_LHCLK] = hw;
+ 
+-	/* gfx d1clk : use dp clk */
++	//gfx d1clk : use dp clk
++#if 1	
+ 	regmap_update_bits(map, ASPEED_G6_CLK_SELECTION1, GENMASK(10, 8), BIT(10));
+ 	/* SoC Display clock selection */
+ 	hw = clk_hw_register_mux(dev, "d1clk", d1clk_parent_names,
+ 			ARRAY_SIZE(d1clk_parent_names), 0,
+-			scu_g6_base + ASPEED_G6_CLK_SELECTION1, 8, 3, 0,
++			scu_g6_base + 0x300, 8, 3, 0,
+ 			&aspeed_g6_clk_lock);
+ 	if (IS_ERR(hw))
+ 		return PTR_ERR(hw);
+ 	aspeed_g6_clk_data->hws[ASPEED_CLK_D1CLK] = hw;
++	//d1 clk div 0x308[17:15] x [14:12] - 8,7,6,5,4,3,2,1
++	regmap_write(map, 0x308, 0xa000); //2x3 = 6
++	//d1 clk div 0x308[17:15] x [14:12] - 8,7,6,5,4,3,2,1
++	regmap_write(map, 0x308, 0xa000); //2x3 = 6
++#else
++	regmap_update_bits(map, ASPEED_G6_CLK_SELECTION1, GENMASK(10, 8), BIT(9));
++	/* SoC Display clock selection */
++	hw = clk_hw_register_mux(dev, "d1clk", d1clk_parent_names,
++			ARRAY_SIZE(d1clk_parent_names), 0,
++			scu_g6_base + 0x300, 8, 3, 0,
++			&aspeed_g6_clk_lock);
++	if (IS_ERR(hw))
++		return PTR_ERR(hw);
++	aspeed_g6_clk_data->hws[ASPEED_CLK_D1CLK] = hw;
++#endif
+ 
+-	/* d1 clk div 0x308[17:15] x [14:12] - 8,7,6,5,4,3,2,1 */
+-	regmap_write(map, 0x308, 0x12000); /* 3x3 = 9 */
+-
++	//bclk -check
+ 	/* P-Bus (BCLK) clock divider */
+ 	hw = clk_hw_register_divider_table(dev, "bclk", "hpll", 0,
+-			scu_g6_base + ASPEED_G6_CLK_SELECTION1, 20, 3, 0,
+-			ast2600_div_table,
++			scu_g6_base + 0x300, 20, 3, 0,
++			soc_data->div_table,
+ 			&aspeed_g6_clk_lock);
+ 	if (IS_ERR(hw))
+ 		return PTR_ERR(hw);
+ 	aspeed_g6_clk_data->hws[ASPEED_CLK_BCLK] = hw;
+ 
++	//vclk - check 
+ 	/* Video Capture clock selection */
+ 	hw = clk_hw_register_mux(dev, "vclk", vclk_parent_names,
+ 			ARRAY_SIZE(vclk_parent_names), 0,
+-			scu_g6_base + ASPEED_G6_CLK_SELECTION2, 12, 3, 0,
++			scu_g6_base + 0x304, 12, 3, 0,
+ 			&aspeed_g6_clk_lock);
+ 	if (IS_ERR(hw))
+ 		return PTR_ERR(hw);
+ 	aspeed_g6_clk_data->hws[ASPEED_CLK_VCLK] = hw;
+ 
+-	/* Video Engine clock divider */
++	//eclk -check
++	regmap_update_bits(map, ASPEED_G6_CLK_SELECTION1, GENMASK(31, 28), 0);
++	/* Video Engine clock divider */ 
+ 	hw = clk_hw_register_divider_table(dev, "eclk", NULL, 0,
+-			scu_g6_base + ASPEED_G6_CLK_SELECTION1, 28, 3, 0,
+-			ast2600_eclk_div_table,
++			scu_g6_base + 0x300, 28, 3, 0,
++			soc_data->eclk_div_table,
+ 			&aspeed_g6_clk_lock);
+ 	if (IS_ERR(hw))
+ 		return PTR_ERR(hw);
+ 	aspeed_g6_clk_data->hws[ASPEED_CLK_ECLK] = hw;
+ 
++	//fix for uartx parent 
++	for(i = 0; i < 13; i++) {
++		if((i < 6) & (i != 4)) {
++			regmap_read(map, 0x310, &val);
++			if(val & BIT(i))
++				aspeed_g6_gates[ASPEED_CLK_GATE_UART1CLK + i].parent_name = "huxclk";
++			else
++				aspeed_g6_gates[ASPEED_CLK_GATE_UART1CLK + i].parent_name = "uxclk";
++		}
++		if(i == 4)
++			aspeed_g6_gates[ASPEED_CLK_GATE_UART1CLK + i].parent_name = "uart";
++		if((i > 5) & (i != 4)) {
++			regmap_read(map, 0x314, &val);
++			if(val & BIT(i))
++				aspeed_g6_gates[ASPEED_CLK_GATE_UART1CLK + i].parent_name = "huxclk";
++			else
++				aspeed_g6_gates[ASPEED_CLK_GATE_UART1CLK + i].parent_name = "uxclk";
++		}
++	}
++
+ 	for (i = 0; i < ARRAY_SIZE(aspeed_g6_gates); i++) {
+ 		const struct aspeed_gate_data *gd = &aspeed_g6_gates[i];
+ 		u32 gate_flags;
+ 
+-		/*
+-		 * Special case: the USB port 1 clock (bit 14) is always
++		/* Special case: the USB port 1 clock (bit 14) is always
+ 		 * working the opposite way from the other ones.
+ 		 */
+ 		gate_flags = (gd->clock_idx == 14) ? 0 : CLK_GATE_SET_TO_DISABLE;
+@@ -674,84 +889,135 @@ static int aspeed_g6_clk_probe(struct platform_device *pdev)
+ };
+ 
+ static const struct of_device_id aspeed_g6_clk_dt_ids[] = {
+-	{ .compatible = "aspeed,ast2600-scu" },
++	{ .compatible = "aspeed,ast2600-scu", .data = &ast2600_data },
+ 	{ }
+ };
+ 
+ static struct platform_driver aspeed_g6_clk_driver = {
+ 	.probe  = aspeed_g6_clk_probe,
+ 	.driver = {
+-		.name = "ast2600-clk",
++		.name = "aspeed-g6-clk",
+ 		.of_match_table = aspeed_g6_clk_dt_ids,
+ 		.suppress_bind_attrs = true,
+ 	},
+ };
+-builtin_platform_driver(aspeed_g6_clk_driver);
+ 
+-static const u32 ast2600_a0_axi_ahb_div_table[] = {
+-	2, 2, 3, 5,
++static int __init aspeed_g6_clk_init(void)
++{
++	return platform_driver_register(&aspeed_g6_clk_driver);
++}
++core_initcall(aspeed_g6_clk_init);
++
++#define ASPEED_HPLL_PARAM	0x200
++
++static u32 ast2600_a0_axi_ahb_div_table[] = {
++	2, 2, 3, 4,
+ };
+ 
+-static const u32 ast2600_a1_axi_ahb_div0_tbl[] = {
++static u32 ast2600_a1_axi_ahb_div0_table[] = {
+ 	3, 2, 3, 4,
+ };
+ 
+-static const u32 ast2600_a1_axi_ahb_div1_tbl[] = {
++static u32 ast2600_a1_axi_ahb_div1_table[] = {
+ 	3, 4, 6, 8,
+ };
+ 
+-static const u32 ast2600_a1_axi_ahb200_tbl[] = {
++static u32 ast2600_a1_axi_ahb_default_table[] = {
+ 	3, 4, 3, 4, 2, 2, 2, 2,
+ };
+ 
+-static void __init aspeed_g6_cc(struct regmap *map)
++static void __init aspeed_ast2600_cc(struct regmap *map)
+ {
+ 	struct clk_hw *hw;
+-	u32 val, div, divbits, chip_id, axi_div, ahb_div;
++	u32 val, freq, div, chip_id, axi_div, ahb_div, hwstrap;
++
++	freq = 25000000;
+ 
+-	clk_hw_register_fixed_rate(NULL, "clkin", NULL, 0, 25000000);
++	hw = clk_hw_register_fixed_rate(NULL, "clkin", NULL, 0, freq);
++	pr_debug("clkin @%u MHz\n", freq / 1000000);
+ 
+ 	/*
+ 	 * High-speed PLL clock derived from the crystal. This the CPU clock,
+ 	 * and we assume that it is enabled
+ 	 */
+ 	regmap_read(map, ASPEED_HPLL_PARAM, &val);
+-	aspeed_g6_clk_data->hws[ASPEED_CLK_HPLL] = ast2600_calc_pll("hpll", val);
++	regmap_read(map, 0x500, &hwstrap);	
++	aspeed_g6_clk_data->hws[ASPEED_CLK_HPLL] = aspeed_ast2600_calc_hpll("hpll", hwstrap, val);
+ 
+ 	regmap_read(map, ASPEED_MPLL_PARAM, &val);
+-	aspeed_g6_clk_data->hws[ASPEED_CLK_MPLL] = ast2600_calc_pll("mpll", val);
++	aspeed_g6_clk_data->hws[ASPEED_CLK_MPLL] = aspeed_ast2600_calc_pll("mpll", val);
+ 
+ 	regmap_read(map, ASPEED_DPLL_PARAM, &val);
+-	aspeed_g6_clk_data->hws[ASPEED_CLK_DPLL] = ast2600_calc_pll("dpll", val);
++	aspeed_g6_clk_data->hws[ASPEED_CLK_DPLL] = aspeed_ast2600_calc_pll("dpll", val);
+ 
+ 	regmap_read(map, ASPEED_EPLL_PARAM, &val);
+-	aspeed_g6_clk_data->hws[ASPEED_CLK_EPLL] = ast2600_calc_pll("epll", val);
++	aspeed_g6_clk_data->hws[ASPEED_CLK_EPLL] = aspeed_ast2600_calc_pll("epll", val);
+ 
+ 	regmap_read(map, ASPEED_APLL_PARAM, &val);
+-	aspeed_g6_clk_data->hws[ASPEED_CLK_APLL] = ast2600_calc_apll("apll", val);
++	aspeed_g6_clk_data->hws[ASPEED_CLK_APLL] = aspeed_ast2600_calc_apll("apll", val);
+ 
+-	/* Strap bits 12:11 define the AXI/AHB clock frequency ratio (aka HCLK)*/
+-	regmap_read(map, ASPEED_G6_STRAP1, &val);
+-	if (val & BIT(16))
+-		axi_div = 1;
++	//uart5 
++	regmap_read(map, ASPEED_G6_MISC_CTRL, &val);
++	if (val & UART_DIV13_EN)
++		div = 0x2;
+ 	else
+-		axi_div = 2;
++		div = 0;
++	regmap_read(map, ASPEED_G6_CLK_SELECTION2, &val);
++	if (val & BIT(14))
++		div |= 0x1;
++
++	switch(div) {
++		case 0:
++			freq = 24000000;
++			break;
++		case 1:
++			freq = 192000000;
++			break;
++		case 2:
++			freq = 24000000/13;
++			break;
++		case 3:
++			freq = 192000000/13;
++			break;
++	}
++
++	aspeed_g6_clk_data->hws[ASPEED_CLK_UART] = clk_hw_register_fixed_rate(NULL, "uart", NULL, 0, freq);
++
++	/* UART1~13 clock div13 setting except uart5 */
++	regmap_read(map, ASPEED_G6_CLK_SELECTION5, &val);
++
++	switch (val & 0x3) {
++		case 0: //apll div 4
++			aspeed_g6_clk_data->hws[ASPEED_CLK_UARTX] = clk_hw_register_fixed_factor(NULL, "uartx", "apll", 0, 1, 4);
++			break;
++		case 1:	//apll div 2
++			aspeed_g6_clk_data->hws[ASPEED_CLK_UARTX] = clk_hw_register_fixed_factor(NULL, "uartx", "apll", 0, 1, 2);
++			break;
++		case 2:
++			aspeed_g6_clk_data->hws[ASPEED_CLK_UARTX] = clk_hw_register_fixed_factor(NULL, "uartx", "apll", 0, 1, 1);
++			break;
++		case 3:
++			aspeed_g6_clk_data->hws[ASPEED_CLK_UARTX] = clk_hw_register_fixed_factor(NULL, "uartx", "ahb", 0, 1, 1);
++			break;
++	}
++
++	regmap_read(map, 0x04, &chip_id);
+ 
+-	divbits = (val >> 11) & 0x3;
+-	regmap_read(map, ASPEED_G6_SILICON_REV, &chip_id);
+ 	if (chip_id & BIT(16)) {
+-		if (!divbits) {
+-			ahb_div = ast2600_a1_axi_ahb200_tbl[(val >> 8) & 0x3];
+-			if (val & BIT(16))
+-				ahb_div *= 2;
++		//ast2600a1
++		if (hwstrap & BIT(16)) {
++			ast2600_a1_axi_ahb_div1_table[0] = ast2600_a1_axi_ahb_default_table[(hwstrap >> 8) & 0x3];
++			axi_div = 1;
++			ahb_div = ast2600_a1_axi_ahb_div1_table[(hwstrap >> 11) & 0x3];
+ 		} else {
+-			if (val & BIT(16))
+-				ahb_div = ast2600_a1_axi_ahb_div1_tbl[divbits];
+-			else
+-				ahb_div = ast2600_a1_axi_ahb_div0_tbl[divbits];
++			ast2600_a1_axi_ahb_div0_table[0] = ast2600_a1_axi_ahb_default_table[(hwstrap >> 8) & 0x3];
++			axi_div = 2;
++			ahb_div = ast2600_a1_axi_ahb_div0_table[(hwstrap >> 11) & 0x3];
+ 		}
+ 	} else {
+-		ahb_div = ast2600_a0_axi_ahb_div_table[(val >> 11) & 0x3];
++		//ast2600a0 : fix axi = hpll/2
++		axi_div = 2;
++		ahb_div = ast2600_a0_axi_ahb_div_table[(hwstrap >> 11) & 0x3];
+ 	}
+ 
+ 	hw = clk_hw_register_fixed_factor(NULL, "ahb", "hpll", 0, 1, axi_div * ahb_div);
+@@ -761,22 +1027,38 @@ static void __init aspeed_g6_cc(struct regmap *map)
+ 	val = (val >> 23) & 0x7;
+ 	div = 4 * (val + 1);
+ 	hw = clk_hw_register_fixed_factor(NULL, "apb1", "hpll", 0, 1, div);
+-	aspeed_g6_clk_data->hws[ASPEED_CLK_APB1] = hw;
++	aspeed_g6_clk_data->hws[ASPEED_CLK_APB1] = hw;	
+ 
+ 	regmap_read(map, ASPEED_G6_CLK_SELECTION4, &val);
+ 	val = (val >> 9) & 0x7;
+ 	div = 2 * (val + 1);
+ 	hw = clk_hw_register_fixed_factor(NULL, "apb2", "ahb", 0, 1, div);
+-	aspeed_g6_clk_data->hws[ASPEED_CLK_APB2] = hw;
++	aspeed_g6_clk_data->hws[ASPEED_CLK_APB2] = hw;	
+ 
+ 	/* USB 2.0 port1 phy 40MHz clock */
+ 	hw = clk_hw_register_fixed_rate(NULL, "usb-phy-40m", NULL, 0, 40000000);
+ 	aspeed_g6_clk_data->hws[ASPEED_CLK_USBPHY_40M] = hw;
++
++	//* i3c clock */
++	regmap_read(map, ASPEED_G6_CLK_SELECTION5, &val);
++	if(val & BIT(31)) {
++		val = (val >> 28) & 0x7;
++		if(val)
++			div = val + 1;
++		else
++			div = val + 2;
++		hw = clk_hw_register_fixed_factor(NULL, "i3cclk", "apll", 0, 1, div);
++	} else {
++		hw = clk_hw_register_fixed_factor(NULL, "i3cclk", "ahb", 0, 1, 1);
++	}
++	aspeed_g6_clk_data->hws[ASPEED_CLK_I3C] = hw;	
++
+ };
+ 
+ static void __init aspeed_g6_cc_init(struct device_node *np)
+ {
+ 	struct regmap *map;
++	u32 uart_clk_source = 0;
+ 	int ret;
+ 	int i;
+ 
+@@ -796,22 +1078,67 @@ static void __init aspeed_g6_cc_init(struct device_node *np)
+ 	for (i = 0; i < ASPEED_G6_NUM_CLKS; i++)
+ 		aspeed_g6_clk_data->hws[i] = ERR_PTR(-EPROBE_DEFER);
+ 
+-	/*
+-	 * We check that the regmap works on this very first access,
+-	 * but as this is an MMIO-backed regmap, subsequent regmap
+-	 * access is not going to fail and we skip error checks from
+-	 * this point.
+-	 */
+ 	map = syscon_node_to_regmap(np);
+ 	if (IS_ERR(map)) {
+ 		pr_err("no syscon regmap\n");
+ 		return;
+ 	}
+ 
+-	aspeed_g6_cc(map);
++	of_property_read_u32(np, "uart-clk-source", &uart_clk_source);
++
++	if (uart_clk_source) {
++		if(uart_clk_source & GENMASK(5, 0))
++			regmap_update_bits(map, ASPEED_G6_CLK_SELECTION4, GENMASK(5, 0), uart_clk_source & GENMASK(5, 0));
++
++		if(uart_clk_source & GENMASK(12, 6))
++			regmap_update_bits(map, ASPEED_G6_CLK_SELECTION5, GENMASK(12, 6), uart_clk_source & GENMASK(12, 6));
++	}
++
++	/* fixed settings for RGMII/RMII clock generator */
++	/* MAC1/2 RGMII 125MHz = EPLL / 8 */
++	regmap_update_bits(map, ASPEED_G6_CLK_SELECTION2, GENMASK(23, 20),
++			   (0x7 << 20));
++
++	/* MAC3/4 RMII 50MHz = HCLK / 4 */
++	regmap_update_bits(map, ASPEED_G6_CLK_SELECTION4, GENMASK(18, 16),
++			   (0x3 << 16));
++
++	/* BIT[31]: MAC1/2 RGMII 125M source = internal PLL
++	 * BIT[28]: RGMIICK pad direction = output
++	 */
++	regmap_write(map, ASPEED_G6_MAC12_CLK_CTRL0,
++		     BIT(31) | BIT(28) | ASPEED_G6_DEF_MAC12_DELAY_1G);
++	regmap_write(map, ASPEED_G6_MAC12_CLK_CTRL1,
++		     ASPEED_G6_DEF_MAC12_DELAY_100M);
++	regmap_write(map, ASPEED_G6_MAC12_CLK_CTRL2,
++		     ASPEED_G6_DEF_MAC12_DELAY_10M);
++
++	/* MAC3/4 RGMII 125M source = RGMIICK pad */
++	regmap_write(map, ASPEED_G6_MAC34_CLK_CTRL0,
++		     ASPEED_G6_DEF_MAC34_DELAY_1G);
++	regmap_write(map, ASPEED_G6_MAC34_CLK_CTRL1,
++		     ASPEED_G6_DEF_MAC34_DELAY_100M);
++	regmap_write(map, ASPEED_G6_MAC34_CLK_CTRL2,
++		     ASPEED_G6_DEF_MAC34_DELAY_10M);
++
++	/* MAC3/4 default pad driving strength */
++	regmap_write(map, ASPEED_G6_MAC34_DRIVING_CTRL, 0x0000000a);
++	
++	/* RSA clock = HPLL/3 */
++	regmap_update_bits(map, ASPEED_G6_CLK_SELECTION1, BIT(19), BIT(19));	
++	regmap_update_bits(map, ASPEED_G6_CLK_SELECTION1, GENMASK(27, 26), (2 << 26));	
++
++	/*
++	 * We check that the regmap works on this very first access,
++	 * but as this is an MMIO-backed regmap, subsequent regmap
++	 * access is not going to fail and we skip error checks from
++	 * this point.
++	 */
++	aspeed_ast2600_cc(map);	
+ 	aspeed_g6_clk_data->num = ASPEED_G6_NUM_CLKS;
+ 	ret = of_clk_add_hw_provider(np, of_clk_hw_onecell_get, aspeed_g6_clk_data);
+ 	if (ret)
+ 		pr_err("failed to add DT provider: %d\n", ret);
++
+ };
+ CLK_OF_DECLARE_DRIVER(aspeed_cc_g6, "aspeed,ast2600-scu", aspeed_g6_cc_init);
+diff --git a/include/dt-bindings/clock/ast2600-clock.h b/include/dt-bindings/clock/ast2600-clock.h
+index 62b9520a00fd..e8a23ebee264 100644
+--- a/include/dt-bindings/clock/ast2600-clock.h
++++ b/include/dt-bindings/clock/ast2600-clock.h
+@@ -1,6 +1,6 @@
+-/* SPDX-License-Identifier: GPL-2.0-or-later OR MIT */
+-#ifndef DT_BINDINGS_AST2600_CLOCK_H
+-#define DT_BINDINGS_AST2600_CLOCK_H
++/* SPDX-License-Identifier: (GPL-2.0+ OR MIT) */
++#ifndef DT_BINDINGS_ASPEED_G6_CLOCK_H
++#define DT_BINDINGS_ASPEED_G6_CLOCK_H
+ 
+ #define ASPEED_CLK_GATE_ECLK		0
+ #define ASPEED_CLK_GATE_GCLK		1
+@@ -51,15 +51,14 @@
+ #define ASPEED_CLK_GATE_SDCLK		35
+ #define ASPEED_CLK_GATE_EMMCCLK		36
+ 
+-#define ASPEED_CLK_GATE_I3C0CLK		37
+-#define ASPEED_CLK_GATE_I3C1CLK		38
+-#define ASPEED_CLK_GATE_I3C2CLK		39
+-#define ASPEED_CLK_GATE_I3C3CLK		40
+-#define ASPEED_CLK_GATE_I3C4CLK		41
+-#define ASPEED_CLK_GATE_I3C5CLK		42
+-#define ASPEED_CLK_GATE_I3C6CLK		43
+-#define ASPEED_CLK_GATE_I3C7CLK		44
+-
++#define ASPEED_CLK_GATE_I3CDMACLK   37
++#define ASPEED_CLK_GATE_I3C0CLK     38
++#define ASPEED_CLK_GATE_I3C1CLK     39
++#define ASPEED_CLK_GATE_I3C2CLK     40
++#define ASPEED_CLK_GATE_I3C3CLK		41
++#define ASPEED_CLK_GATE_I3C4CLK		42
++#define ASPEED_CLK_GATE_I3C5CLK		43
++#define ASPEED_CLK_GATE_I3C6CLK		44
+ #define ASPEED_CLK_GATE_FSICLK		45
+ 
+ #define ASPEED_CLK_HPLL			46
+@@ -67,51 +66,104 @@
+ #define ASPEED_CLK_DPLL			48
+ #define ASPEED_CLK_EPLL			49
+ #define ASPEED_CLK_APLL			50
++
+ #define ASPEED_CLK_AHB			51
+ #define ASPEED_CLK_APB1			52
+ #define ASPEED_CLK_APB2			53
++
+ #define ASPEED_CLK_BCLK			54
++
+ #define ASPEED_CLK_D1CLK		55
+ #define ASPEED_CLK_VCLK			56
++
+ #define ASPEED_CLK_LHCLK		57
++
+ #define ASPEED_CLK_UART			58
++
+ #define ASPEED_CLK_UARTX		59
+-#define ASPEED_CLK_SDIO			60
+-#define ASPEED_CLK_EMMC			61
+-#define ASPEED_CLK_ECLK			62
+-#define ASPEED_CLK_ECLK_MUX		63
+-#define ASPEED_CLK_MAC12		64
+-#define ASPEED_CLK_MAC34		65
+-#define ASPEED_CLK_USBPHY_40M		66
+-#define ASPEED_CLK_MAC1RCLK		67
+-#define ASPEED_CLK_MAC2RCLK		68
+-#define ASPEED_CLK_MAC3RCLK		69
+-#define ASPEED_CLK_MAC4RCLK		70
+-
+-/* Only list resets here that are not part of a gate */
+-#define ASPEED_RESET_ADC		55
+-#define ASPEED_RESET_JTAG_MASTER2	54
+-#define ASPEED_RESET_I3C_DMA		39
+-#define ASPEED_RESET_PWM		37
+-#define ASPEED_RESET_PECI		36
+-#define ASPEED_RESET_MII		35
+-#define ASPEED_RESET_I2C		34
+-#define ASPEED_RESET_H2X		31
+-#define ASPEED_RESET_GP_MCU		30
+-#define ASPEED_RESET_DP_MCU		29
+-#define ASPEED_RESET_DP			28
+-#define ASPEED_RESET_RC_XDMA		27
+-#define ASPEED_RESET_GRAPHICS		26
+-#define ASPEED_RESET_DEV_XDMA		25
+-#define ASPEED_RESET_DEV_MCTP		24
+-#define ASPEED_RESET_RC_MCTP		23
+-#define ASPEED_RESET_JTAG_MASTER	22
+-#define ASPEED_RESET_PCIE_DEV_O		21
+-#define ASPEED_RESET_PCIE_DEV_OEN	20
+-#define ASPEED_RESET_PCIE_RC_O		19
+-#define ASPEED_RESET_PCIE_RC_OEN	18
+-#define ASPEED_RESET_PCI_DP		5
+-#define ASPEED_RESET_AHB		1
+-#define ASPEED_RESET_SDRAM		0
++#define ASPEED_CLK_HUARTX		60
++
++#define ASPEED_CLK_UXCLK		61
++#define ASPEED_CLK_HUXCLK		62
++
++#define ASPEED_CLK_I3C			63
++
++#define ASPEED_CLK_SDIO			64
++#define ASPEED_CLK_EMMC			65
++
++#define ASPEED_CLK_ECLK			66
++#define ASPEED_CLK_ECLK_MUX		67
++#define ASPEED_CLK_MAC12		68
++#define ASPEED_CLK_MAC34		69
++
++#define ASPEED_CLK_USBPHY_40M		70
++#define ASPEED_CLK_MAC1RCLK		71
++#define ASPEED_CLK_MAC2RCLK		72
++#define ASPEED_CLK_MAC3RCLK		73
++#define ASPEED_CLK_MAC4RCLK		74
++
++
++#define ASPEED_RESET_FSI		(59)
++#define ASPEED_RESET_RESERVED58	(58)
++#define ASPEED_RESET_ESPI		(57)	//For AST2600A1
++#define ASPEED_RESET_SD			(56)
++#define ASPEED_RESET_ADC		(55)
++#define ASPEED_RESET_JTAG_MASTER2	(54)
++#define ASPEED_RESET_MAC4		(53)
++#define ASPEED_RESET_MAC3		(52)
++#define ASPEED_RESET_RESERVE51	(51)
++#define ASPEED_RESET_RESERVE50	(50)
++#define ASPEED_RESET_RESERVE49	(49)
++#define ASPEED_RESET_RESERVE48	(48)
++#define ASPEED_RESET_I3C7		(47)
++#define ASPEED_RESET_I3C6		(46)
++#define ASPEED_RESET_I3C5		(45)
++#define ASPEED_RESET_I3C4		(44)
++#define ASPEED_RESET_I3C3		(43)
++#define ASPEED_RESET_I3C2		(42)
++#define ASPEED_RESET_I3C1		(41)
++#define ASPEED_RESET_I3C0		(40)
++#define ASPEED_RESET_I3C		(39)
++#define ASPEED_RESET_RESERVED38	(38)
++#define ASPEED_RESET_PWM		(37)
++#define ASPEED_RESET_PECI		(36)
++#define ASPEED_RESET_MII		(35)
++#define ASPEED_RESET_I2C		(34)
++#define ASPEED_RESET_RESERVED33	(33)
++#define ASPEED_RESET_LPC_ESPI	(32)
++
++#define ASPEED_RESET_H2X		(31)
++#define ASPEED_RESET_GP_MCU		(30)
++#define ASPEED_RESET_DP_MCU		(29)
++#define ASPEED_RESET_DP			(28)
++#define ASPEED_RESET_RC_XDMA	(27)
++#define ASPEED_RESET_GRAPHICS	(26)	//for controller engine
++#define ASPEED_RESET_DEV_XDMA	(25)
++#define ASPEED_RESET_DEV_MCTP	(24)
++#define ASPEED_RESET_RC_MCTP	(23)
++#define ASPEED_RESET_JTAG_MASTER	(22)
++#define ASPEED_RESET_PCIE_DEV_OE	(21)
++#define ASPEED_RESET_PCIE_DEV_O		(20)
++#define ASPEED_RESET_PCIE_RC_OE		(19)
++#define ASPEED_RESET_PCIE_RC_O		(18)
++#define ASPEED_RESET_RESERVED17	(17)
++#define ASPEED_RESET_EMMC		(16)
++#define ASPEED_RESET_UHCI		(15)
++#define ASPEED_RESET_EHCI_P1	(14)
++#define ASPEED_RESET_CRT		(13)	//for controller register
++#define ASPEED_RESET_MAC2		(12)
++#define ASPEED_RESET_MAC1		(11)
++#define ASPEED_RESET_RESERVED10	(10)
++#define ASPEED_RESET_RVAS		(9)
++#define ASPEED_RESET_PCI_VGA	(8)
++#define ASPEED_RESET_2D			(7)
++#define ASPEED_RESET_VIDEO		(6)
++#define ASPEED_RESET_PCI_DP		(5)
++#define ASPEED_RESET_HACE		(4)
++#define ASPEED_RESET_EHCI_P2	(3)
++#define ASPEED_RESET_RESERVED2	(2)
++#define ASPEED_RESET_AHB		(1)
++#define ASPEED_RESET_SDRAM		(0)
++
+ 
+ #endif
+diff --git a/include/dt-bindings/interrupt-controller/aspeed-scu-irq.h b/include/dt-bindings/interrupt-controller/aspeed-scu-irq.h
+new file mode 100644
+index 000000000000..e8b32cb1dfee
+--- /dev/null
++++ b/include/dt-bindings/interrupt-controller/aspeed-scu-irq.h
+@@ -0,0 +1,16 @@
++/* SPDX-License-Identifier: (GPL-2.0+ OR MIT) */
++#ifndef DT_BINDINGS_ASPEED_SCU_IRQ_H
++#define DT_BINDINGS_ASPEED_SCU_IRQ_H
++
++#define ASPEED_SCU_VGA_CURSOR_CHANGE		0
++#define ASPEED_SCU_VGA_SCRATCH_REG_CHANGE	1
++#define ASPEED_SCU_PCIE_REST_LOW_TO_HIGH	2
++#define ASPEED_SCU_PCIE_REST_HIGH_TO_LOW	3
++#define ASPEED_SCU_LPC_REST_LOW_TO_HIGH		4
++#define ASPEED_SCU_LPC_REST_HIGH_TO_LOW		5
++#define ASPEED_SCU_ISSUE_MSI			6
++
++/* ast2600 scu2 */
++#define ASPEED_SCU2_LPC_REST_LOW_TO_HIGH		4
++#define ASPEED_SCU2_LPC_REST_HIGH_TO_LOW		5
++#endif
+-- 
+2.33.0
+

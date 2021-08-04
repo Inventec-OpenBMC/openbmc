@@ -1,0 +1,157 @@
+From 36f17336e768ca8ce1ac3aa1fb686db2b8e3f732 Mon Sep 17 00:00:00 2001
+From: "pj.chen" <chen.pj@inventec.com>
+Date: Wed, 7 Apr 2021 07:24:58 +0000
+Subject: [PATCH 2/2] - Set power button and post complete to optional
+
+Symptom/Reason:
+    There's no power button and post complete design on Transformers.
+    This would cause x86-power-control cannot init.
+
+Root Cause:
+    N/A
+
+Solution/Change:
+    Check in the config files, if not define power button and post complete, do not return.
+
+Entry Test:
+Jan 01 00:05:47 transformers systemd[1]: Starting Intel Power Control...
+Jan 01 00:05:47 transformers power-control[894]: Start Chassis power control service...
+Jan 01 00:05:47 transformers systemd[1]: Started Intel Power Control.
+Jan 01 00:05:47 transformers power-control[894]: SIO control GPIOs not defined, disable SIO support.
+Jan 01 00:05:47 transformers power-control[894]: powerButton name not configured from json config file
+Jan 01 00:05:47 transformers power-control[894]: ResetButton not defined...
+Jan 01 00:05:47 transformers power-control[894]: postComplete name not configured from json config file
+Jan 01 00:05:47 transformers power-control[894]: NMI_OUT set to 0
+Jan 01 00:05:47 transformers power-control[894]: POWER_OUT set to 1
+Jan 01 00:05:47 transformers power-control[894]: RESET_OUT set to 1
+Jan 01 00:05:47 transformers power-control[894]:  NMI Source Property Monitor
+Jan 01 00:05:47 transformers power-control[894]: Host0: Moving to "Off" state
+Jan 01 00:05:47 transformers power-control[894]: Initializing power state. RestartCause set to xyz.openbmc_project.State.Host.RestartCause.Unknown
+---
+ power-control-x86/src/power_control.cpp | 62 ++++++++++++++++++++++++++-------
+ 1 file changed, 49 insertions(+), 13 deletions(-)
+
+diff --git a/power-control-x86/src/power_control.cpp b/power-control-x86/src/power_control.cpp
+index 6828598..1bfc6e5 100644
+--- a/power-control-x86/src/power_control.cpp
++++ b/power-control-x86/src/power_control.cpp
+@@ -1445,8 +1445,16 @@ static void currentHostStateMonitor()
+                 // 'OperatingSystemState' to stay at 'Standby', even though
+                 // system is OFF. Set 'OperatingSystemState' to 'Inactive'
+                 // if HostState is trurned to OFF.
+-                osIface->set_property("OperatingSystemState",
+-                                      std::string("Inactive"));
++                /*
++                    Inventec - Set post complete to optional.
++
++                    If the post complete not support, the OperatingSystemState would always 'Standby'
++                */
++                if (!power_control::postCompleteName.empty())
++                {
++                    osIface->set_property("OperatingSystemState",
++                                          std::string("Inactive"));
++                }
+ 
+                 // Set the restart cause set for this restart
+                 setRestartCause();
+@@ -2519,9 +2527,14 @@ int main(int argc, char* argv[])
+     }
+     else
+     {
++        /*
++            Inventec - set power button to optional.
++        */
++        #if 0
+         phosphor::logging::log<phosphor::logging::level::ERR>(
+             "powerButton name should be configured from json config file");
+         return -1;
++        #endif
+     }
+ 
+     // Request RESET_BUTTON GPIO events
+@@ -2572,9 +2585,14 @@ int main(int argc, char* argv[])
+     }
+     else
+     {
++        /*
++            Inventec - Set post complete to optional.
++        */
++        #if 0
+         phosphor::logging::log<phosphor::logging::level::ERR>(
+             "postComplete name should be configured from json config file");
+         return -1;
++        #endif
+     }
+ 
+     // initialize NMI_OUT GPIO.
+@@ -2770,16 +2788,22 @@ int main(int argc, char* argv[])
+     chassisSysIface->initialize();
+ #endif
+ 
++
+     // Buttons Service
+     sdbusplus::asio::object_server buttonsServer =
+         sdbusplus::asio::object_server(conn);
+ 
+     // Power Button Interface
+-    powerButtonIface = buttonsServer.add_interface(
+-        "/xyz/openbmc_project/chassis/buttons/power",
+-        "xyz.openbmc_project.Chassis.Buttons");
++    /*
++        Inventec - set power button to optional.
++    */
++    if (!power_control::powerButtonName.empty())
++    {
++        powerButtonIface = buttonsServer.add_interface(
++            "/xyz/openbmc_project/chassis/buttons/power",
++            "xyz.openbmc_project.Chassis.Buttons");
+ 
+-    powerButtonIface->register_property(
++        powerButtonIface->register_property(
+         "ButtonMasked", false, [](const bool requested, bool& current) {
+             if (requested)
+             {
+@@ -2810,12 +2834,12 @@ int main(int argc, char* argv[])
+             return 1;
+         });
+ 
+-    // Check power button state
+-    bool powerButtonPressed = powerButtonLine.get_value() == 0;
+-    powerButtonIface->register_property("ButtonPressed", powerButtonPressed);
+-
+-    powerButtonIface->initialize();
++        // Check power button state
++        bool powerButtonPressed = powerButtonLine.get_value() == 0;
++        powerButtonIface->register_property("ButtonPressed", powerButtonPressed);
+ 
++        powerButtonIface->initialize();
++    }
+     // Reset Button Interface
+     if (!resetButtonName.empty())
+     {
+@@ -2940,8 +2964,20 @@ int main(int argc, char* argv[])
+     // Get the initial OS state based on POST complete
+     //      0: Asserted, OS state is "Standby" (ready to boot)
+     //      1: De-Asserted, OS state is "Inactive"
+-    std::string osState =
+-        postCompleteLine.get_value() > 0 ? "Inactive" : "Standby";
++    /*
++        Inventec - Set post complete to optional
++    */
++    std::string osState;
++    if (!postCompleteName.empty())
++    {
++        osState = postCompleteLine.get_value() > 0
++                                  ? "Inactive"
++                                  : "Standby";
++    }
++    else
++    {
++        osState = "Standby";
++    }
+ 
+     osIface->register_property("OperatingSystemState", std::string(osState));
+ 
+-- 
+2.7.4
+

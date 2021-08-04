@@ -1,0 +1,26 @@
+From f63387936134161816276e2f8ae7ce9b41fd8296 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Mon, 28 Sep 2020 18:53:33 -0400
+Subject: [PATCH 2/5] Subject: [Patch][u-boot] Add debug mesg to show SPI clock
+ frequency
+
+---
+ drivers/spi/aspeed_spi.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/spi/aspeed_spi.c b/drivers/spi/aspeed_spi.c
+index f93200f..ec0898d 100644
+--- a/drivers/spi/aspeed_spi.c
++++ b/drivers/spi/aspeed_spi.c
+@@ -220,7 +220,7 @@ static u32 aspeed_g6_spi_hclk_divisor(struct aspeed_spi_priv *priv, u32 max_hz)
+ 		for (i = 0; i < ARRAY_SIZE(hclk_masks); i++) {
+ 			base_div = j * 16;
+ 			if (max_hz >= (hclk_rate / ((i + 1) + base_div))) {
+-				
++				printf(" max_hz = %d \n", hclk_rate / ((i + 1) + base_div));
+ 				done = 1;
+ 				break;
+ 			}
+-- 
+2.7.4
+
