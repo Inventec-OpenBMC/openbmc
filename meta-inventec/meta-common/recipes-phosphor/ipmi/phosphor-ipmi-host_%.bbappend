@@ -21,6 +21,7 @@ SRC_URI_append = " file://0001-sensorhandler-fix-get-threshold-error.patch \
                    file://0017-Add-MAC-address-support-for-destination-address.patch \
                    file://0018-Add-IPv6Only-mode-support-in-IPFamilySupport-command.patch \
                    file://0019-Add-IPv6-Header-Traffic-Class-support.patch \
+                   file://0020-Add-encoding-byte-support-for-System-Info-Parameters.patch \
 "
 
 
