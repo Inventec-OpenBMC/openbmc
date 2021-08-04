@@ -1,6 +1,22 @@
 {
     "Exposes": [
         {
+            "Class": "METemp",
+            "Bus": 0,
+            "Address": "0x8",
+            "Name": "PCH_Temp",
+            "SensorInfo": [
+                {
+                    "Label": "PCH_Temp",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x2C",
+                    "EntityId": "3",
+                    "EntityInstance": "28"
+                }
+            ],
+            "Type": "IpmbSensor"
+        },    
+        {
             "Bus": 0,
             "Address": "0x30",
             "CpuID": 1,
