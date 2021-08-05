@@ -47,5 +47,6 @@ SRC_URI_append += " file://0001-Removed-Get-Device-ID-command.patch \
                     file://0011-inventec-common-Fix-sensor-reading-factor-un-match-i.patch \
 		    file://0012-Implement-SEL-get-set-UTC-time-offset.patch  \
 		    file://0013-Implement-get-set-system-boot-option.patch \
+		    file://0014-The-main-implementation-of-WARM-RESET.patch  \
                   "
 
