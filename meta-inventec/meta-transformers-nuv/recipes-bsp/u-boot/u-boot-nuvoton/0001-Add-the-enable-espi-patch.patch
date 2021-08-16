@@ -1,0 +1,66 @@
+From a6767f1c3b53ab5b4a6f9bb3afeffb59f287c2b3 Mon Sep 17 00:00:00 2001
+From: emil <huang.emil@inventec.com>
+Date: Mon, 16 Aug 2021 07:57:35 +0000
+Subject: [PATCH] Add the enable espi patch.
+
+---
+ arch/arm/mach-npcm750/include/mach/poleg_espi.h |  9 +++++++++
+ board/nuvoton/poleg/poleg.c                     | 11 +++++++++++
+ 2 files changed, 20 insertions(+)
+ create mode 100644 arch/arm/mach-npcm750/include/mach/poleg_espi.h
+
+diff --git a/arch/arm/mach-npcm750/include/mach/poleg_espi.h b/arch/arm/mach-npcm750/include/mach/poleg_espi.h
+new file mode 100644
+index 0000000..eb7316e
+--- /dev/null
++++ b/arch/arm/mach-npcm750/include/mach/poleg_espi.h
+@@ -0,0 +1,9 @@
++#ifndef __POLEG_ESPI_H_
++#define __POLEG_ESPI_H_
++
++#define NPCM750_ESPI_BA			0xF009F000
++#define ESPICFG					0x04
++#define ESPICFG_CHNSUPP_MASK	0x0F
++#define ESPICFG_CHNSUPP_SHFT	24
++
++#endif
+\ No newline at end of file
+diff --git a/board/nuvoton/poleg/poleg.c b/board/nuvoton/poleg/poleg.c
+index b7984dc..b9516ca 100644
+--- a/board/nuvoton/poleg/poleg.c
++++ b/board/nuvoton/poleg/poleg.c
+@@ -12,6 +12,7 @@
+ #include <asm/arch/clock.h>
+ #include <asm/arch/poleg_otp.h>
+ #include <asm/arch/poleg_info.h>
++#include <asm/arch/poleg_espi.h>
+ #include <common.h>
+ #include <dm.h>
+ #include <fdtdec.h>
+@@ -205,6 +206,7 @@ int board_init(void)
+ 	struct clk_ctl *clkctl = (struct clk_ctl *)npcm750_get_base_clk();
+ 	int nodeoff;
+ 	u32 reg_val = 0;
++	u32 espi_ch_supp;	
+ 
+ 	gd->bd->bi_arch_number = CONFIG_MACH_TYPE;
+ 	gd->bd->bi_boot_params = (PHYS_SDRAM_1 + 0x100UL);
+@@ -234,6 +236,15 @@ int board_init(void)
+ 		writel(((readl(&gcr->spswc) & ~(SPMOD_MASK)) | SPMOD_MODE7), &gcr->spswc);
+ 	}
+ 
++	if (readl(&gcr->mfsel4) & (1 << MFSEL4_ESPISEL)) {
++		espi_ch_supp = fdtdec_get_config_int(gd->fdt_blob, "espi-channel-support", 0);
++		if (espi_ch_supp > 0) {
++			reg_val = readl(NPCM750_ESPI_BA + ESPICFG);
++			writel(reg_val | ((espi_ch_supp & ESPICFG_CHNSUPP_MASK) << ESPICFG_CHNSUPP_SHFT),
++					NPCM750_ESPI_BA + ESPICFG);
++		}
++	}
++
+ 	return 0;
+ }
+ 
+-- 
+2.7.4
+
