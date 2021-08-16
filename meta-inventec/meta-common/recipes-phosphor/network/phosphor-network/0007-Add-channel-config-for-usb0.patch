@@ -1,0 +1,57 @@
+From 4895ba5f24bbc076b06789d3620f583ffa5988f9 Mon Sep 17 00:00:00 2001
+From: "Lin.TommySC" <lin.tommysc@inventec.com>
+Date: Tue, 10 Aug 2021 09:06:48 +0000
+Subject: [PATCH] Add channel config for usb0
+
+Symptom/Reason :
+    - Add channel config for usb0
+
+Root Cause:
+    - N/A
+
+Solution/Change:
+    [phosphor-network]
+        - Fix usb0 IP address absent in lan print issue
+    [phosphor-ipmi-config]
+        - Add channel config for usb0
+
+Entry Test:
+    - Print channel config
+        ipmitool lan print 3
+---
+ ethernet_interface.cpp | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/ethernet_interface.cpp b/ethernet_interface.cpp
+index 5be6416..17d6bd0 100644
+--- a/ethernet_interface.cpp
++++ b/ethernet_interface.cpp
+@@ -44,6 +44,7 @@ constexpr auto RESOLVED_INTERFACE = "org.freedesktop.resolve1.Link";
+ constexpr auto PROPERTY_INTERFACE = "org.freedesktop.DBus.Properties";
+ constexpr auto RESOLVED_SERVICE_PATH = "/org/freedesktop/resolve1/link/";
+ constexpr auto METHOD_GET = "Get";
++constexpr auto USB_INTF_NAME = "usb0";
+ 
+ struct EthernetIntfSocket
+ {
+@@ -224,7 +225,7 @@ void EthernetInterface::createIPAddressObjects()
+         {
+             origin = IP::AddressOrigin::DHCP;
+         }
+-        if (isLinkLocalIP(addr.ipaddress))
++        if (isLinkLocalIP(addr.ipaddress) && interfaceName() != USB_INTF_NAME)
+         {
+             origin = IP::AddressOrigin::LinkLocal;
+         }
+@@ -961,7 +962,7 @@ void EthernetInterface::writeConfigurationFile()
+     using namespace std::string_literals;
+     namespace fs = std::filesystem;
+ 
+-    if (interfaceName() == "usb0")
++    if (interfaceName() == USB_INTF_NAME)
+     {
+         // usb0 interface is not cinfigurable
+         return;
+-- 
+2.17.1
+

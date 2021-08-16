@@ -16,6 +16,7 @@ set (
     "
 )
 
+option(WITH_BIOS_OEM_CMD "Enable Support BIOS OEM Cammand" ON)
 
 add_definitions (-DBOOST_ERROR_CODE_HEADER_ONLY)
 add_definitions (-DBOOST_SYSTEM_NO_DEPRECATED)
@@ -26,6 +27,9 @@ add_definitions (-DBOOST_ASIO_DISABLE_THREADS)
 add_definitions (-DBOOST_COROUTINES_NO_DEPRECATION_WARNING)
 add_definitions (-Wno-psabi)
 
+if(WITH_BIOS_OEM_CMD)
+    add_definitions (-DSUPPORT_BIOS_OEM_CMD)
+endif()
 
 find_package (PkgConfig REQUIRED)
 pkg_check_modules (LOGGING phosphor-logging REQUIRED)

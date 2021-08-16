@@ -17,9 +17,7 @@ S = "${WORKDIR}/${BPN}"
 DEPENDS = "boost phosphor-ipmi-host phosphor-logging systemd sdbusplus libpeci"
 DEPENDS += "nlohmann-json"
 
-inherit cmake obmc-phosphor-ipmiprovider-symlink
-
-EXTRA_OECMAKE=""
+inherit cmake pkgconfig obmc-phosphor-ipmiprovider-symlink
 
 LIBRARY_NAMES = "libinvoemcmds.so"
 
@@ -37,6 +35,9 @@ CFLAGS_append = " -I ${STAGING_KERNEL_DIR}/include"
 CXXFLAGS_append = " -I ${STAGING_KERNEL_DIR}/include/uapi"
 CXXFLAGS_append = " -I ${STAGING_KERNEL_DIR}/include"
 do_configure[depends] += "virtual/kernel:do_shared_workdir"
+
+PACKAGECONFIG ??= "bios-oem"
+PACKAGECONFIG[bios-oem] = "-DWITH_BIOS_OEM_CMD=ON,-DWITH_BIOS_OEM_CMD=OFF,"
 
 do_install_append(){
    install -d ${D}${includedir}/inv-ipmi-oem
