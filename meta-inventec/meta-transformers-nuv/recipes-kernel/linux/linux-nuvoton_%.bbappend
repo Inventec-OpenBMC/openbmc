@@ -8,6 +8,7 @@ SRC_URI_append_transformers-nuv = " \
   file://0007-Ampere-Altra-MAX-SSIF-IPMI-driver.patch \
   file://0008-driver-misc-seven-segment-display-gpio-driver.patch \
   file://0009-Add-virtual-driver.patch \
+  file://0010-inventec-transformers-nuv-Modify-TOCK-to-PLL0-for-RGMII-issue.patch \
   "
 
 # Merge source tree by original project with our layer of additional files

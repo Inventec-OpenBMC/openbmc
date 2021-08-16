@@ -98,43 +98,7 @@
 			gpios = <&gpio3 15 1>;
 		};
 	};
-
-	mcu_flash {
-		compatible = "nuvoton,npcm750-mcu-flash";
-		status = "okay";
-		#address-cells = <1>;
-		#size-cells = <1>;
-		dev-num = <0>;    /* /dev/mcu0 */
-		smb-offset = <6>; /* SMBSEL offset of MFSEL3 */
-		mcu-gpios = <&gpio6 30 GPIO_ACTIVE_HIGH>,     /* GPIO222/PROG_CLK, Output */
-			<&gpio6 31 GPIO_ACTIVE_HIGH>,     /* GPIO223/PROG_MOSI Output */
-			<&gpio1 6 GPIO_ACTIVE_HIGH>,      /* GPIO38/PROG_MISO, Input  */
-			<&gpio1 5 GPIO_ACTIVE_HIGH>;       /* GPIO37/RESET#, Output    */
-    };
-
-	seven-seg-gpio {
-		compatible = "seven-seg-gpio-dev";
-		refresh-interval-ms = <500>;
-		seven-gpios = <&gpio4 14 0>,
-			<&gpio4 12 0>,
-			<&gpio7 7 0>,
-			<&gpio0 9 0>,
-			<&gpio4 15 0>,
-			<&gpio2 25 0>,
-			<&gpio4 11 0>,
-			<&gpio4 10 0>,
-			<&gpio0 25 0>,
-			<&gpio4 9 0>,
-			<&gpio0 24 0>,
-			<&gpio0 11 0>,
-			<&gpio2 23 0>,
-			<&gpio4 13 0>,
-			<&gpio2 24 0>,
-			<&gpio2 26 0>;
-		status = "okay";
-    };
 };
-
 &fiu0 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&spi0cs1_pins>;

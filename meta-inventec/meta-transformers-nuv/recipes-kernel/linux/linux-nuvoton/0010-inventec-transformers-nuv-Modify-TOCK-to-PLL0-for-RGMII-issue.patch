@@ -1,0 +1,52 @@
+From 3ec29dc0c2693bda5184e15461545729298219f9 Mon Sep 17 00:00:00 2001
+From: Neil Chen <Chen.NeilZX@inventec.com>
+Date: Fri, 13 Aug 2021 05:33:03 +0000
+Subject: [PATCH] [transformers-nuv] Modify TOCK to PLL0 for RGMII issue
+
+---
+ drivers/clk/clk-npcm7xx.c                         | 8 +++++++-
+ drivers/net/ethernet/stmicro/stmmac/stmmac_mdio.c | 2 +-
+ 2 files changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/clk/clk-npcm7xx.c b/drivers/clk/clk-npcm7xx.c
+index bf721ec..1bc3ff4 100644
+--- a/drivers/clk/clk-npcm7xx.c
++++ b/drivers/clk/clk-npcm7xx.c
+@@ -34,7 +34,7 @@ struct npcm7xx_clk_pll {
+ #define PLLCON_PWDEN	BIT(12)
+ #define PLLCON_OTDV1	GENMASK(10, 8)
+ #define PLLCON_INDV	GENMASK(5, 0)
+-
++#define CLKSEL_CLKOUTSEL	18
+ static unsigned long npcm7xx_clk_pll_recalc_rate(struct clk_hw *hw,
+ 						 unsigned long parent_rate)
+ {
+@@ -623,6 +623,12 @@ static void __init npcm7xx_clk_init(struct device_node *clk_np)
+ 		if (mux_data->onecell_idx >= 0)
+ 			npcm7xx_clk_data->hws[mux_data->onecell_idx] = hw;
+ 	}
++	/* Set TOCK to PLL0 */
++	unsigned int read;
++        read = ioread32(clk_base + NPCM7XX_CLKSEL);
++        read = read & ~(7 << CLKSEL_CLKOUTSEL);
++	iowrite32(read, (clk_base + NPCM7XX_CLKSEL));	
++	read = ioread32(clk_base + NPCM7XX_CLKSEL);
+ 
+ 	/* Register clock dividers specified in npcm7xx_divs */
+ 	for (i = 0; i < ARRAY_SIZE(npcm7xx_divs); i++) {
+diff --git a/drivers/net/ethernet/stmicro/stmmac/stmmac_mdio.c b/drivers/net/ethernet/stmicro/stmmac/stmmac_mdio.c
+index f59daf8..c9af7e3 100644
+--- a/drivers/net/ethernet/stmicro/stmmac/stmmac_mdio.c
++++ b/drivers/net/ethernet/stmicro/stmmac/stmmac_mdio.c
+@@ -489,7 +489,7 @@ int stmmac_mdio_register(struct net_device *ndev)
+ 			}
+ 		}
+ 	}
+-
++	
+ 	if (!found && !mdio_node) {
+ 		dev_warn(dev, "No PHY found\n");
+ 		mdiobus_unregister(new_bus);
+-- 
+2.7.4
+
