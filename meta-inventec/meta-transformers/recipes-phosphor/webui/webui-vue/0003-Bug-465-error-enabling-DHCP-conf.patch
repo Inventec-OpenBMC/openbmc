@@ -1,0 +1,14 @@
+diff --git a/src/views/Configuration/NetworkSettings/NetworkSettings.vue b/src/views/Configuration/NetworkSettings/NetworkSettings.vue
+index d6da717..23d5e29 100644
+--- a/src/views/Configuration/NetworkSettings/NetworkSettings.vue
++++ b/src/views/Configuration/NetworkSettings/NetworkSettings.vue
+@@ -636,9 +636,6 @@ export default {
+         networkSettingsForm.isDhcpEnabled = isDhcpEnabled;
+       } else {
+         networkSettingsForm.isDhcpEnabled = false;
+-        this.errorToast(
+-          this.$t('pageNetworkSettings.toast.errorSaveDhcpSettings')
+-        );
+       }
+       networkSettingsForm.staticIpv4 = this.form.ipv4StaticTableItems.map(
+         (updateIpv4) => {
