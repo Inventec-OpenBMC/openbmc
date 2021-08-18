@@ -1,4 +1,4 @@
-From 7eea45ab81e9e29f6e721015937f9653f1c4ab71 Mon Sep 17 00:00:00 2001
+From 70f2ec9f540f0d12cc5ddcd621f0ee027700cbd8 Mon Sep 17 00:00:00 2001
 From: cynthia <wu.cynthia@inventec.com>
 Date: Tue, 29 Jun 2021 00:42:54 +0800
 Subject: [PATCH] Implement SEL get/set UTC time offset
@@ -26,7 +26,7 @@ Entry Test:
  2 files changed, 75 insertions(+)
 
 diff --git a/include/storagecommands.hpp b/include/storagecommands.hpp
-index c9e2bd2..63c8ecf 100644
+index 173f936..ef3286c 100644
 --- a/include/storagecommands.hpp
 +++ b/include/storagecommands.hpp
 @@ -21,6 +21,12 @@
@@ -43,7 +43,7 @@ index c9e2bd2..63c8ecf 100644
  {
  static constexpr uint8_t selOperationSupport = 0x02;
 diff --git a/src/storagecommands.cpp b/src/storagecommands.cpp
-index 9bcc353..28c9720 100644
+index 9bcc353..e3a9cfc 100644
 --- a/src/storagecommands.cpp
 +++ b/src/storagecommands.cpp
 @@ -136,6 +136,7 @@ static std::vector<sdbusplus::bus::match::match> fruMatches;
@@ -58,12 +58,12 @@ index 9bcc353..28c9720 100644
      return ipmi::responseSuccess(ipmi::sel::eraseComplete);
  }
  
-+uint16_t GetSELTimeUTCOffset(){
++int16_t GetSELTimeUTCOffset(){
 +    time_t local_time;
 +    time_t gmt_time;
 +    time_t time_offset;
 +    struct tm *ptm;
-+    uint16_t utc_time_offset;
++    int16_t utc_time_offset;
 +
 +    time(&local_time);
 +    ptm = gmtime(&local_time);
@@ -76,7 +76,7 @@ index 9bcc353..28c9720 100644
 +        time_offset += 3600;
 +    }
 +
-+    utc_time_offset = (uint16_t)(time_offset)/60; //offset originally in seconds, change to minutes
++    utc_time_offset = (int)(time_offset)/60; //offset originally in seconds, change to minutes
 +
 +    return utc_time_offset;
 +}
@@ -100,7 +100,7 @@ index 9bcc353..28c9720 100644
  }
  
 +ipmi::RspType<uint16_t> ipmiStorageGetSELTimeUTCOffset(){   
-+    uint16_t utc_time_offset = GetSELTimeUTCOffset();
++    int16_t utc_time_offset = GetSELTimeUTCOffset();
 +    return ipmi::responseSuccess(utc_time_offset);
 +
 +}
