@@ -1,0 +1,69 @@
+From f7474c4c3e2b51a73236f1d208a7180a10020f35 Mon Sep 17 00:00:00 2001
+From: Joseph Liu <kwliu@nuvoton.com>
+Date: Tue, 30 Mar 2021 16:26:56 +0800
+Subject: [PATCH] fs: add default_file_splice_write
+
+---
+ fs/splice.c | 39 ++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 36 insertions(+), 3 deletions(-)
+
+diff --git a/fs/splice.c b/fs/splice.c
+index 866d5c2367b2..6c6f1a6e9441 100644
+--- a/fs/splice.c
++++ b/fs/splice.c
+@@ -37,6 +37,33 @@
+ 
+ #include "internal.h"
+ 
++static int write_pipe_buf(struct pipe_inode_info *pipe, struct pipe_buffer *buf,
++			  struct splice_desc *sd)
++{
++	int ret;
++	void *data;
++	loff_t tmp = sd->pos;
++
++	data = kmap(buf->page);
++	ret = __kernel_write(sd->u.file, data + buf->offset, sd->len, &tmp);
++	kunmap(buf->page);
++
++	return ret;
++}
++
++static ssize_t default_file_splice_write(struct pipe_inode_info *pipe,
++					 struct file *out, loff_t *ppos,
++					 size_t len, unsigned int flags)
++{
++	ssize_t ret;
++
++	ret = splice_from_pipe(pipe, out, ppos, len, flags, write_pipe_buf);
++	if (ret > 0)
++		*ppos += ret;
++
++	return ret;
++}
++
+ /*
+  * Attempt to steal a page from a pipe buffer. This should perhaps go into
+  * a vm helper function, it's already simplified quite a bit by the
+@@ -759,9 +786,15 @@ static int warn_unsupported(struct file *file, const char *op)
+ static long do_splice_from(struct pipe_inode_info *pipe, struct file *out,
+ 			   loff_t *ppos, size_t len, unsigned int flags)
+ {
+-	if (unlikely(!out->f_op->splice_write))
+-		return warn_unsupported(out, "write");
+-	return out->f_op->splice_write(pipe, out, ppos, len, flags);
++	ssize_t (*splice_write)(struct pipe_inode_info *, struct file *,
++				loff_t *, size_t, unsigned int);
++
++	if (out->f_op->splice_write)
++		splice_write = out->f_op->splice_write;
++	else
++		splice_write = default_file_splice_write;
++
++	return splice_write(pipe, out, ppos, len, flags);
+ }
+ 
+ /*
+-- 
+2.17.1
+

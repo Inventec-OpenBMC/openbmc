@@ -1,0 +1,785 @@
+From 58e538777e52b4993d90d2740810e67982e09fac Mon Sep 17 00:00:00 2001
+From: kfting <kfting@nuvoton.com>
+Date: Wed, 28 Jul 2021 17:29:20 +0800
+Subject: [PATCH] driver : remoteproc: Arbel remoteproc driver support
+
+Signed-off-by: kfting <kfting@nuvoton.com>
+---
+ .../dts/nuvoton/nuvoton-common-npcm8xx.dtsi   |  15 +
+ .../boot/dts/nuvoton/nuvoton-npcm845-evb.dts  |  16 +
+ drivers/remoteproc/Kconfig                    |  18 +
+ drivers/remoteproc/Makefile                   |   1 +
+ drivers/remoteproc/npcm8xx_remoteproc.c       | 659 ++++++++++++++++++
+ 5 files changed, 709 insertions(+)
+ create mode 100644 drivers/remoteproc/npcm8xx_remoteproc.c
+
+diff --git a/arch/arm64/boot/dts/nuvoton/nuvoton-common-npcm8xx.dtsi b/arch/arm64/boot/dts/nuvoton/nuvoton-common-npcm8xx.dtsi
+index 059c51781e03..a5462e1a727d 100644
+--- a/arch/arm64/boot/dts/nuvoton/nuvoton-common-npcm8xx.dtsi
++++ b/arch/arm64/boot/dts/nuvoton/nuvoton-common-npcm8xx.dtsi
+@@ -328,6 +328,21 @@
+ 			status = "disabled";
+ 		};
+ 
++		copcnt: copcnt@f080c000 {
++			compatible = "syscon", "simple-mfd";
++			reg = <0x0 0xf080c000 0x0 0x1000>;
++			status = "disabled";
++		};
++
++		m4_rproc: m4@0 {
++			compatible = "nuvoton,npcm845-m4";
++			reg = <0x0 0x0 0x0 0x0>;
++			nu,copcnt = <&copcnt>;
++			nu,rst = <&rst>;
++			nu,boot = <0x10000>;
++			status = "disabled";
++		};
++
+ 		apb {
+ 			#address-cells = <1>;
+ 			#size-cells = <1>;
+diff --git a/arch/arm64/boot/dts/nuvoton/nuvoton-npcm845-evb.dts b/arch/arm64/boot/dts/nuvoton/nuvoton-npcm845-evb.dts
+index 1f80c13e1a25..b2e55086c701 100644
+--- a/arch/arm64/boot/dts/nuvoton/nuvoton-npcm845-evb.dts
++++ b/arch/arm64/boot/dts/nuvoton/nuvoton-npcm845-evb.dts
+@@ -84,6 +84,11 @@
+ 		#size-cells = <2>;
+ 		ranges;
+ 
++		cp1_tag: tagbuffer@0x36000000  {
++			reg = <0x0 0x36000000  0x0 0x100000>;
++			no-map;
++		};
++
+ 		vcd_memory: framebuffer@0x35000000 {
+ 			reg = <0x0 0x35000000 0x0 0x600000>;
+ 			no-map;
+@@ -100,6 +105,7 @@
+ 			reg = <0x0 0x35600000 0x0 0x600000>;
+ 			no-map;
+ 		};
++
+ 	};
+ 
+ 	regulators {
+@@ -652,3 +658,13 @@
+ &i2c26 {
+ 	status = "okay";
+ };
++
++&copcnt {
++  status = "okay";
++};
++
++&m4_rproc {
++	status = "okay";
++	memory-region = <&cp1_tag>;
++};
++
+diff --git a/drivers/remoteproc/Kconfig b/drivers/remoteproc/Kconfig
+index d99548fb5dde..0f6dc7652a5b 100644
+--- a/drivers/remoteproc/Kconfig
++++ b/drivers/remoteproc/Kconfig
+@@ -288,6 +288,24 @@ config TI_K3_R5_REMOTEPROC
+ 	  It's safe to say N here if you're not interested in utilizing
+ 	  a slave processor.
+ 
++config NPCM8XX_REMOTEPROC
++	tristate "NPCM8XX remoteproc support"
++	depends on ARCH_NPCM
++	depends on REMOTEPROC
++	select MAILBOX
++	help
++	  Say y here to support NPCM8XX MCU processor via the
++	  remote processor framework.
++
++	  You want to say y here in order to enable AMP
++	  use-cases to run on your platform (dedicated firmware could be
++	  offloaded to the remote MCU processor using this framework).
++
++	  This can be either built-in or a loadable module.
++
++	  It's safe to say N here if you're not interested in utilizing
++	  a slave processor.
++
+ endif # REMOTEPROC
+ 
+ endmenu
+diff --git a/drivers/remoteproc/Makefile b/drivers/remoteproc/Makefile
+index da2ace4ec86c..2645662c524e 100644
+--- a/drivers/remoteproc/Makefile
++++ b/drivers/remoteproc/Makefile
+@@ -34,3 +34,4 @@ obj-$(CONFIG_ST_SLIM_REMOTEPROC)	+= st_slim_rproc.o
+ obj-$(CONFIG_STM32_RPROC)		+= stm32_rproc.o
+ obj-$(CONFIG_TI_K3_DSP_REMOTEPROC)	+= ti_k3_dsp_remoteproc.o
+ obj-$(CONFIG_TI_K3_R5_REMOTEPROC)	+= ti_k3_r5_remoteproc.o
++obj-$(CONFIG_NPCM8XX_REMOTEPROC)	+= npcm8xx_remoteproc.o
+diff --git a/drivers/remoteproc/npcm8xx_remoteproc.c b/drivers/remoteproc/npcm8xx_remoteproc.c
+new file mode 100644
+index 000000000000..03a95d5f7398
+--- /dev/null
++++ b/drivers/remoteproc/npcm8xx_remoteproc.c
+@@ -0,0 +1,659 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (c) 2016-2018 Nuvoton Technology corporation.
++
++
++#include <linux/clk.h>
++#include <linux/dma-mapping.h>
++#include <linux/err.h>
++#include <linux/interrupt.h>
++#include <linux/kernel.h>
++#include <linux/mailbox_client.h>
++#include <linux/mfd/syscon.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/of_device.h>
++#include <linux/of_reserved_mem.h>
++#include <linux/platform_device.h>
++#include <linux/regmap.h>
++#include <linux/remoteproc.h>
++#include <linux/reset.h>
++#include <linux/firmware.h>
++#include <linux/elf.h>
++
++#include "remoteproc_internal.h"
++#include "remoteproc_elf_helpers.h"
++
++#define ST_RPROC_VQ0		0
++#define ST_RPROC_VQ1		1
++#define ST_RPROC_MAX_VRING	2
++
++#define MBOX_RX			0
++#define MBOX_TX			1
++#define MBOX_MAX		2
++
++#define CPBPNTR1    0x10
++#define IPSRST2     0x24
++#define CP1_BIT     BIT(31)
++#define CP1_REL     0
++
++struct npcm8xx_rproc_config {
++	bool			sw_reset;
++	bool			pwr_reset;
++	unsigned long		bootaddr_mask;
++};
++
++struct npcm8xx_rproc {
++	struct npcm8xx_rproc_config	*config;
++	struct reset_control	*sw_reset;
++	struct reset_control	*pwr_reset;
++	struct clk		*clk;
++	u32			clk_rate;
++	struct regmap		*boot_base;
++	u32			boot_offset;
++	struct mbox_chan	*mbox_chan[ST_RPROC_MAX_VRING * MBOX_MAX];
++	struct mbox_client mbox_client_vq0;
++	struct mbox_client mbox_client_vq1;
++};
++
++uint32_t CP1StartTag_l = 0x50435008;
++uint32_t CP1StartTag_h = 0x544F4F42;
++uint32_t CP1SourceSize = 0x20000; //TBD, not greater than CP1 ROM code stack address
++uint32_t CP1_HEADER_OFS = 0x10;
++
++#if 0//todo
++static void st_rproc_mbox_callback(struct device *dev, u32 msg)
++{
++	struct rproc *rproc = dev_get_drvdata(dev);
++
++	if (rproc_vq_interrupt(rproc, msg) == IRQ_NONE)
++		dev_dbg(dev, "no message was found in vqid %d\n", msg);
++}
++
++static
++void st_rproc_mbox_callback_vq0(struct mbox_client *mbox_client, void *data)
++{
++	st_rproc_mbox_callback(mbox_client->dev, 0);
++}
++
++static
++void st_rproc_mbox_callback_vq1(struct mbox_client *mbox_client, void *data)
++{
++	st_rproc_mbox_callback(mbox_client->dev, 1);
++}
++
++static void npcm_rproc_kick(struct rproc *rproc, int vqid)
++{
++	struct npcm8xx_rproc *ddata = rproc->priv;
++	struct device *dev = rproc->dev.parent;
++	int ret;
++
++	/* send the index of the triggered virtqueue in the mailbox payload */
++	if (WARN_ON(vqid >= ST_RPROC_MAX_VRING))
++		return;
++
++	ret = mbox_send_message(ddata->mbox_chan[vqid * MBOX_MAX + MBOX_TX],
++				(void *)&vqid);
++	if (ret < 0)
++		dev_err(dev, "failed to send message via mbox: %d\n", ret);
++}
++#endif
++static int npcm_rproc_mem_alloc(struct rproc *rproc,
++			      struct rproc_mem_entry *mem)
++{
++	struct device *dev = rproc->dev.parent;
++	void *va;
++	//printk("%s\r\n", __func__);
++
++	va = ioremap_wc(mem->dma, mem->len);
++	if (!va) {
++		dev_err(dev, "Unable to map memory region: %pa+%zx\n",
++			&mem->dma, mem->len);
++		return -ENOMEM;
++	}
++
++	/* Update memory entry va */
++	mem->va = va;
++  memset(mem->va, 0, mem->len);
++
++	return 0;
++}
++
++static int npcm_rproc_mem_release(struct rproc *rproc,
++				struct rproc_mem_entry *mem)
++{
++	iounmap(mem->va);
++
++	return 0;
++}
++
++static int npcm_rproc_parse_fw(struct rproc *rproc, const struct firmware *fw)
++{
++	struct device *dev = rproc->dev.parent;
++	struct device_node *np = dev->of_node;
++	struct rproc_mem_entry *mem;
++	struct reserved_mem *rmem;
++	struct of_phandle_iterator it;
++	int index = 0;
++	//printk("%s\r\n", __func__);
++
++	of_phandle_iterator_init(&it, np, "memory-region", NULL, 0);
++	while (of_phandle_iterator_next(&it) == 0) {
++		rmem = of_reserved_mem_lookup(it.node);
++		if (!rmem) {
++			dev_err(dev, "unable to acquire memory-region\n");
++			return -EINVAL;
++		}
++
++		/*  No need to map vdev buffer */
++#if 0 //todo
++		if (strcmp(it.node->name, "vdev0buffer")) {
++#endif
++			/* Register memory region */
++			mem = rproc_mem_entry_init(dev, NULL,
++						   (dma_addr_t)rmem->base,
++						   rmem->size, rmem->base,
++						   npcm_rproc_mem_alloc,
++						   npcm_rproc_mem_release,
++						   it.node->name);
++#if 0 //todo
++		} else {
++			/* Register reserved memory for vdev buffer allocation */
++			mem = rproc_of_resm_mem_entry_init(dev, index,
++							   rmem->size,
++							   rmem->base,
++							   it.node->name);
++		}
++#endif
++
++		if (!mem)
++			return -ENOMEM;
++
++		rproc_add_carveout(rproc, mem);
++    //printk("rproc add carveout :%s\r\n", it.node->name);
++		index++;
++	}
++//todo
++	//return rproc_elf_load_rsc_table(rproc, fw);
++  return 0;
++}
++
++static void *npcm_rproc_da_to_va(struct rproc *rproc, u64 da, size_t len)
++{
++	struct rproc_mem_entry *carveout;
++	void *ptr = NULL;
++	struct device *dev = rproc->dev.parent;
++	struct device_node *np = dev->of_node;
++  int err = 0;
++  uint32_t bootaddr = 0;
++
++	//printk("%s\r\n", __func__);
++
++	err = of_property_read_u32(np, "nu,boot", &bootaddr);
++	if (err) {
++		dev_err(dev, "failed to get boot addr\n");
++		return NULL;
++	}
++
++	list_for_each_entry(carveout, &rproc->carveouts, node) {
++   // printk("npcm8xx rproc len:%zu\r\n", len);
++   // printk("rproc da:0x%llx\r\n", da);
++   // printk("rproc carveout da:0x%x\r\n", carveout->da);
++   // printk("rproc carveout va:0x%x\r\n", carveout->va);
++   // printk("rproc carveout len:0x%lx\r\n", carveout->len);
++		int offset = da - bootaddr;
++   // printk("npcm8xx rproc offset:%d\r\n", offset);
++
++		/*  Verify that carveout is allocated */
++		if (!carveout->va)
++    {
++      //printk("rproc no carveout\r\n");
++			continue;
++    }
++
++		/* try next carveout if da is too small */
++		if (offset < 0)
++    {
++      //printk("rproc offset too small\r\n");
++			continue;
++    }
++
++		/* try next carveout if da is too large */
++		if (offset + len > carveout->len)
++    {
++      //printk("rproc offset too large\r\n");
++			continue;
++    }
++
++    // There is a 16-byte header just before the binary executive.
++    // CP1_HEADER_OFS presents the header's size.
++    // It means that each segment to be loaded to the cp1_tag 
++    // memory region needs an extra 16-byte offset to make 
++    // space for the header to exist.
++		ptr = carveout->va + offset + CP1_HEADER_OFS;
++
++		break;
++	}
++
++	return ptr;
++}
++
++static int npcm_rproc_elf_load_segments(struct rproc *rproc, const struct firmware *fw)
++{
++	struct device *dev = &rproc->dev;
++	const void *ehdr, *phdr;
++	int i, ret = 0;
++	u16 phnum;
++	const u8 *elf_data = fw->data;
++	u8 class = fw_elf_get_class(fw);
++	u32 elf_phdr_get_size = elf_size_of_phdr(class);
++
++	ehdr = elf_data;
++	phnum = elf_hdr_get_e_phnum(class, ehdr);
++	phdr = elf_data + elf_hdr_get_e_phoff(class, ehdr);
++	//printk("%s\r\n", __func__);
++
++	/* go through the available ELF segments */
++	for (i = 0; i < phnum; i++, phdr += elf_phdr_get_size) {
++		u64 da = elf_phdr_get_p_paddr(class, phdr);
++		u64 memsz = elf_phdr_get_p_memsz(class, phdr);
++		u64 filesz = elf_phdr_get_p_filesz(class, phdr);
++		u64 offset = elf_phdr_get_p_offset(class, phdr);
++		u32 type = elf_phdr_get_p_type(class, phdr);
++		void *ptr;
++
++		if (type != PT_LOAD)
++			continue;
++
++		dev_dbg(dev, "phdr: type %d da 0x%llx memsz 0x%llx filesz 0x%llx\n",
++			type, da, memsz, filesz);
++
++		if (filesz > memsz) {
++			dev_err(dev, "bad phdr filesz 0x%llx memsz 0x%llx\n",
++				filesz, memsz);
++			ret = -EINVAL;
++			break;
++		}
++
++		if (offset + filesz > fw->size) {
++			dev_err(dev, "truncated fw: need 0x%llx avail 0x%zx\n",
++				offset + filesz, fw->size);
++			ret = -EINVAL;
++			break;
++		}
++
++		if (!rproc_u64_fit_in_size_t(memsz)) {
++			dev_err(dev, "size (%llx) does not fit in size_t type\n",
++				memsz);
++			ret = -EOVERFLOW;
++			break;
++		}
++
++		/* grab the kernel address for this device address */
++		ptr = rproc_da_to_va(rproc, da, memsz);
++		if (!ptr) {
++			dev_err(dev, "bad phdr da 0x%llx mem 0x%llx\n", da,
++				memsz);
++			ret = -EINVAL;
++			break;
++		}
++
++		/* put the segment where the remote processor expects it */
++		if (filesz)
++			memcpy(ptr, elf_data + offset, filesz);
++	}
++
++	return ret;
++}
++
++static int npcm_rproc_start(struct rproc *rproc)
++{
++	//struct npcm8xx_rproc *ddata = rproc->priv;
++	struct device *dev = rproc->dev.parent;
++	struct device_node *np = dev->of_node;
++	struct reserved_mem *rmem;
++	struct of_phandle_iterator it;
++  struct regmap *cop, *rst;
++	struct rproc_mem_entry *carveout;
++	//int err;
++  uint32_t cp1_source_addr = 0;
++
++	//printk("%s\r\n", __func__);
++
++	of_phandle_iterator_init(&it, np, "memory-region", NULL, 0);
++	while (of_phandle_iterator_next(&it) == 0) {
++		rmem = of_reserved_mem_lookup(it.node);
++		if (!rmem) {
++			dev_err(dev, "unable to acquire memory-region\n");
++			return -EINVAL;
++		}
++  }
++
++	cop = syscon_regmap_lookup_by_phandle(np, "nu,copcnt");
++	if (IS_ERR(cop)) {
++		dev_err(dev, "Boot base not found\n");
++		return PTR_ERR(cop);
++	}
++
++	regmap_write(cop, CPBPNTR1, rmem->base);
++
++	list_for_each_entry(carveout, &rproc->carveouts, node) {
++		/*  Verify that carveout is allocated */
++		if (carveout->va)
++    {
++			break;
++    }
++	}
++
++  cp1_source_addr = rmem->base + CP1_HEADER_OFS;
++
++  memcpy(carveout->va, &CP1StartTag_l, sizeof(uint32_t));
++  memcpy(carveout->va+sizeof(uint32_t), &CP1StartTag_h, sizeof(uint32_t));
++  memcpy(carveout->va+2*sizeof(uint32_t), &CP1SourceSize, sizeof(uint32_t));
++  memcpy(carveout->va+3*sizeof(uint32_t), &cp1_source_addr, sizeof(uint32_t));
++
++
++	rst = syscon_regmap_lookup_by_phandle(np, "nu,rst");
++	if (IS_ERR(rst)) {
++		dev_err(dev, "rst not found\n");
++		return PTR_ERR(rst);
++	}
++
++	regmap_update_bits(rst, IPSRST2, CP1_BIT, CP1_REL);
++
++	return 0;
++}
++
++static int npcm_rproc_stop(struct rproc *rproc)
++{
++	struct npcm8xx_rproc *ddata = rproc->priv;
++	int sw_err = 0, pwr_err = 0;
++
++	if (ddata->config->sw_reset) {
++		sw_err = reset_control_assert(ddata->sw_reset);
++		if (sw_err)
++			dev_err(&rproc->dev, "Failed to assert S/W Reset\n");
++	}
++
++	if (ddata->config->pwr_reset) {
++		pwr_err = reset_control_assert(ddata->pwr_reset);
++		if (pwr_err)
++			dev_err(&rproc->dev, "Failed to assert Power Reset\n");
++	}
++
++	clk_disable(ddata->clk);
++
++	return sw_err ?: pwr_err;
++}
++
++static const struct rproc_ops npcm8xx_rproc_ops = {
++	//.kick			= npcm_rproc_kick,
++	.start			= npcm_rproc_start,
++	.stop			= npcm_rproc_stop,
++	.parse_fw		= npcm_rproc_parse_fw,
++	.load			= npcm_rproc_elf_load_segments,
++  .da_to_va = npcm_rproc_da_to_va,
++  //todo
++	//.find_loaded_rsc_table	= rproc_elf_find_loaded_rsc_table,
++	//.sanity_check		= rproc_elf_sanity_check,
++	//.get_boot_addr		= rproc_elf_get_boot_addr,
++};
++
++/*
++ * Fetch state of the processor: 0 is off, 1 is on.
++ */
++#if 0//todo
++static int st_rproc_state(struct platform_device *pdev)
++{
++	struct rproc *rproc = platform_get_drvdata(pdev);
++	struct npcm8xx_rproc *ddata = rproc->priv;
++	int reset_sw = 0, reset_pwr = 0;
++
++	if (ddata->config->sw_reset)
++		reset_sw = reset_control_status(ddata->sw_reset);
++
++	if (ddata->config->pwr_reset)
++		reset_pwr = reset_control_status(ddata->pwr_reset);
++
++	if (reset_sw < 0 || reset_pwr < 0)
++		return -EINVAL;
++
++	return !reset_sw && !reset_pwr;
++}
++#endif
++static const struct npcm8xx_rproc_config npcm845_rproc_cfg = {
++	.sw_reset = true,
++	.pwr_reset = true,
++	.bootaddr_mask = GENMASK(28, 1),
++};
++
++static const struct of_device_id npcm8xx_rproc_match[] = {
++	{ .compatible = "nuvoton,npcm845-m4", .data = &npcm845_rproc_cfg },
++	{},
++};
++MODULE_DEVICE_TABLE(of, npcm8xx_rproc_match);
++
++static int npcm_rproc_parse_dt(struct platform_device *pdev)
++{
++	//struct device *dev = &pdev->dev;
++	//struct rproc *rproc = platform_get_drvdata(pdev);
++	//struct npcm8xx_rproc *ddata = rproc->priv;
++	//struct device_node *node;
++	//struct resource resm;
++	int err = 0;
++
++
++#if 0
++	static struct regmap *gcr_regmap;
++
++	ddata->boot_base = syscon_regmap_lookup_by_phandle(np, "nu,copcnt");
++	if (IS_ERR(ddata->boot_base)) {
++		dev_err(dev, "Boot base not found\n");
++		return PTR_ERR(ddata->boot_base);
++	}
++
++	err = of_property_read_u32_index(np, "st,syscfg", 1,
++					 &ddata->boot_offset);
++	if (err) {
++		dev_err(dev, "Boot offset not found\n");
++		return -EINVAL;
++	}
++
++	gcr_regmap = syscon_regmap_lookup_by_phandle(np, "syscon");
++	if (IS_ERR(gcr_regmap))
++		return PTR_ERR(gcr_regmap);
++#endif
++#if 0//todo
++	if (ddata->config->sw_reset) {
++		ddata->sw_reset = devm_reset_control_get_exclusive(dev,
++								   "sw_reset");
++		if (IS_ERR(ddata->sw_reset)) {
++			dev_err(dev, "Failed to get S/W Reset\n");
++			return PTR_ERR(ddata->sw_reset);
++		}
++	}
++
++	if (ddata->config->pwr_reset) {
++		ddata->pwr_reset = devm_reset_control_get_exclusive(dev,
++								    "pwr_reset");
++		if (IS_ERR(ddata->pwr_reset)) {
++			dev_err(dev, "Failed to get Power Reset\n");
++			return PTR_ERR(ddata->pwr_reset);
++		}
++	}
++
++	ddata->clk = devm_clk_get(dev, NULL);
++	if (IS_ERR(ddata->clk)) {
++		dev_err(dev, "Failed to get clock\n");
++		return PTR_ERR(ddata->clk);
++	}
++
++	err = of_property_read_u32(np, "clock-frequency", &ddata->clk_rate);
++	if (err) {
++		dev_err(dev, "failed to get clock frequency\n");
++		return err;
++	}
++
++	ddata->boot_base = syscon_regmap_lookup_by_phandle(np, "st,syscfg");
++	if (IS_ERR(ddata->boot_base)) {
++		dev_err(dev, "Boot base not found\n");
++		return PTR_ERR(ddata->boot_base);
++	}
++
++	err = of_property_read_u32_index(np, "st,syscfg", 1,
++					 &ddata->boot_offset);
++	if (err) {
++		dev_err(dev, "Boot offset not found\n");
++		return -EINVAL;
++	}
++
++	err = clk_prepare(ddata->clk);
++	if (err)
++		dev_err(dev, "failed to get clock\n");
++#endif
++	return err;
++}
++
++static int npcm_rproc_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	const struct of_device_id *match;
++	struct npcm8xx_rproc *ddata;
++	struct device_node *np = dev->of_node;
++	struct rproc *rproc;
++	//struct mbox_chan *chan;
++	//int enabled;
++	int ret;//, i;
++	
++	match = of_match_device(npcm8xx_rproc_match, dev);
++	if (!match || !match->data) {
++		dev_err(dev, "No device match found\n");
++		return -ENODEV;
++	}
++
++	rproc = rproc_alloc(dev, np->name, &npcm8xx_rproc_ops, NULL, sizeof(*ddata));
++	if (!rproc)
++		return -ENOMEM;
++
++	rproc->has_iommu = false;
++	ddata = rproc->priv;
++	ddata->config = (struct npcm8xx_rproc_config *)match->data;
++
++	platform_set_drvdata(pdev, rproc);
++#if 0//todo
++	ret = npcm_rproc_parse_dt(pdev);
++	if (ret)
++		goto free_rproc;
++
++	enabled = st_rproc_state(pdev);
++	if (enabled < 0) {
++		ret = enabled;
++		goto free_clk;
++	}
++
++	if (enabled) {
++		atomic_inc(&rproc->power);
++		rproc->state = RPROC_RUNNING;
++	} else {
++		clk_set_rate(ddata->clk, ddata->clk_rate);
++	}
++
++	if (of_get_property(np, "mbox-names", NULL)) {
++		ddata->mbox_client_vq0.dev		= dev;
++		ddata->mbox_client_vq0.tx_done		= NULL;
++		ddata->mbox_client_vq0.tx_block	= false;
++		ddata->mbox_client_vq0.knows_txdone	= false;
++		ddata->mbox_client_vq0.rx_callback	= st_rproc_mbox_callback_vq0;
++
++		ddata->mbox_client_vq1.dev		= dev;
++		ddata->mbox_client_vq1.tx_done		= NULL;
++		ddata->mbox_client_vq1.tx_block	= false;
++		ddata->mbox_client_vq1.knows_txdone	= false;
++		ddata->mbox_client_vq1.rx_callback	= st_rproc_mbox_callback_vq1;
++
++		/*
++		 * To control a co-processor without IPC mechanism.
++		 * This driver can be used without mbox and rpmsg.
++		 */
++		chan = mbox_request_channel_byname(&ddata->mbox_client_vq0, "vq0_rx");
++		if (IS_ERR(chan)) {
++			dev_err(&rproc->dev, "failed to request mbox chan 0\n");
++			ret = PTR_ERR(chan);
++			goto free_clk;
++		}
++		ddata->mbox_chan[ST_RPROC_VQ0 * MBOX_MAX + MBOX_RX] = chan;
++
++		chan = mbox_request_channel_byname(&ddata->mbox_client_vq0, "vq0_tx");
++		if (IS_ERR(chan)) {
++			dev_err(&rproc->dev, "failed to request mbox chan 0\n");
++			ret = PTR_ERR(chan);
++			goto free_mbox;
++		}
++		ddata->mbox_chan[ST_RPROC_VQ0 * MBOX_MAX + MBOX_TX] = chan;
++
++		chan = mbox_request_channel_byname(&ddata->mbox_client_vq1, "vq1_rx");
++		if (IS_ERR(chan)) {
++			dev_err(&rproc->dev, "failed to request mbox chan 1\n");
++			ret = PTR_ERR(chan);
++			goto free_mbox;
++		}
++		ddata->mbox_chan[ST_RPROC_VQ1 * MBOX_MAX + MBOX_RX] = chan;
++
++		chan = mbox_request_channel_byname(&ddata->mbox_client_vq1, "vq1_tx");
++		if (IS_ERR(chan)) {
++			dev_err(&rproc->dev, "failed to request mbox chan 1\n");
++			ret = PTR_ERR(chan);
++			goto free_mbox;
++		}
++		ddata->mbox_chan[ST_RPROC_VQ1 * MBOX_MAX + MBOX_TX] = chan;
++	}
++#endif
++	ret = rproc_add(rproc);
++	if (ret)
++		goto free_mbox;
++
++	return 0;
++
++free_mbox:
++#if 0//todo
++	for (i = 0; i < ST_RPROC_MAX_VRING * MBOX_MAX; i++)
++		mbox_free_channel(ddata->mbox_chan[i]);
++free_clk:
++	clk_unprepare(ddata->clk);
++#endif
++//todo
++//free_rproc:
++	rproc_free(rproc);
++	return ret;
++}
++
++static int npcm_rproc_remove(struct platform_device *pdev)
++{
++	struct rproc *rproc = platform_get_drvdata(pdev);
++	//struct npcm8xx_rproc *ddata = rproc->priv;
++	//int i;
++
++	rproc_del(rproc);
++#if 0//todo
++	clk_disable_unprepare(ddata->clk);
++
++	for (i = 0; i < ST_RPROC_MAX_VRING * MBOX_MAX; i++)
++		mbox_free_channel(ddata->mbox_chan[i]);
++#endif
++
++	rproc_free(rproc);
++	return 0;
++}
++
++static struct platform_driver npcm8xx_rproc_driver = {
++	.probe = npcm_rproc_probe,
++	.remove = npcm_rproc_remove,
++	.driver = {
++		.name = "npcm8xx-rproc",
++		.of_match_table = of_match_ptr(npcm8xx_rproc_match),
++	},
++};
++module_platform_driver(npcm8xx_rproc_driver);
++
++MODULE_DESCRIPTION("Nuvoton Remote Processor Control Driver");
++MODULE_LICENSE("GPL v2");
+-- 
+2.17.1
+

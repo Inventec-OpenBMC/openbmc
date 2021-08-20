@@ -4,7 +4,7 @@ HOMEPAGE = "https://github.com/Nuvoton-Israel/npcm7xx-bootblock"
 LICENSE = "GPLv2"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=b234ee4d69f5fce4486a80fdaf4a4263"
 
-FILENAME = "Poleg_bootblock_${PV}.bin"
+FILENAME = "Poleg_bootblock_basic.bin"
 
 S = "${WORKDIR}"
 

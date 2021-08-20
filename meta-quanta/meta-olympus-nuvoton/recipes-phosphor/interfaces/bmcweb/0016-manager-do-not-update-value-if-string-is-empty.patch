@@ -1,0 +1,30 @@
+From e4d513dfdf9e8406efd4a3e364fc2bbb1c524604 Mon Sep 17 00:00:00 2001
+From: Joseph Liu <kwliu@nuvoton.com>
+Date: Tue, 18 May 2021 18:41:51 +0800
+Subject: [PATCH] manager: do not update value if string is empty
+
+Signed-off-by: Joseph Liu <kwliu@nuvoton.com>
+---
+ redfish-core/lib/managers.hpp | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/redfish-core/lib/managers.hpp b/redfish-core/lib/managers.hpp
+index ea0589e86..38f636b5a 100644
+--- a/redfish-core/lib/managers.hpp
++++ b/redfish-core/lib/managers.hpp
+@@ -1971,8 +1971,10 @@ class Manager : public Node
+                                                 asyncResp->res);
+                                             continue;
+                                         }
+-                                        asyncResp->res.jsonValue[propertyName] =
+-                                            *value;
++
++                                        if (!value->empty())
++                                            asyncResp->res.jsonValue[propertyName] =
++                                                *value;
+                                     }
+                                 }
+                             },
+-- 
+2.17.1
+

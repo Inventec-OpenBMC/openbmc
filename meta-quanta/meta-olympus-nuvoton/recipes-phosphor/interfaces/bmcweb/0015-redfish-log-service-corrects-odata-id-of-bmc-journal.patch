@@ -1,0 +1,25 @@
+From c3212eda794517aefcb66f5ca842b49a59bd5882 Mon Sep 17 00:00:00 2001
+From: Joseph Liu <kwliu@nuvoton.com>
+Date: Fri, 12 Mar 2021 13:46:16 +0800
+Subject: [PATCH] redfish: log service: corrects odata id of bmc journal log
+
+---
+ redfish-core/lib/log_services.hpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/redfish-core/lib/log_services.hpp b/redfish-core/lib/log_services.hpp
+index adc1c808..1852e001 100644
+--- a/redfish-core/lib/log_services.hpp
++++ b/redfish-core/lib/log_services.hpp
+@@ -1848,7 +1848,7 @@ class BMCJournalLogEntryCollection : public Node
+         asyncResp->res.jsonValue["Description"] =
+             "Collection of BMC Journal Entries";
+         asyncResp->res.jsonValue["@odata.id"] =
+-            "/redfish/v1/Managers/bmc/LogServices/BmcLog/Entries";
++            "/redfish/v1/Managers/bmc/LogServices/Journal/Entries";
+         nlohmann::json& logEntryArray = asyncResp->res.jsonValue["Members"];
+         logEntryArray = nlohmann::json::array();
+ 
+-- 
+2.17.1
+
