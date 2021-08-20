@@ -22,6 +22,7 @@ SRC_URI_append = " file://0001-sensorhandler-fix-get-threshold-error.patch \
                    file://0018-Add-IPv6Only-mode-support-in-IPFamilySupport-command.patch \
                    file://0019-Add-IPv6-Header-Traffic-Class-support.patch \
                    file://0020-Add-encoding-byte-support-for-System-Info-Parameters.patch \
+                   file://0021-Support-IPMIv1.5-SessionManagement-ipmid.patch \
 "
 
 
@@ -31,3 +32,4 @@ do_install_append_inventec(){
   install -m 0644 -D ${S}/sensorhandler.hpp ${D}${includedir}/phosphor-ipmi-host
   install -m 0644 -D ${S}/selutility.hpp ${D}${includedir}/phosphor-ipmi-host
 }
+
