@@ -23,3 +23,6 @@ SYSTEMD_SERVICE_${PN} += "smbios-mdrv2.service \
 
 EXTRA_OECMAKE = "-DYOCTO=1"
 
+FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
+
+SRC_URI += "file://0001-support-mmap-smbios-table-from-video-shared-memory-a.patch"
