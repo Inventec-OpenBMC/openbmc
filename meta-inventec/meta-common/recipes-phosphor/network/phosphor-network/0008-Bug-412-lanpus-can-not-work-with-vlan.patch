@@ -1,0 +1,347 @@
+From f24ab18abde8515340df4348f3258247baef550d Mon Sep 17 00:00:00 2001
+From: cwsun <sun.cwsun@inventec.com>
+Date: Tue, 24 Aug 2021 12:33:38 +0800
+Subject: [PATCH] Bug 412 [Transformers][OpenBMC][IPMI] lanpus can not work
+ with vlan tag
+
+    Symptom/Reason :
+        - ipmitool can not connect to BMC box after setting up vlan in bmc box
+
+    Root Cause:
+        - the netipmid process should be restarted to re-binding the vlan interface
+
+    Solution/Change:
+        [phosphor-network]
+            - arrange a timer to restart the netipmid process to re-bind the vlan interface
+                after the vlan interface on bmcbox is created or be destroyed.
+            - The network manager will get the vlan parent interface name which creating vlan object and delete vlan object. Manger will save the interface name in manager. Then Manager will restart the netipmid by using the stored interface name.
+
+    Entry Test:
+        - in bmcbox
+            -- setup vlan
+                -- ipmitool lan set 1 vlan id 2
+            -- ensure the netipmid restart
+                -- ps | grep netipmid
+                -- the pid of netipmid will change
+
+        -- in clinet, testing by ipmitool command
+            -- ipmitool -I lanplus -C17 -H 10.6.141.170 -p 623 -U root -P 0penBmc shell
+            -- it will connect to bmcbox
+            -- ipmitool> lan print
+                Set in Progress         : Set Complete
+                Auth Type Support       :
+                Auth Type Enable        : Callback :
+                                        : User     :
+                                        : Operator :
+                                        : Admin    :
+                                        : OEM      :
+                IP Address Source       : Static Address
+                IP Address              : 192.168.2.20
+                Subnet Mask             : 255.255.255.0
+                MAC Address             : 00:03:ff:00:00:cc
+                SNMP Community String   : public
+                Default Gateway IP      : 10.0.2.2
+                Default Gateway MAC     : 00:00:00:00:00:00
+                802.1q VLAN ID          : 2
+                802.1q VLAN Priority    : 0
+                RMCP+ Cipher Suites     : 17
+
+---
+ ethernet_interface.cpp   |   8 +++
+ network_manager.cpp      | 122 +++++++++++++++++++++++++++++++++++++++
+ network_manager.hpp      |  22 +++++++
+ network_manager_main.cpp |  33 +++++++++++
+ types.hpp                |   2 +
+ 5 files changed, 187 insertions(+)
+
+diff --git a/ethernet_interface.cpp b/ethernet_interface.cpp
+index 17d6bd0..a4a43cd 100644
+--- a/ethernet_interface.cpp
++++ b/ethernet_interface.cpp
+@@ -522,6 +522,11 @@ void EthernetInterface::deleteVLANObject(const std::string& interface)
+     vlanInterfaces.erase(it);
+ 
+     manager.writeToConfigurationFile();
++
++    std::string delimiter = ".";
++    std::string parentIntf = interface.substr(0, interface.find(delimiter));
++    manager.vlanParentInterfaceNames.push_back(parentIntf);
++    manager.startNetipmidTimer();
+ }
+ 
+ std::string EthernetInterface::generateObjectPath(
+@@ -896,6 +901,9 @@ ObjectPath EthernetInterface::createVLAN(VlanId id)
+     // write the new vlan device entry to the configuration(network) file.
+     manager.writeToConfigurationFile();
+ 
++    manager.vlanParentInterfaceNames.push_back(interfaceName());
++    manager.startNetipmidTimer();
++
+     return path;
+ }
+ 
+diff --git a/network_manager.cpp b/network_manager.cpp
+index fee63e7..0ffc386 100644
+--- a/network_manager.cpp
++++ b/network_manager.cpp
+@@ -34,6 +34,8 @@ namespace network
+ extern std::unique_ptr<Timer> refreshObjectTimer;
+ extern std::unique_ptr<Timer> restartTimer;
+ extern std::unique_ptr<Timer> restartNicTimer;
++extern std::unique_ptr<Timer> restartNetipmidTimer;
++
+ using namespace phosphor::logging;
+ using namespace sdbusplus::xyz::openbmc_project::Common::Error;
+ 
+@@ -263,6 +265,126 @@ void Manager::startNicResetTimer()
+     }
+ }
+ 
++void Manager::startNetipmidTimer(void)
++{
++    using namespace std::chrono;
++    if (restartNetipmidTimer)
++    {
++        restartNetipmidTimer->restartOnce(restartNetipmidTimeout);
++    }
++}
++
++std::optional<std::string> Manager::getServiceUnit(std::string service_name)
++{
++    sd_bus* bus = NULL;
++    sd_bus_creds* creds = NULL;
++    const char* rets= NULL;
++
++    int r = sd_bus_default_system(&bus);
++    if (r < 0)
++    {
++        std::fprintf(stderr, "Get Dbus fail, errno = %d\n", r);
++        return std::nullopt;
++    }
++
++    r = sd_bus_get_name_creds(bus, service_name.c_str(),
++                              SD_BUS_CREDS_AUGMENT | _SD_BUS_CREDS_ALL, &creds);
++    if (r < 0)
++    {
++        sd_bus_unref(bus);
++        std::fprintf(stderr, "Get creds fail, errno = %d\n", r);
++        return std::nullopt;
++    }
++
++    r = sd_bus_creds_get_unit(creds, &rets);
++    if (r < 0)
++    {
++        sd_bus_creds_unrefp(&creds);
++        sd_bus_unref(bus);
++        std::fprintf(stderr, "Get unit name fail, errno = %d\n", r);
++        return std::nullopt;
++    }
++
++    // The s is assigned by pointer in api.
++    // The value should be taken out before free the creds and bus.
++    // https://github.com/systemd/systemd/blob/main/src/libsystemd/sd-bus/bus-creds.c
++    std::string rv;
++    
++    try{
++        rv = std::string(rets);
++    }
++    catch (std::exception& e)
++    {
++        log<level::ERR>("Get service unit failed",
++                        entry("ERR=%s", e.what()));
++    }
++
++    sd_bus_creds_unrefp(&creds);
++    sd_bus_unref(bus);
++
++    if(rv.size() == 0)
++        return std::nullopt;
++    else
++        return rv;
++}
++
++std::optional<std::vector<std::string>>
++    Manager::getServiceNameFromPath(const std::string path,
++                             const std::vector<std::string> filters)
++
++{
++    std::vector<std::string> snlist;
++    auto getObject =
++        bus.new_method_call("xyz.openbmc_project.ObjectMapper",
++                            "/xyz/openbmc_project/object_mapper",
++                            "xyz.openbmc_project.ObjectMapper", "GetObject");
++
++    getObject.append(path.c_str(), snlist);
++    std::map<std::string, std::vector<std::string>> resp;
++    try
++    {
++        auto reply = bus.call(getObject);
++        reply.read(resp);
++    }
++    catch (sdbusplus::exception::SdBusError& ex)
++    {
++        std::fprintf(stderr, "sdbus error %s err=%s\n", path.c_str(), ex.what());
++        return std::nullopt;
++    }
++
++    for (auto& [sn, _] : resp)
++    {
++        std::string lowerServiceName;
++        lowerServiceName.resize(sn.size());
++        std::transform(sn.begin(), sn.end(), lowerServiceName.begin(), ::tolower);
++
++        if(filters.size() == 0)
++        {
++            snlist.push_back(sn);
++        }else{
++            for (auto& filter : filters)
++            {
++                std::string lowerFilter;
++                lowerFilter.resize(filter.size());
++                std::transform(filter.begin(), filter.end(),
++                               lowerFilter.begin(), ::tolower);
++                if(lowerServiceName.find(lowerFilter) != std::string::npos)
++                {
++                    snlist.push_back(sn);
++                }
++            }
++        }
++    }
++    if (snlist.size() == 0)
++    {
++        std::fprintf(stderr,
++                     "No element in this path(%s)\n",
++                     path.c_str());
++        return std::nullopt;
++    }
++    return snlist;
++}
++
+ void Manager::restartSystemdUnit(const std::string& unit)
+ {
+     try
+diff --git a/network_manager.hpp b/network_manager.hpp
+index 3dcc97f..30b68a2 100644
+--- a/network_manager.hpp
++++ b/network_manager.hpp
+@@ -119,6 +119,9 @@ class Manager : public details::VLANCreateIface
+     /** @brief restart the NIC timer. */
+     void startNicResetTimer();
+ 
++    /** @brief restart the netipmid timer */
++    void startNetipmidTimer(void);
++
+     /** @brief This function gets the MAC address from the VPD and
+      *  sets it on the corresponding ethernet interface during first
+      *  Boot, once it sets the MAC from VPD, it creates a file named
+@@ -133,6 +136,21 @@ class Manager : public details::VLANCreateIface
+     void setFistBootMACOnInterface(
+         const std::pair<std::string, std::string>& ethPair);
+ 
++    /** @brief Get service unit name
++     *  @param[in] service_name 
++     *  @return the system unit name of the service_name
++     */
++    std::optional<std::string> getServiceUnit(std::string service_name);
++
++    /** @brief Get Service Name from the Object path
++     *  @param[in] path - object Path of the service
++     *  @param[in] filter - using the filters to filter specified service name
++     *  @return the filtered service name
++     */
++    std::optional<std::vector<std::string>>
++        getServiceNameFromPath(const std::string path,
++                               const std::vector<std::string> filters);
++
+     /** @brief Restart the systemd unit
+      *  @param[in] unit - systemd unit name which needs to be
+      *                    restarted.
+@@ -164,6 +182,9 @@ class Manager : public details::VLANCreateIface
+         return (interfaces.find(intf) != interfaces.end());
+     }
+ 
++    /** @breif vlan parent interface name */
++    std::vector<std::string> vlanParentInterfaceNames;
++
+   protected:
+     /** @brief Persistent sdbusplus DBus bus connection. */
+     sdbusplus::bus::bus& bus;
+@@ -186,6 +207,7 @@ class Manager : public details::VLANCreateIface
+ 
+     /** @brief Network Configuration directory. */
+     fs::path confDir;
++
+ };
+ 
+ } // namespace network
+diff --git a/network_manager_main.cpp b/network_manager_main.cpp
+index 89ba2be..6d46add 100644
+--- a/network_manager_main.cpp
++++ b/network_manager_main.cpp
+@@ -48,6 +48,7 @@ std::unique_ptr<phosphor::network::Manager> manager = nullptr;
+ std::unique_ptr<Timer> refreshObjectTimer = nullptr;
+ std::unique_ptr<Timer> restartTimer = nullptr;
+ std::unique_ptr<Timer> restartNicTimer = nullptr;
++std::unique_ptr<Timer> restartNetipmidTimer = nullptr;
+ 
+ #ifdef SYNC_MAC_FROM_INVENTORY
+ std::unique_ptr<sdbusplus::bus::match::match> EthInterfaceMatch = nullptr;
+@@ -261,6 +262,37 @@ void restartNic()
+     }
+ }
+ 
++void restartNetipmid(void)
++{
++    if(manager == nullptr)
++    {
++        log<level::ERR>("manager is null, restarting netipmid failed");
++        return;
++    }
++
++    std::string path = "/xyz/openbmc_project/ipmi/session";
++    for (auto intf : manager->vlanParentInterfaceNames)
++    {
++        std::vector<std::string> contains = {intf};
++
++        auto snlist = manager->getServiceNameFromPath(path, contains);
++        if ((!snlist) || (snlist.value().size() == 0))
++        {
++            log<level::ERR>(
++                "Unable finding service name/service unit to restart");
++            return;
++        }
++        for (auto& sn : snlist.value())
++        {
++            auto unit = manager->getServiceUnit(sn);
++            fprintf(stderr, "Restart Netipmid sn=%s unit=%s\n", sn.c_str(),
++                    unit.value().c_str());
++            manager->restartSystemdUnit(unit.value());
++        }
++    }
++    manager->vlanParentInterfaceNames.clear();
++}
++
+ void initializeTimers()
+ {
+     auto event = sdeventplus::Event::get_default();
+@@ -268,6 +300,7 @@ void initializeTimers()
+         std::make_unique<Timer>(event, std::bind(refreshObjects));
+     restartTimer = std::make_unique<Timer>(event, std::bind(restartNetwork));
+     restartNicTimer = std::make_unique<Timer>(event, std::bind(restartNic));
++    restartNetipmidTimer = std::make_unique<Timer>(event, std::bind(restartNetipmid));
+ }
+ 
+ } // namespace network
+diff --git a/types.hpp b/types.hpp
+index 431a4d8..f948587 100644
+--- a/types.hpp
++++ b/types.hpp
+@@ -36,6 +36,8 @@ constexpr auto refreshTimeout = restartTimeout + 7s;
+ 
+ constexpr auto restartNicTimeout = refreshTimeout + 2s;
+ 
++constexpr auto restartNetipmidTimeout = refreshTimeout + 4s;
++
+ namespace systemd
+ {
+ namespace config
