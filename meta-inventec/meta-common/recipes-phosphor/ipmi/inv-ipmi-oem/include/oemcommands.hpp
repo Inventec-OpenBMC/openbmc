@@ -26,6 +26,7 @@ namespace inv
 
 static constexpr NetFn netFnOem30 = netFnOemOne;
 static constexpr NetFn netFnOem3e = netFnOemEight;
+
 static constexpr NetFn netFnInventec = netFnOemSix;
 #ifdef SUPPORT_BIOS_OEM_CMD
 static constexpr NetFn netFnBios = netFnOemTwo;
@@ -49,6 +50,39 @@ static constexpr Cmd cmdExample = 0xff;
 namespace cmdsNetFnInventec
 {
     constexpr Cmd cmdGetBmcInterfaceStatus = 0x50;
+
+    static constexpr uint8_t _BIOS_USER = 0x1;
+    static constexpr uint8_t _OS_USER = 0x2;
+    static constexpr uint8_t _DELETE_FW_USER = 0x4;
+    static constexpr uint8_t _DELETE_OS_USER = 0x8;
+
+    static constexpr uint8_t MAX_PASSWORD_LENGTH = 20;
+
+    static constexpr uint8_t _HOST_INTERFACE_ENABLED = 0x01;
+    static constexpr uint8_t _KERNEL_AUTH_ENABLED = 0x02;
+    static constexpr uint8_t _FIRMWARE_AUTH_ENABLED = 0x04;
+
+    static constexpr auto NETWORK_SERVICE = "xyz.openbmc_project.Network";
+    static constexpr auto NETWORK_USB0_OBJECT = "/xyz/openbmc_project/network/usb0";
+    static constexpr auto NETWORK_ETH_INTERFACE = "xyz.openbmc_project.Network.EthernetInterface";
+
+    static constexpr auto WATCHDOG_SERVICE = "xyz.openbmc_project.Watchdog";
+    static constexpr auto WATCHDOG_HOST0_OBJECT = "/xyz/openbmc_project/watchdog/host0";
+    static constexpr auto WATCHDOG_STATE_INTERFACE = "xyz.openbmc_project.State.Watchdog";
+
+    static constexpr auto IPMI_SESSION_SERVICE = "xyz.openbmc_project.Ipmi.Channel.usb0";
+    static constexpr auto IPMI_SESSION_SESSIONINFO_INTERFACE = "xyz.openbmc_project.Ipmi.SessionInfo";
+
+    static const std::string OSUsername = "HostAutoOS";
+    static const std::string FWUsername = "HostAutoFW";
+
+    constexpr Cmd cmdOemGenerateRandomPassword = 0x5D;
+
+    static inline auto responseHostInterfaceNotReady()
+    {
+        return response(0x85);
+    }
+
 
 } // namespace cmdsNetFnInventec
 

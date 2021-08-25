@@ -10,11 +10,12 @@ SRC_URI = "file://${BPN}/CMakeLists.txt           \
            file://${BPN}/include/oemcommands.hpp  \
            file://${BPN}/LICENSE                  \
            file://${BPN}/src/oemcommands.cpp      \
+           file://${BPN}/src/oemgenpasswd.cpp      \
 "
 
 S = "${WORKDIR}/${BPN}"
 
-DEPENDS = "boost phosphor-ipmi-host phosphor-logging systemd sdbusplus libpeci"
+DEPENDS = "boost phosphor-ipmi-host phosphor-logging systemd sdbusplus libpeci "
 DEPENDS += "nlohmann-json"
 
 inherit cmake pkgconfig obmc-phosphor-ipmiprovider-symlink

@@ -30,8 +30,11 @@
 #include <variant>
 #include <vector>
 #include <peci.h>
+#include <sstream>
+#include <iomanip>
 
 using namespace std;
+using namespace ipmi::inv::cmdsNetFnInventec;
 
 static constexpr const char* chassisIntf =
     "xyz.openbmc_project.State.Chassis";
@@ -47,6 +50,7 @@ static constexpr auto REDFISH_UNIT = "bmcweb.service";
 namespace ipmi
 {
 static void registerOEMFunctions() __attribute__((constructor));
+ipmi::RspType<message::Payload> ipmiOemGenerateRandomPassword(const uint8_t paramSelector, const uint8_t bmcInst);
 
 /*
 An example of IPMI OEM command registration
@@ -277,7 +281,7 @@ static void registerOEMFunctions(void)
     phosphor::logging::log<phosphor::logging::level::INFO>(
         "Registering INV OEM commands");
 
-    // Chassis command
+    // Chassis command 0x00, 0x0B
     registerOemCmdHandler(ipmi::netFnChassis, ipmi::chassis::cmdSetPowerCycleInterval,
                             Privilege::Admin, ipmiChassisSetPowerInterval);
 
@@ -298,6 +302,11 @@ static void registerOEMFunctions(void)
 #endif
     registerOemCmdHandler(inv::netFnOem30, inv::cmdsNetFnOem30::cmdSendRawPeci,
                             Privilege::Admin, ipmiOemSendRawPeci);
+
+    //Inventec OEM command  Generated password 0x3a 0x5d
+    registerOemCmdHandler(inv::netFnInventec, inv::cmdsNetFnInventec::cmdOemGenerateRandomPassword,
+                          Privilege::Admin, ipmiOemGenerateRandomPassword);
 }
+
 
 } // namespace ipmi

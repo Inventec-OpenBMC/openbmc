@@ -43,7 +43,7 @@ link_directories (${LIBIPMID_LIBRARY_DIRS})
 
 include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library (${LIB_NAME}
-             SHARED src/oemcommands.cpp
+             SHARED src/oemcommands.cpp src/oemgenpasswd.cpp
 	         )
 
 set_target_properties (${LIB_NAME} PROPERTIES VERSION "0.1.0")
@@ -53,5 +53,8 @@ target_link_libraries (${LIB_NAME} ipmid)
 target_link_libraries (${LIB_NAME} sdbusplus)
 target_link_libraries (${LIB_NAME} phosphor_logging)
 target_link_libraries (${LIB_NAME} peci)
+target_link_libraries (${LIB_NAME} userlayer)
+
+
 
 install (TARGETS ${LIB_NAME} DESTINATION lib/ipmid-providers)
