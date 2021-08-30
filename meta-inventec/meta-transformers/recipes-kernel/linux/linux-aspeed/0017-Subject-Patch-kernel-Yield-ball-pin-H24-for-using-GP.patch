@@ -1,0 +1,31 @@
+From 000444bb0b13fda80a7e638e73b950f11daf29c4 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Tue, 29 Sep 2020 14:31:08 -0400
+Subject: [PATCH 17/34] Subject: [Patch][kernel] Yield ball pin H24 for using
+ GPIO C0
+
+- Modify pinctl group RMII-3, due to the SCM using external clock,
+  so we can yield ball pin H24 for using GPIO C0.
+---
+ drivers/pinctrl/aspeed/pinctrl-aspeed-g6.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/pinctrl/aspeed/pinctrl-aspeed-g6.c b/drivers/pinctrl/aspeed/pinctrl-aspeed-g6.c
+index 5c1a109842a7..1f0be0481bb6 100644
+--- a/drivers/pinctrl/aspeed/pinctrl-aspeed-g6.c
++++ b/drivers/pinctrl/aspeed/pinctrl-aspeed-g6.c
+@@ -237,7 +237,10 @@ PIN_DECL_2(E26, GPIOD3, RGMII3RXD3, RMII3RXER);
+ 
+ FUNC_GROUP_DECL(RGMII3, H24, J22, H22, H23, G22, F22, G23, G24, F23, F26, F25,
+ 		E26);
+-FUNC_GROUP_DECL(RMII3, H24, J22, H22, H23, G23, F23, F26, F25, E26);
++//FUNC_GROUP_DECL(RMII3, H24, J22, H22, H23, G23, F23, F26, F25, E26);
++//scm's rmii3 uses external clock, so we can use gpioc0 as gpio function pin
++FUNC_GROUP_DECL(RMII3, J22, H22, H23, G23, F23, F26, F25, E26);
++
+ 
+ #define F24 28
+ SIG_EXPR_LIST_DECL_SESG(F24, NCTS3, NCTS3, SIG_DESC_SET(SCU410, 28));
+-- 
+2.33.0
+

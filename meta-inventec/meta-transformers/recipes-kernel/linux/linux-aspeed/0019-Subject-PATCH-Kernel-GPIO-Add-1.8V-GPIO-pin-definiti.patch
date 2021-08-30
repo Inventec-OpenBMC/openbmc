@@ -1,0 +1,31 @@
+From 833bfaacbe704d9bd58f1bd60c1a00dff3e748f3 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Tue, 20 Oct 2020 14:32:37 -0400
+Subject: [PATCH 19/34] Subject: [PATCH] [Kernel][GPIO] Add 1.8V GPIO pin
+ definition
+
+---
+ include/dt-bindings/gpio/aspeed-gpio.h | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/include/dt-bindings/gpio/aspeed-gpio.h b/include/dt-bindings/gpio/aspeed-gpio.h
+index 56fc4889b2c4..082bfe1a31dc 100644
+--- a/include/dt-bindings/gpio/aspeed-gpio.h
++++ b/include/dt-bindings/gpio/aspeed-gpio.h
+@@ -43,6 +43,13 @@
+ #define ASPEED_GPIO_PORT_AB 27
+ #define ASPEED_GPIO_PORT_AC 28
+ 
++// 1.8V Parallel GPIO
++#define ASPEED_GPIO_PORT_18A 0
++#define ASPEED_GPIO_PORT_18B 1
++#define ASPEED_GPIO_PORT_18C 2
++#define ASPEED_GPIO_PORT_18D 3
++#define ASPEED_GPIO_PORT_18E 4
++
+ #define ASPEED_GPIO(port, offset) \
+ 	((ASPEED_GPIO_PORT_##port * 8) + offset)
+ 
+-- 
+2.33.0
+

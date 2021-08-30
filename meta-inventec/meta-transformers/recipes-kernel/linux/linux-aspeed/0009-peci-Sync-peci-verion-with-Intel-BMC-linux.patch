@@ -1,0 +1,3759 @@
+From 2169ca412a087ed0e37e82286c5a9af2c5b7cfd1 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Tue, 29 Sep 2020 14:39:06 -0400
+Subject: [PATCH 09/34] peci - Sync peci verion with Intel-BMC/linux
+
+    - Branch: dev-5.10-intel
+      Commit: fd3a181afd8bb82a82cc32c781646719775bd812
+
+peci - intel-peci-client support Eaglestream
+    - Support Intel icelake CPU PECI to get DIMM temperature.
+    - And hard code temperature high 85C and critical 90C.
+    - Enable peci interface , get cpu/dimmp temp by adding eagle stream(Sapphire Rapids) support
+---
+ drivers/hwmon/Kconfig                 |  28 +
+ drivers/hwmon/Makefile                |   2 +
+ drivers/hwmon/peci-cpupower.c         | 717 ++++++++++++++++++++++++++
+ drivers/hwmon/peci-cputemp.c          | 154 +++---
+ drivers/hwmon/peci-dimmpower.c        | 640 +++++++++++++++++++++++
+ drivers/hwmon/peci-dimmtemp.c         | 147 +++++-
+ drivers/hwmon/peci-hwmon.h            | 609 +++++++++++++++++++++-
+ drivers/mfd/intel-peci-client.c       |  62 ++-
+ drivers/peci/Makefile                 |   2 +-
+ drivers/peci/busses/Kconfig           |  13 +
+ drivers/peci/busses/Makefile          |   1 +
+ drivers/peci/busses/peci-aspeed.c     |  79 +--
+ drivers/peci/busses/peci-mctp.c       | 410 +++++++++++++++
+ drivers/peci/busses/peci-npcm.c       |   2 +-
+ drivers/peci/peci-core.c              |  92 ++--
+ drivers/peci/peci-dev.c               |  14 +-
+ include/linux/mfd/intel-peci-client.h |  67 ++-
+ include/linux/peci.h                  |   3 +-
+ include/uapi/linux/peci-ioctl.h       |  14 +-
+ 19 files changed, 2843 insertions(+), 213 deletions(-)
+ create mode 100644 drivers/hwmon/peci-cpupower.c
+ create mode 100644 drivers/hwmon/peci-dimmpower.c
+ create mode 100644 drivers/peci/busses/peci-mctp.c
+
+diff --git a/drivers/hwmon/Kconfig b/drivers/hwmon/Kconfig
+index 91a75725f8f3..66d360c84400 100644
+--- a/drivers/hwmon/Kconfig
++++ b/drivers/hwmon/Kconfig
+@@ -1493,6 +1493,34 @@ config SENSORS_PECI_DIMMTEMP
+ 	  This driver can also be built as a module. If so, the module
+ 	  will be called peci-dimmtemp.
+ 
++config SENSORS_PECI_CPUPOWER
++	tristate "PECI CPU power monitoring support"
++	depends on PECI
++	select MFD_INTEL_PECI_CLIENT
++	help
++	  If you say yes here you get support for the generic Intel PECI
++	  cpupower driver which provides average engergy readings of the CPU package,
++	  current package power limit, maximal (TDP) and minimal power setting using
++	  the PECI Client Command Suite via the processor PECI client.
++	  Check Documentation/hwmon/peci-cpupower for details.
++
++	  This driver can also be built as a module. If so, the module
++	  will be called peci-cpupower.
++
++config SENSORS_PECI_DIMMPOWER
++	tristate "PECI DIMM power monitoring support"
++	depends on PECI
++	select MFD_INTEL_PECI_CLIENT
++	help
++	  If you say yes here you get support for the generic Intel PECI
++	  dimmpower driver which provides average engergy readings of the memory
++	  package, current power limit, maximal and minimal power setting using
++	  the PECI Client Command Suite via the processor PECI client.
++	  Check Documentation/hwmon/peci-dimmpower for details.
++
++	  This driver can also be built as a module. If so, the module
++	  will be called peci-dimmpower.
++
+ source "drivers/hwmon/pmbus/Kconfig"
+ 
+ config SENSORS_PWM_FAN
+diff --git a/drivers/hwmon/Makefile b/drivers/hwmon/Makefile
+index 73b0ac494c93..c20c7c558af1 100644
+--- a/drivers/hwmon/Makefile
++++ b/drivers/hwmon/Makefile
+@@ -156,6 +156,8 @@ obj-$(CONFIG_SENSORS_PC87427)	+= pc87427.o
+ obj-$(CONFIG_SENSORS_PCF8591)	+= pcf8591.o
+ obj-$(CONFIG_SENSORS_PECI_CPUTEMP)	+= peci-cputemp.o
+ obj-$(CONFIG_SENSORS_PECI_DIMMTEMP)	+= peci-dimmtemp.o
++obj-$(CONFIG_SENSORS_PECI_CPUPOWER)	+= peci-cpupower.o
++obj-$(CONFIG_SENSORS_PECI_DIMMPOWER)	+= peci-dimmpower.o
+ obj-$(CONFIG_SENSORS_POWR1220)  += powr1220.o
+ obj-$(CONFIG_SENSORS_PWM_FAN)	+= pwm-fan.o
+ obj-$(CONFIG_SENSORS_RASPBERRYPI_HWMON)	+= raspberrypi-hwmon.o
+diff --git a/drivers/hwmon/peci-cpupower.c b/drivers/hwmon/peci-cpupower.c
+new file mode 100644
+index 000000000000..972d548d454c
+--- /dev/null
++++ b/drivers/hwmon/peci-cpupower.c
+@@ -0,0 +1,717 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (c) 2018-2020 Intel Corporation
++
++#include <linux/hwmon.h>
++#include <linux/jiffies.h>
++#include <linux/mfd/intel-peci-client.h>
++#include <linux/module.h>
++#include <linux/of_device.h>
++#include <linux/platform_device.h>
++#include "peci-hwmon.h"
++
++enum PECI_CPUPOWER_POWER_SENSOR_TYPES {
++	PECI_CPUPOWER_SENSOR_TYPE_POWER = 0,
++	PECI_CPUPOWER_SENSOR_TYPE_ENERGY,
++	PECI_CPUPOWER_SENSOR_TYPES_COUNT,
++};
++
++#define PECI_CPUPOWER_POWER_CHANNEL_COUNT	1 /* Supported channels number */
++#define PECI_CPUPOWER_ENERGY_CHANNEL_COUNT	1 /* Supported channels number */
++
++#define PECI_CPUPOWER_POWER_SENSOR_COUNT	4 /* Supported sensors number */
++#define PECI_CPUPOWER_ENERGY_SENSOR_COUNT	1 /* Supported sensors number */
++
++struct peci_cpupower {
++	struct device *dev;
++	struct peci_client_manager *mgr;
++	char name[PECI_NAME_SIZE];
++	u32 power_config[PECI_CPUPOWER_POWER_CHANNEL_COUNT + 1];
++	u32 energy_config[PECI_CPUPOWER_ENERGY_CHANNEL_COUNT + 1];
++
++	struct hwmon_channel_info power_info;
++	struct hwmon_channel_info energy_info;
++	const struct hwmon_channel_info *info[PECI_CPUPOWER_SENSOR_TYPES_COUNT + 1];
++	struct hwmon_chip_info chip;
++
++	struct peci_sensor_data
++		power_sensor_data_list[PECI_CPUPOWER_POWER_CHANNEL_COUNT]
++				      [PECI_CPUPOWER_POWER_SENSOR_COUNT];
++	struct peci_sensor_data
++		energy_sensor_data_list[PECI_CPUPOWER_ENERGY_CHANNEL_COUNT]
++				       [PECI_CPUPOWER_ENERGY_SENSOR_COUNT];
++
++	/* Below structs are not exposed to any sensor directly */
++	struct peci_sensor_data energy_cache; /* used to limit PECI communication */
++	struct peci_sensor_data power_sensor_prev_energy;
++	struct peci_sensor_data energy_sensor_prev_energy;
++
++	union peci_pkg_power_sku_unit units;
++	bool units_valid;
++
++	u32 ppl1_time_window;
++	u32 ppl2_time_window;
++	bool ppl_time_windows_valid;
++};
++
++static const char *peci_cpupower_labels[PECI_CPUPOWER_SENSOR_TYPES_COUNT] = {
++	"cpu power",
++	"cpu energy",
++};
++
++/**
++ * peci_cpupower_read_cpu_pkg_pwr_info_low - read PCS Platform Power SKU low.
++ * @peci_mgr: PECI client manager handle
++ * @reg: Pointer to the variable read value is going to be put
++ *
++ * Return: 0 if succeeded, other values in case an error.
++ */
++static inline int
++peci_cpupower_read_cpu_pkg_pwr_info_low(struct peci_client_manager *peci_mgr,
++					union peci_package_power_info_low *reg)
++{
++	return peci_pcs_read(peci_mgr, PECI_MBX_INDEX_TDP,
++			     PECI_PKG_ID_CPU_PACKAGE, &reg->value);
++}
++
++/**
++ * peci_cpupower_read_cpu_pkg_pwr_lim_low - read PCS Package Power Limit Low
++ * @peci_mgr: PECI client manager handle
++ * @reg: Pointer to the variable read value is going to be put
++ *
++ * Return: 0 if succeeded, other values in case an error.
++ */
++static inline int
++peci_cpupower_read_cpu_pkg_pwr_lim_low(struct peci_client_manager *peci_mgr,
++				       union peci_package_power_limit_low *reg)
++{
++	return peci_pcs_read(peci_mgr, PECI_MBX_INDEX_PKG_POWER_LIMIT1,
++			     PECI_PCS_PARAM_ZERO, &reg->value);
++}
++
++static int
++peci_cpupower_get_energy_counter(struct peci_cpupower *priv,
++				 struct peci_sensor_data *sensor_data,
++				 ulong update_interval)
++{
++	int ret;
++
++	if (!peci_sensor_need_update_with_time(sensor_data,
++					       update_interval)) {
++		dev_dbg(priv->dev, "skip reading package energy over peci\n");
++		return 0;
++	}
++
++	ret = peci_pcs_read(priv->mgr, PECI_MBX_INDEX_ENERGY_COUNTER,
++			    PECI_PKG_ID_CPU_PACKAGE, &sensor_data->uvalue);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to read package energy\n");
++		return ret;
++	}
++
++	peci_sensor_mark_updated(sensor_data);
++
++	dev_dbg(priv->dev,
++		"energy counter updated %duJ, jif %lu, HZ is %d jiffies\n",
++		sensor_data->uvalue, sensor_data->last_updated, HZ);
++
++	return ret;
++}
++
++static int
++peci_cpupower_get_average_power(void *ctx,
++				struct peci_sensor_conf *sensor_conf,
++				struct peci_sensor_data *sensor_data)
++{
++	struct peci_cpupower *priv = (struct peci_cpupower *)ctx;
++	int ret;
++
++	if (!peci_sensor_need_update_with_time(sensor_data,
++					       sensor_conf->update_interval)) {
++		dev_dbg(priv->dev,
++			"skip generating new power value %dmW jif %lu\n",
++			sensor_data->value, jiffies);
++		return 0;
++	}
++
++	ret = peci_cpupower_get_energy_counter(priv, &priv->energy_cache,
++					       sensor_conf->update_interval);
++	if (ret) {
++		dev_dbg(priv->dev, "cannot update energy counter\n");
++		return ret;
++	}
++
++	ret = peci_pcs_get_units(priv->mgr, &priv->units, &priv->units_valid);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to read units\n");
++		return ret;
++	}
++
++	ret = peci_pcs_calc_pwr_from_eng(priv->dev,
++					 &priv->power_sensor_prev_energy,
++					 &priv->energy_cache,
++					 priv->units.bits.eng_unit,
++					 &sensor_data->value);
++	if (ret) {
++		dev_dbg(priv->dev, "power calculation failed\n");
++		return ret;
++	}
++
++	peci_sensor_mark_updated_with_time(sensor_data,
++					   priv->energy_cache.last_updated);
++
++	dev_dbg(priv->dev, "average power %dmW, jif %lu, HZ is %d jiffies\n",
++		sensor_data->value, sensor_data->last_updated, HZ);
++
++	return ret;
++}
++
++static int
++peci_cpupower_get_power_limit(void *ctx, struct peci_sensor_conf *sensor_conf,
++			      struct peci_sensor_data *sensor_data)
++{
++	struct peci_cpupower *priv = (struct peci_cpupower *)ctx;
++	union peci_package_power_limit_low power_limit;
++	int ret;
++
++	if (!peci_sensor_need_update_with_time(sensor_data,
++					       sensor_conf->update_interval)) {
++		dev_dbg(priv->dev, "skip reading peci, power limit %dmW\n",
++			sensor_data->value);
++		return 0;
++	}
++
++	ret = peci_pcs_get_units(priv->mgr, &priv->units, &priv->units_valid);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to read units\n");
++		return ret;
++	}
++
++	ret = peci_cpupower_read_cpu_pkg_pwr_lim_low(priv->mgr, &power_limit);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to read power limit\n");
++		return ret;
++	}
++
++	peci_sensor_mark_updated(sensor_data);
++	sensor_data->value = peci_pcs_xn_to_munits(power_limit.bits.pwr_lim_1,
++						   priv->units.bits.pwr_unit);
++
++	dev_dbg(priv->dev, "raw power limit %u, unit %u, power limit %d\n",
++		power_limit.bits.pwr_lim_1, priv->units.bits.pwr_unit,
++		sensor_data->value);
++
++	return ret;
++}
++
++static int
++peci_cpupower_set_power_limit(void *ctx, struct peci_sensor_conf *sensor_conf,
++			      struct peci_sensor_data *sensor_data,
++			      s32 val)
++{
++	struct peci_cpupower *priv = (struct peci_cpupower *)ctx;
++	union peci_package_power_limit_high power_limit_high;
++	union peci_package_power_limit_low power_limit_low;
++	int ret;
++
++	ret = peci_pcs_get_units(priv->mgr, &priv->units, &priv->units_valid);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to read units\n");
++		return ret;
++	}
++
++	ret = peci_cpupower_read_cpu_pkg_pwr_lim_low(priv->mgr,
++						     &power_limit_low);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to read package power limit 1\n");
++		return ret;
++	}
++
++	ret = peci_pcs_read(priv->mgr, PECI_MBX_INDEX_PKG_POWER_LIMIT2,
++			    PECI_PCS_PARAM_ZERO, &power_limit_high.value);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to read package power limit 2\n");
++		return ret;
++	}
++
++	/* Calculate PPL time windows if needed */
++	if (!priv->ppl_time_windows_valid) {
++		priv->ppl1_time_window =
++			peci_pcs_calc_plxy_time_window(peci_pcs_munits_to_xn(
++				PECI_PCS_PPL1_TIME_WINDOW,
++				priv->units.bits.tim_unit));
++		priv->ppl2_time_window =
++			peci_pcs_calc_plxy_time_window(peci_pcs_munits_to_xn(
++				PECI_PCS_PPL2_TIME_WINDOW,
++				priv->units.bits.tim_unit));
++		priv->ppl_time_windows_valid = true;
++	}
++
++	/* Enable or disable power limitation */
++	if (val > 0) {
++		/* Set PPL1 */
++		power_limit_low.bits.pwr_lim_1 =
++			peci_pcs_munits_to_xn(val, priv->units.bits.pwr_unit);
++		power_limit_low.bits.pwr_lim_1_en = 1u;
++		power_limit_low.bits.pwr_clmp_lim_1 = 1u;
++		power_limit_low.bits.pwr_lim_1_time = priv->ppl1_time_window;
++
++		/* Set PPL2 */
++		power_limit_high.bits.pwr_lim_2 =
++			peci_pcs_munits_to_xn(PECI_PCS_PPL1_TO_PPL2(val),
++					      priv->units.bits.pwr_unit);
++		power_limit_high.bits.pwr_lim_2_en = 1u;
++		power_limit_high.bits.pwr_clmp_lim_2 = 1u;
++		power_limit_high.bits.pwr_lim_2_time = priv->ppl2_time_window;
++	} else {
++		power_limit_low.bits.pwr_lim_1 = 0u;
++		power_limit_low.bits.pwr_lim_1_en = 0u;
++		power_limit_low.bits.pwr_clmp_lim_1 = 0u;
++		power_limit_low.bits.pwr_lim_1_time = 0u;
++		power_limit_high.bits.pwr_lim_2 = 0u;
++		power_limit_high.bits.pwr_lim_2_en = 0u;
++		power_limit_high.bits.pwr_clmp_lim_2 = 0u;
++		power_limit_high.bits.pwr_lim_2_time = 0u;
++	}
++
++	ret = peci_pcs_write(priv->mgr, PECI_MBX_INDEX_PKG_POWER_LIMIT1,
++			     PECI_PCS_PARAM_ZERO, power_limit_low.value);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to write package power limit 1\n");
++		return ret;
++	}
++
++	ret = peci_pcs_write(priv->mgr, PECI_MBX_INDEX_PKG_POWER_LIMIT2,
++			     PECI_PCS_PARAM_ZERO, power_limit_high.value);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to write package power limit 2\n");
++		return ret;
++	}
++
++	dev_dbg(priv->dev,
++		"power limit %d, unit %u, raw package power limit 1 %u,\n",
++		val, priv->units.bits.pwr_unit, power_limit_low.bits.pwr_lim_1);
++
++	return ret;
++}
++
++static int
++peci_cpupower_read_max_power(void *ctx, struct peci_sensor_conf *sensor_conf,
++			     struct peci_sensor_data *sensor_data)
++{
++	struct peci_cpupower *priv = (struct peci_cpupower *)ctx;
++	union peci_package_power_info_low power_info;
++	int ret;
++
++	if (!peci_sensor_need_update_with_time(sensor_data,
++					       sensor_conf->update_interval)) {
++		dev_dbg(priv->dev, "skip reading peci, max power %dmW\n",
++			sensor_data->value);
++		return 0;
++	}
++
++	ret = peci_pcs_get_units(priv->mgr, &priv->units, &priv->units_valid);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to read units\n");
++		return ret;
++	}
++
++	ret = peci_cpupower_read_cpu_pkg_pwr_info_low(priv->mgr, &power_info);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to read package power info\n");
++		return ret;
++	}
++
++	peci_sensor_mark_updated(sensor_data);
++	sensor_data->value = peci_pcs_xn_to_munits(power_info.bits.pkg_tdp,
++						   priv->units.bits.pwr_unit);
++
++
++	dev_dbg(priv->dev, "raw max power %u, unit %u, max power %dmW\n",
++		power_info.bits.pkg_tdp, priv->units.bits.pwr_unit,
++		sensor_data->value);
++
++	return ret;
++}
++
++static int
++peci_cpupower_read_min_power(void *ctx, struct peci_sensor_conf *sensor_conf,
++			     struct peci_sensor_data *sensor_data)
++{
++	struct peci_cpupower *priv = (struct peci_cpupower *)ctx;
++	union peci_package_power_info_low power_info;
++	int ret;
++
++	if (!peci_sensor_need_update_with_time(sensor_data,
++					       sensor_conf->update_interval)) {
++		dev_dbg(priv->dev, "skip reading peci, min power %dmW\n",
++			sensor_data->value);
++		return 0;
++	}
++
++	ret = peci_pcs_get_units(priv->mgr, &priv->units, &priv->units_valid);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to read units\n");
++		return ret;
++	}
++
++	ret = peci_cpupower_read_cpu_pkg_pwr_info_low(priv->mgr, &power_info);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to read package power info\n");
++		return ret;
++	}
++
++	peci_sensor_mark_updated(sensor_data);
++	sensor_data->value = peci_pcs_xn_to_munits(power_info.bits.pkg_min_pwr,
++						   priv->units.bits.pwr_unit);
++
++	dev_dbg(priv->dev, "raw min power %u, unit %u, min power %dmW\n",
++		power_info.bits.pkg_min_pwr, priv->units.bits.pwr_unit,
++		sensor_data->value);
++
++	return ret;
++}
++
++static int
++peci_cpupower_read_energy(void *ctx, struct peci_sensor_conf *sensor_conf,
++			  struct peci_sensor_data *sensor_data)
++{
++	struct peci_cpupower *priv = (struct peci_cpupower *)ctx;
++	int ret;
++
++	if (!peci_sensor_need_update_with_time(sensor_data,
++					       sensor_conf->update_interval)) {
++		dev_dbg(priv->dev,
++			"skip generating new energy value %duJ jif %lu\n",
++			sensor_data->value, jiffies);
++		return 0;
++	}
++
++	ret = peci_cpupower_get_energy_counter(priv, &priv->energy_cache,
++					       sensor_conf->update_interval);
++	if (ret) {
++		dev_dbg(priv->dev, "cannot update energy counter\n");
++		return ret;
++	}
++
++	ret = peci_pcs_get_units(priv->mgr, &priv->units, &priv->units_valid);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to read units\n");
++		return ret;
++	}
++
++	ret = peci_pcs_calc_acc_eng(priv->dev,
++				    &priv->energy_sensor_prev_energy,
++				    &priv->energy_cache,
++				    priv->units.bits.eng_unit,
++				    &sensor_data->uvalue);
++
++	if (ret) {
++		dev_dbg(priv->dev, "cumulative energy calculation failed\n");
++		return ret;
++	}
++
++	peci_sensor_mark_updated_with_time(sensor_data,
++					   priv->energy_cache.last_updated);
++
++	dev_dbg(priv->dev, "energy %duJ, jif %lu, HZ is %d jiffies\n",
++		sensor_data->uvalue, sensor_data->last_updated, HZ);
++
++	return 0;
++}
++
++static struct peci_sensor_conf
++peci_cpupower_power_cfg[PECI_CPUPOWER_POWER_CHANNEL_COUNT]
++		       [PECI_CPUPOWER_POWER_SENSOR_COUNT] = {
++	/* Channel 0  - Power */
++	{
++		{
++			.attribute = hwmon_power_average,
++			.config = HWMON_P_AVERAGE,
++			.update_interval = UPDATE_INTERVAL_100MS,
++			.read = peci_cpupower_get_average_power,
++			.write = NULL,
++		},
++		{
++			.attribute = hwmon_power_cap,
++			.config = HWMON_P_CAP,
++			.update_interval = UPDATE_INTERVAL_100MS,
++			.read = peci_cpupower_get_power_limit,
++			.write = peci_cpupower_set_power_limit,
++		},
++		{
++			.attribute = hwmon_power_cap_max,
++			.config = HWMON_P_CAP_MAX,
++			.update_interval = UPDATE_INTERVAL_10S,
++			.read = peci_cpupower_read_max_power,
++			.write = NULL,
++		},
++		{
++			.attribute = hwmon_power_cap_min,
++			.config = HWMON_P_CAP_MIN,
++			.update_interval = UPDATE_INTERVAL_10S,
++			.read = peci_cpupower_read_min_power,
++			.write = NULL,
++		},
++	},
++};
++
++static struct peci_sensor_conf
++peci_cpupower_energy_cfg[PECI_CPUPOWER_ENERGY_CHANNEL_COUNT]
++		[PECI_CPUPOWER_ENERGY_SENSOR_COUNT] = {
++	/* Channel 0  - Energy */
++	{
++		{
++			.attribute = hwmon_energy_input,
++			.config = HWMON_E_INPUT,
++			.update_interval = UPDATE_INTERVAL_100MS,
++			.read = peci_cpupower_read_energy,
++			.write = NULL,
++		},
++	}
++};
++
++static bool
++peci_cpupower_is_channel_valid(enum hwmon_sensor_types type,
++			       int channel)
++{
++	if ((type == hwmon_power && channel < PECI_CPUPOWER_POWER_CHANNEL_COUNT) ||
++	    (type == hwmon_energy && channel < PECI_CPUPOWER_ENERGY_CHANNEL_COUNT))
++		return true;
++
++	return false;
++}
++
++static int
++peci_cpupower_read_string(struct device *dev, enum hwmon_sensor_types type,
++			  u32 attr, int channel, const char **str)
++{
++	if (!peci_cpupower_is_channel_valid(type, channel))
++		return -EOPNOTSUPP;
++
++	switch (attr) {
++	case hwmon_power_label:
++		*str = peci_cpupower_labels[PECI_CPUPOWER_SENSOR_TYPE_POWER];
++		break;
++	case hwmon_energy_label:
++		*str = peci_cpupower_labels[PECI_CPUPOWER_SENSOR_TYPE_ENERGY];
++		break;
++	default:
++		return -EOPNOTSUPP;
++	}
++
++	return 0;
++}
++
++static int
++peci_cpupower_read(struct device *dev, enum hwmon_sensor_types type,
++		   u32 attr, int channel, long *val)
++{
++	struct peci_cpupower *priv = dev_get_drvdata(dev);
++	struct peci_sensor_conf *sensor_conf;
++	struct peci_sensor_data *sensor_data;
++	int ret;
++
++	if (!priv || !val)
++		return -EINVAL;
++
++	if (!peci_cpupower_is_channel_valid(type, channel))
++		return -EOPNOTSUPP;
++
++	switch (type) {
++	case hwmon_power:
++		ret = peci_sensor_get_ctx(attr, peci_cpupower_power_cfg[channel],
++					  &sensor_conf,
++					  priv->power_sensor_data_list[channel],
++					  &sensor_data,
++					  ARRAY_SIZE(peci_cpupower_power_cfg[channel]));
++		break;
++	case hwmon_energy:
++		ret = peci_sensor_get_ctx(attr, peci_cpupower_energy_cfg[channel],
++					  &sensor_conf,
++					  priv->energy_sensor_data_list[channel],
++					  &sensor_data,
++					  ARRAY_SIZE(peci_cpupower_energy_cfg[channel]));
++		break;
++	default:
++		ret = -EOPNOTSUPP;
++	}
++
++	if (ret)
++		return ret;
++
++	if (sensor_conf->read) {
++		ret = sensor_conf->read(priv, sensor_conf, sensor_data);
++		if (!ret)
++			*val = (long)sensor_data->value;
++	} else {
++		ret = -EOPNOTSUPP;
++	}
++
++	return ret;
++}
++
++static int
++peci_cpupower_write(struct device *dev, enum hwmon_sensor_types type,
++		    u32 attr, int channel, long val)
++{
++	struct peci_cpupower *priv = dev_get_drvdata(dev);
++	struct peci_sensor_conf *sensor_conf;
++	struct peci_sensor_data *sensor_data;
++	int ret;
++
++	if (!priv)
++		return -EINVAL;
++
++	if (!peci_cpupower_is_channel_valid(type, channel))
++		return -EOPNOTSUPP;
++
++	switch (type) {
++	case hwmon_power:
++		ret = peci_sensor_get_ctx(attr, peci_cpupower_power_cfg[channel],
++					  &sensor_conf,
++					  priv->power_sensor_data_list[channel],
++					  &sensor_data,
++					  ARRAY_SIZE(peci_cpupower_power_cfg[channel]));
++		break;
++	case hwmon_energy:
++		ret = peci_sensor_get_ctx(attr, peci_cpupower_energy_cfg[channel],
++					  &sensor_conf,
++					  priv->energy_sensor_data_list[channel],
++					  &sensor_data,
++					  ARRAY_SIZE(peci_cpupower_energy_cfg[channel]));
++		break;
++	default:
++		ret = -EOPNOTSUPP;
++	}
++
++	if (ret)
++		return ret;
++
++	if (sensor_conf->write) {
++		ret = sensor_conf->write(priv, sensor_conf, sensor_data,
++					 (s32)val);
++	} else {
++		ret = -EOPNOTSUPP;
++	}
++
++	return ret;
++}
++
++static umode_t
++peci_cpupower_is_visible(const void *data, enum hwmon_sensor_types type,
++			 u32 attr, int channel)
++{
++	struct peci_sensor_conf *sensor_conf;
++	umode_t mode = 0;
++	int ret;
++
++	if (!peci_cpupower_is_channel_valid(type, channel))
++		return mode;
++
++	if (attr == hwmon_power_label || attr == hwmon_energy_label)
++		return 0444;
++
++	switch (type) {
++	case hwmon_power:
++		ret = peci_sensor_get_ctx(attr, peci_cpupower_power_cfg[channel],
++					  &sensor_conf, NULL, NULL,
++					  ARRAY_SIZE(peci_cpupower_power_cfg[channel]));
++		break;
++	case hwmon_energy:
++		ret = peci_sensor_get_ctx(attr, peci_cpupower_energy_cfg[channel],
++					  &sensor_conf, NULL, NULL,
++					  ARRAY_SIZE(peci_cpupower_energy_cfg[channel]));
++		break;
++	default:
++		return mode;
++	}
++
++	if (!ret) {
++		if (sensor_conf->read)
++			mode |= 0444;
++		if (sensor_conf->write)
++			mode |= 0200;
++	}
++
++	return mode;
++}
++
++static const struct hwmon_ops peci_cpupower_ops = {
++	.is_visible = peci_cpupower_is_visible,
++	.read_string = peci_cpupower_read_string,
++	.read = peci_cpupower_read,
++	.write = peci_cpupower_write,
++};
++
++static int peci_cpupower_probe(struct platform_device *pdev)
++{
++	struct peci_client_manager *mgr = dev_get_drvdata(pdev->dev.parent);
++	struct device *dev = &pdev->dev;
++	struct peci_cpupower *priv;
++	struct device *hwmon_dev;
++	u32 power_cfg_idx = 0;
++	u32 energy_cfg_idx = 0;
++	u32 cmd_mask;
++
++	cmd_mask = BIT(PECI_CMD_RD_PKG_CFG) | BIT(PECI_CMD_WR_PKG_CFG);
++	if ((mgr->client->adapter->cmd_mask & cmd_mask) != cmd_mask)
++		return -ENODEV;
++
++	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
++	if (!priv)
++		return -ENOMEM;
++
++	dev_set_drvdata(dev, priv);
++	priv->mgr = mgr;
++	priv->dev = dev;
++
++	snprintf(priv->name, PECI_NAME_SIZE, "peci_cpupower.cpu%d",
++		 mgr->client->addr - PECI_BASE_ADDR);
++
++	priv->power_config[power_cfg_idx] = HWMON_P_LABEL |
++		peci_sensor_get_config(peci_cpupower_power_cfg[power_cfg_idx],
++				       ARRAY_SIZE(peci_cpupower_power_cfg[power_cfg_idx]));
++
++	priv->energy_config[energy_cfg_idx] = HWMON_E_LABEL |
++		peci_sensor_get_config(peci_cpupower_energy_cfg[energy_cfg_idx],
++				       ARRAY_SIZE(peci_cpupower_energy_cfg[energy_cfg_idx]));
++
++	priv->info[PECI_CPUPOWER_SENSOR_TYPE_POWER] = &priv->power_info;
++	priv->power_info.type = hwmon_power;
++	priv->power_info.config = priv->power_config;
++
++	priv->info[PECI_CPUPOWER_SENSOR_TYPE_ENERGY] = &priv->energy_info;
++	priv->energy_info.type = hwmon_energy;
++	priv->energy_info.config = priv->energy_config;
++
++	priv->chip.ops = &peci_cpupower_ops;
++	priv->chip.info = priv->info;
++
++	hwmon_dev = devm_hwmon_device_register_with_info(priv->dev, priv->name,
++							 priv, &priv->chip,
++							 NULL);
++
++	if (IS_ERR(hwmon_dev))
++		return PTR_ERR(hwmon_dev);
++
++	dev_dbg(dev, "%s: sensor '%s'\n", dev_name(hwmon_dev), priv->name);
++
++	return 0;
++}
++
++static const struct platform_device_id peci_cpupower_ids[] = {
++	{ .name = "peci-cpupower", .driver_data = 0 },
++	{ }
++};
++MODULE_DEVICE_TABLE(platform, peci_cpupower_ids);
++
++static struct platform_driver peci_cpupower_driver = {
++	.probe    = peci_cpupower_probe,
++	.id_table = peci_cpupower_ids,
++	.driver   = { .name = KBUILD_MODNAME, },
++};
++module_platform_driver(peci_cpupower_driver);
++
++MODULE_AUTHOR("Zhikui Ren <zhikui.ren@intel.com>");
++MODULE_DESCRIPTION("PECI cpupower driver");
++MODULE_LICENSE("GPL v2");
+\ No newline at end of file
+diff --git a/drivers/hwmon/peci-cputemp.c b/drivers/hwmon/peci-cputemp.c
+index 78e442f433a7..6b33dc98e447 100644
+--- a/drivers/hwmon/peci-cputemp.c
++++ b/drivers/hwmon/peci-cputemp.c
+@@ -10,8 +10,8 @@
+ #include "peci-hwmon.h"
+ 
+ #define DEFAULT_CHANNEL_NUMS	5
+-#define CORETEMP_CHANNEL_NUMS	CORE_NUMS_MAX
+-#define CPUTEMP_CHANNEL_NUMS	(DEFAULT_CHANNEL_NUMS + CORETEMP_CHANNEL_NUMS)
++#define MODTEMP_CHANNEL_NUMS	CORE_MASK_BITS_MAX
++#define CPUTEMP_CHANNEL_NUMS	(DEFAULT_CHANNEL_NUMS + MODTEMP_CHANNEL_NUMS)
+ 
+ struct temp_group {
+ 	struct peci_sensor_data		die;
+@@ -19,7 +19,7 @@ struct temp_group {
+ 	struct peci_sensor_data		tcontrol;
+ 	struct peci_sensor_data		tthrottle;
+ 	struct peci_sensor_data		tjmax;
+-	struct peci_sensor_data		core[CORETEMP_CHANNEL_NUMS];
++	struct peci_sensor_data		module[MODTEMP_CHANNEL_NUMS];
+ };
+ 
+ struct peci_cputemp {
+@@ -34,7 +34,7 @@ struct peci_cputemp {
+ 	struct hwmon_channel_info	temp_info;
+ 	const struct hwmon_channel_info	*info[2];
+ 	struct hwmon_chip_info		chip;
+-	char				**coretemp_label;
++	char				**module_temp_label;
+ };
+ 
+ enum cputemp_channels {
+@@ -46,7 +46,7 @@ enum cputemp_channels {
+ 	channel_core,
+ };
+ 
+-static const u32 config_table[DEFAULT_CHANNEL_NUMS + 1] = {
++static const u32 config_table[] = {
+ 	/* Die temperature */
+ 	HWMON_T_LABEL | HWMON_T_INPUT | HWMON_T_MAX | HWMON_T_CRIT |
+ 	HWMON_T_CRIT_HYST,
+@@ -65,8 +65,7 @@ static const u32 config_table[DEFAULT_CHANNEL_NUMS + 1] = {
+ 	HWMON_T_LABEL | HWMON_T_INPUT,
+ 
+ 	/* Core temperature - for all core channels */
+-	HWMON_T_LABEL | HWMON_T_INPUT | HWMON_T_MAX | HWMON_T_CRIT |
+-	HWMON_T_CRIT_HYST,
++	HWMON_T_LABEL | HWMON_T_INPUT,
+ };
+ 
+ static const char *cputemp_label[DEFAULT_CHANNEL_NUMS] = {
+@@ -179,25 +178,25 @@ static int get_dts(struct peci_cputemp *priv)
+ 	return 0;
+ }
+ 
+-static int get_core_temp(struct peci_cputemp *priv, int core_index)
++static int get_module_temp(struct peci_cputemp *priv, int index)
+ {
+-	s32 core_dts_margin;
++	s32 module_dts_margin;
+ 	u8  pkg_cfg[4];
+ 	int ret;
+ 
+-	if (!peci_sensor_need_update(&priv->temp.core[core_index]))
++	if (!peci_sensor_need_update(&priv->temp.module[index]))
+ 		return 0;
+ 
+ 	ret = peci_client_read_package_config(priv->mgr,
+-					      PECI_MBX_INDEX_PER_CORE_DTS_TEMP,
+-					      core_index, pkg_cfg);
++					      PECI_MBX_INDEX_MODULE_TEMP,
++					      index, pkg_cfg);
+ 	if (ret)
+ 		return ret;
+ 
+-	core_dts_margin = le16_to_cpup((__le16 *)pkg_cfg);
++	module_dts_margin = le16_to_cpup((__le16 *)pkg_cfg);
+ 
+ 	/*
+-	 * Processors return a value of the core DTS reading in 10.6 format
++	 * Processors return a value of the DTS reading in 10.6 format
+ 	 * (10 bits signed decimal, 6 bits fractional).
+ 	 * Error codes:
+ 	 *   0x8000: General sensor error
+@@ -205,16 +204,16 @@ static int get_core_temp(struct peci_cputemp *priv, int core_index)
+ 	 *   0x8002: Underflow on reading value
+ 	 *   0x8003-0x81ff: Reserved
+ 	 */
+-	if (core_dts_margin >= 0x8000 && core_dts_margin <= 0x81ff)
++	if (module_dts_margin >= 0x8000 && module_dts_margin <= 0x81ff)
+ 		return -EIO;
+ 
+-	core_dts_margin = ten_dot_six_to_millidegree(core_dts_margin);
++	module_dts_margin = ten_dot_six_to_millidegree(module_dts_margin);
+ 
+ 	/* Note that the tjmax should be available before calling it */
+-	priv->temp.core[core_index].value = priv->temp.tjmax.value +
+-					    core_dts_margin;
++	priv->temp.module[index].value = priv->temp.tjmax.value +
++					 module_dts_margin;
+ 
+-	peci_sensor_mark_updated(&priv->temp.core[core_index]);
++	peci_sensor_mark_updated(&priv->temp.module[index]);
+ 
+ 	return 0;
+ }
+@@ -230,8 +229,8 @@ static int cputemp_read_string(struct device *dev,
+ 
+ 	*str = (channel < DEFAULT_CHANNEL_NUMS) ?
+ 	       cputemp_label[channel] :
+-	       (const char *)priv->coretemp_label[channel -
+-						  DEFAULT_CHANNEL_NUMS];
++	       (const char *)priv->module_temp_label[channel -
++						     DEFAULT_CHANNEL_NUMS];
+ 
+ 	return 0;
+ }
+@@ -241,7 +240,7 @@ static int cputemp_read(struct device *dev,
+ 			u32 attr, int channel, long *val)
+ {
+ 	struct peci_cputemp *priv = dev_get_drvdata(dev);
+-	int ret, core_index;
++	int ret, module_index;
+ 
+ 	if (channel >= CPUTEMP_CHANNEL_NUMS ||
+ 	    !(priv->temp_config[channel] & BIT(attr)))
+@@ -278,12 +277,12 @@ static int cputemp_read(struct device *dev,
+ 			*val = priv->temp.tjmax.value;
+ 			break;
+ 		default:
+-			core_index = channel - DEFAULT_CHANNEL_NUMS;
+-			ret = get_core_temp(priv, core_index);
++			module_index = channel - DEFAULT_CHANNEL_NUMS;
++			ret = get_module_temp(priv, module_index);
+ 			if (ret)
+ 				break;
+ 
+-			*val = priv->temp.core[core_index].value;
++			*val = priv->temp.module[module_index].value;
+ 			break;
+ 		}
+ 		break;
+@@ -332,21 +331,59 @@ static int check_resolved_cores(struct peci_cputemp *priv)
+ 	int ret;
+ 
+ 	/* Get the RESOLVED_CORES register value */
+-	msg.addr = priv->mgr->client->addr;
+-	msg.device = 30;
+-	msg.function = 3;
+-	msg.rx_len = 4;
+-	msg.bus = 1;
+-	msg.reg = 0xb4;
+-
+-	ret = peci_command(priv->mgr->client->adapter,
+-			   PECI_CMD_RD_PCI_CFG_LOCAL, &msg);
+-	if (msg.cc != PECI_DEV_CC_SUCCESS)
+-		ret = -EAGAIN;
+-	if (ret)
+-		return ret;
++	switch (priv->gen_info->model) {
++	case INTEL_FAM6_ICELAKE_X:
++	case INTEL_FAM6_ICELAKE_XD:
++		msg.addr = priv->mgr->client->addr;
++		msg.device = 30;
++		msg.function = 3;
++		msg.bus = 14;
++		msg.reg = 0xd4;
++		msg.rx_len = 4;
++
++		ret = peci_command(priv->mgr->client->adapter,
++				   PECI_CMD_RD_PCI_CFG_LOCAL, &msg);
++		if (msg.cc != PECI_DEV_CC_SUCCESS)
++			ret = -EAGAIN;
++		if (ret)
++			return ret;
++
++		priv->core_mask = le32_to_cpup((__le32 *)msg.pci_config);
++		priv->core_mask <<= 32;
++
++		msg.reg = 0xd0;
++
++		ret = peci_command(priv->mgr->client->adapter,
++				   PECI_CMD_RD_PCI_CFG_LOCAL, &msg);
++
++		if (msg.cc != PECI_DEV_CC_SUCCESS)
++			ret = -EAGAIN;
++		if (ret) {
++			priv->core_mask = 0;
++			return ret;
++		}
++
++		priv->core_mask |= le32_to_cpup((__le32 *)msg.pci_config);
++		break;
++	default:
++		msg.addr = priv->mgr->client->addr;
++		msg.device = 30;
++		msg.function = 3;
++		msg.bus = 1;
++		msg.reg = 0xb4;
++		msg.rx_len = 4;
++
++		ret = peci_command(priv->mgr->client->adapter,
++				   PECI_CMD_RD_PCI_CFG_LOCAL, &msg);
++		if (msg.cc != PECI_DEV_CC_SUCCESS)
++			ret = -EAGAIN;
++		if (ret)
++			return ret;
++
++		priv->core_mask = le32_to_cpup((__le32 *)msg.pci_config);
++		break;
++	}
+ 
+-	priv->core_mask = le32_to_cpup((__le32 *)msg.pci_config);
+ 	if (!priv->core_mask)
+ 		return -EAGAIN;
+ 
+@@ -355,20 +392,20 @@ static int check_resolved_cores(struct peci_cputemp *priv)
+ 	return 0;
+ }
+ 
+-static int create_core_temp_label(struct peci_cputemp *priv, int idx)
++static int create_module_temp_label(struct peci_cputemp *priv, int idx)
+ {
+-	priv->coretemp_label[idx] = devm_kzalloc(priv->dev,
+-						 PECI_HWMON_LABEL_STR_LEN,
+-						 GFP_KERNEL);
+-	if (!priv->coretemp_label[idx])
++	priv->module_temp_label[idx] = devm_kzalloc(priv->dev,
++						    PECI_HWMON_LABEL_STR_LEN,
++						    GFP_KERNEL);
++	if (!priv->module_temp_label[idx])
+ 		return -ENOMEM;
+ 
+-	sprintf(priv->coretemp_label[idx], "Core %d", idx);
++	sprintf(priv->module_temp_label[idx], "Core %d", idx);
+ 
+ 	return 0;
+ }
+ 
+-static int create_core_temp_info(struct peci_cputemp *priv)
++static int create_module_temp_info(struct peci_cputemp *priv)
+ {
+ 	int ret, i;
+ 
+@@ -376,23 +413,22 @@ static int create_core_temp_info(struct peci_cputemp *priv)
+ 	if (ret)
+ 		return ret;
+ 
+-	priv->coretemp_label = devm_kzalloc(priv->dev,
+-					    priv->gen_info->core_max *
+-					    sizeof(char *),
+-					    GFP_KERNEL);
+-	if (!priv->coretemp_label)
++	priv->module_temp_label = devm_kzalloc(priv->dev,
++					       MODTEMP_CHANNEL_NUMS *
++					       sizeof(char *),
++					       GFP_KERNEL);
++	if (!priv->module_temp_label)
+ 		return -ENOMEM;
+ 
+-	for (i = 0; i < priv->gen_info->core_max; i++)
+-		if (priv->core_mask & BIT(i)) {
+-			while (priv->config_idx <= i + DEFAULT_CHANNEL_NUMS)
+-				priv->temp_config[priv->config_idx++] =
+-					config_table[channel_core];
++	for (i = 0; i < MODTEMP_CHANNEL_NUMS; i++) {
++		priv->temp_config[priv->config_idx++] = config_table[channel_core];
+ 
+-			ret = create_core_temp_label(priv, i);
++		if (i < priv->gen_info->core_mask_bits && priv->core_mask & BIT(i)) {
++			ret = create_module_temp_label(priv, i);
+ 			if (ret)
+ 				return ret;
+ 		}
++	}
+ 
+ 	return 0;
+ }
+@@ -428,7 +464,7 @@ static int peci_cputemp_probe(struct platform_device *pdev)
+ 	priv->temp_config[priv->config_idx++] = config_table[channel_tthrottle];
+ 	priv->temp_config[priv->config_idx++] = config_table[channel_tjmax];
+ 
+-	ret = create_core_temp_info(priv);
++	ret = create_module_temp_info(priv);
+ 	if (ret)
+ 		dev_dbg(dev, "Skipped creating core temp info\n");
+ 
+@@ -469,4 +505,4 @@ module_platform_driver(peci_cputemp_driver);
+ 
+ MODULE_AUTHOR("Jae Hyun Yoo <jae.hyun.yoo@linux.intel.com>");
+ MODULE_DESCRIPTION("PECI cputemp driver");
+-MODULE_LICENSE("GPL v2");
++MODULE_LICENSE("GPL v2");
+\ No newline at end of file
+diff --git a/drivers/hwmon/peci-dimmpower.c b/drivers/hwmon/peci-dimmpower.c
+new file mode 100644
+index 000000000000..cc0da89cfaa6
+--- /dev/null
++++ b/drivers/hwmon/peci-dimmpower.c
+@@ -0,0 +1,640 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (c) 2020 Intel Corporation
++
++#include <linux/hwmon.h>
++#include <linux/jiffies.h>
++#include <linux/mfd/intel-peci-client.h>
++#include <linux/module.h>
++#include <linux/of_device.h>
++#include <linux/platform_device.h>
++#include "peci-hwmon.h"
++
++enum PECI_DIMMPOWER_SENSOR_TYPES {
++	PECI_DIMMPOWER_SENSOR_TYPE_POWER = 0,
++	PECI_DIMMPOWER_SENSOR_TYPE_ENERGY,
++	PECI_DIMMPOWER_SENSOR_TYPES_COUNT,
++};
++
++#define PECI_DIMMPOWER_POWER_CHANNEL_COUNT	1 /* Supported channels number */
++#define PECI_DIMMPOWER_ENERGY_CHANNEL_COUNT	1 /* Supported channels number */
++
++#define PECI_DIMMPOWER_POWER_SENSOR_COUNT	4 /* Supported sensors/readings number */
++#define PECI_DIMMPOWER_ENERGY_SENSOR_COUNT	4 /* Supported sensors/readings number */
++
++struct peci_dimmpower {
++	struct device *dev;
++	struct peci_client_manager *mgr;
++	char name[PECI_NAME_SIZE];
++	u32 power_config[PECI_DIMMPOWER_POWER_CHANNEL_COUNT + 1];
++	u32 energy_config[PECI_DIMMPOWER_ENERGY_CHANNEL_COUNT + 1];
++
++	struct hwmon_channel_info power_info;
++	struct hwmon_channel_info energy_info;
++	const struct hwmon_channel_info *info[PECI_DIMMPOWER_SENSOR_TYPES_COUNT + 1];
++	struct hwmon_chip_info chip;
++
++	struct peci_sensor_data
++		power_sensor_data_list[PECI_DIMMPOWER_POWER_CHANNEL_COUNT]
++				      [PECI_DIMMPOWER_POWER_SENSOR_COUNT];
++	struct peci_sensor_data
++		energy_sensor_data_list[PECI_DIMMPOWER_ENERGY_CHANNEL_COUNT]
++				       [PECI_DIMMPOWER_ENERGY_SENSOR_COUNT];
++
++	/* Below structs are not exposed to any sensor directly */
++	struct peci_sensor_data energy_cache; /* used to limit PECI communication */
++	struct peci_sensor_data power_sensor_prev_energy;
++	struct peci_sensor_data energy_sensor_prev_energy;
++
++	union peci_pkg_power_sku_unit units;
++	bool units_valid;
++
++	u32 dpl_time_window;
++	bool dpl_time_window_valid;
++};
++
++static const char *peci_dimmpower_labels[PECI_DIMMPOWER_SENSOR_TYPES_COUNT] = {
++	"dimm power",
++	"dimm energy",
++};
++
++/**
++ * peci_dimmpower_read_dram_power_limit - read PCS DRAM Power Limit
++ * @peci_mgr: PECI client manager handle
++ * @reg: Pointer to the variable read value is going to be put
++ *
++ * Return: 0 if succeeded, other values in case an error.
++ */
++static inline int
++peci_dimmpower_read_dram_power_limit(struct peci_client_manager *peci_mgr,
++				     union peci_dram_power_limit *reg)
++{
++	return peci_pcs_read(peci_mgr, PECI_MBX_INDEX_DDR_RAPL_PL1,
++			     PECI_PCS_PARAM_ZERO, &reg->value);
++}
++
++static int
++peci_dimmpower_get_energy_counter(struct peci_dimmpower *priv,
++				  struct peci_sensor_data *sensor_data,
++				  ulong update_interval)
++{
++	int ret;
++
++	if (!peci_sensor_need_update_with_time(sensor_data,
++					       update_interval)) {
++		dev_dbg(priv->dev, "skip reading dimm energy over peci\n");
++		return 0;
++	}
++
++	ret = peci_pcs_read(priv->mgr, PECI_MBX_INDEX_ENERGY_STATUS,
++			    PECI_PKG_ID_DIMM, &sensor_data->uvalue);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to read dimm energy\n");
++		return ret;
++	}
++
++	peci_sensor_mark_updated(sensor_data);
++
++	dev_dbg(priv->dev,
++		"energy counter updated %duJ, jif %lu, HZ is %d jiffies\n",
++		sensor_data->uvalue, sensor_data->last_updated, HZ);
++
++	return ret;
++}
++
++static int
++peci_dimmpower_get_avg_power(void *ctx, struct peci_sensor_conf *sensor_conf,
++			     struct peci_sensor_data *sensor_data)
++{
++	struct peci_dimmpower *priv = (struct peci_dimmpower *)ctx;
++	int ret;
++
++	if (!peci_sensor_need_update_with_time(sensor_data,
++					       sensor_conf->update_interval)) {
++		dev_dbg(priv->dev, "skip reading peci, average power %dmW jif %lu\n",
++			sensor_data->value, jiffies);
++		return 0;
++	}
++
++	ret = peci_dimmpower_get_energy_counter(priv, &priv->energy_cache,
++						sensor_conf->update_interval);
++	if (ret) {
++		dev_dbg(priv->dev, "cannot update energy counter\n");
++		return ret;
++	}
++
++	ret = peci_pcs_get_units(priv->mgr, &priv->units, &priv->units_valid);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to read units\n");
++		return ret;
++	}
++
++	ret = peci_pcs_calc_pwr_from_eng(priv->dev,
++					 &priv->power_sensor_prev_energy,
++					 &priv->energy_cache,
++					 priv->units.bits.eng_unit,
++					 &sensor_data->value);
++	if (ret) {
++		dev_dbg(priv->dev, "power calculation failed\n");
++		return ret;
++	}
++
++	peci_sensor_mark_updated_with_time(sensor_data, priv->energy_cache.last_updated);
++
++	dev_dbg(priv->dev, "average power %dmW, jif %lu, HZ is %d jiffies\n",
++		sensor_data->value, sensor_data->last_updated, HZ);
++
++	return ret;
++}
++
++static int
++peci_dimmpower_get_power_limit(void *ctx, struct peci_sensor_conf *sensor_conf,
++			       struct peci_sensor_data *sensor_data)
++{
++	struct peci_dimmpower *priv = (struct peci_dimmpower *)ctx;
++	union peci_dram_power_limit power_limit;
++	int ret;
++
++	if (!peci_sensor_need_update_with_time(sensor_data,
++					       sensor_conf->update_interval)) {
++		dev_dbg(priv->dev, "skip reading peci, power limit %dmW\n",
++			sensor_data->value);
++		return 0;
++	}
++
++	ret = peci_pcs_get_units(priv->mgr, &priv->units, &priv->units_valid);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to read units\n");
++		return ret;
++	}
++
++	ret = peci_dimmpower_read_dram_power_limit(priv->mgr, &power_limit);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to read power limit\n");
++		return ret;
++	}
++
++	peci_sensor_mark_updated(sensor_data);
++	sensor_data->value = peci_pcs_xn_to_munits(power_limit.bits.pp_pwr_lim,
++						   priv->units.bits.pwr_unit);
++
++	dev_dbg(priv->dev, "raw power limit %u, unit %u, power limit %d\n",
++		power_limit.bits.pp_pwr_lim, priv->units.bits.pwr_unit,
++		sensor_data->value);
++
++	return ret;
++}
++
++static int
++peci_dimmpower_set_power_limit(void *ctx, struct peci_sensor_conf *sensor_conf,
++			       struct peci_sensor_data *sensor_data,
++			       s32 val)
++{
++	struct peci_dimmpower *priv = (struct peci_dimmpower *)ctx;
++	union peci_dram_power_limit power_limit;
++	int ret;
++
++	ret = peci_pcs_get_units(priv->mgr, &priv->units, &priv->units_valid);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to read units\n");
++		return ret;
++	}
++
++	ret = peci_dimmpower_read_dram_power_limit(priv->mgr, &power_limit);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to read power limit\n");
++		return ret;
++	}
++
++	/* Calculate DPL time window if needed */
++	if (!priv->dpl_time_window_valid) {
++		priv->dpl_time_window =
++			peci_pcs_calc_plxy_time_window(peci_pcs_munits_to_xn(
++				PECI_PCS_PPL1_TIME_WINDOW,
++				priv->units.bits.tim_unit));
++		priv->dpl_time_window_valid = true;
++	}
++
++	/* Enable or disable power limitation */
++	if (val > 0) {
++		power_limit.bits.pp_pwr_lim =
++			peci_pcs_munits_to_xn(val, priv->units.bits.pwr_unit);
++		power_limit.bits.pwr_lim_ctrl_en = 1u;
++		power_limit.bits.ctrl_time_win = priv->dpl_time_window;
++	} else {
++		power_limit.bits.pp_pwr_lim = 0u;
++		power_limit.bits.pwr_lim_ctrl_en = 0u;
++		power_limit.bits.ctrl_time_win = 0u;
++	}
++
++	ret = peci_pcs_write(priv->mgr, PECI_MBX_INDEX_DDR_RAPL_PL1,
++			     PECI_PCS_PARAM_ZERO, power_limit.value);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to write power limit\n");
++		return ret;
++	}
++
++	dev_dbg(priv->dev, "power limit %d, unit %u, raw power limit %u,\n",
++		val, priv->units.bits.pwr_unit, power_limit.bits.pp_pwr_lim);
++
++	return ret;
++}
++
++static int
++peci_dimmpower_read_max_power(void *ctx, struct peci_sensor_conf *sensor_conf,
++			      struct peci_sensor_data *sensor_data)
++{
++	struct peci_dimmpower *priv = (struct peci_dimmpower *)ctx;
++	union peci_dram_power_info_low power_info;
++	int ret;
++
++	if (!peci_sensor_need_update_with_time(sensor_data,
++					       sensor_conf->update_interval)) {
++		dev_dbg(priv->dev, "skip reading peci, max power %dmW\n",
++			sensor_data->value);
++		return 0;
++	}
++
++	ret = peci_pcs_get_units(priv->mgr, &priv->units, &priv->units_valid);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to read units\n");
++		return ret;
++	}
++
++	ret = peci_pcs_read(priv->mgr, PECI_MBX_INDEX_DDR_PWR_INFO_LOW,
++			    PECI_PCS_PARAM_ZERO, &power_info.value);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to read power info\n");
++		return ret;
++	}
++
++	peci_sensor_mark_updated(sensor_data);
++	sensor_data->value = peci_pcs_xn_to_munits(power_info.bits.tdp,
++						   priv->units.bits.pwr_unit);
++
++	dev_dbg(priv->dev, "raw max power %u, unit %u, max power %dmW\n",
++		power_info.bits.tdp, priv->units.bits.pwr_unit,
++		sensor_data->value);
++
++	return ret;
++}
++
++static int
++peci_dimmpower_read_min_power(void *ctx, struct peci_sensor_conf *sensor_conf,
++			      struct peci_sensor_data *sensor_data)
++{
++	struct peci_dimmpower *priv = (struct peci_dimmpower *)ctx;
++
++	/* DRAM_POWER_INFO.DRAM_MIN_PWR is no more supported in CPU starting from
++	 * SPR. So BIOS doesn't update this. That's why there is still default
++	 * value (15W) which doesn't make sense. There should be a case when
++	 * MAX_PWR/TDP is smaller than 15W.
++	 * 0 seems to be a reasonable value for that parameter.
++	 */
++	sensor_data->value = 0;
++	dev_dbg(priv->dev, "min power %dmW\n", sensor_data->value);
++	return 0;
++}
++
++static int
++peci_dimmpower_read_energy(void *ctx, struct peci_sensor_conf *sensor_conf,
++			   struct peci_sensor_data *sensor_data)
++{
++	struct peci_dimmpower *priv = (struct peci_dimmpower *)ctx;
++	int ret;
++
++	if (!peci_sensor_need_update_with_time(sensor_data,
++					       sensor_conf->update_interval)) {
++		dev_dbg(priv->dev,
++			"skip generating new energy value %duJ jif %lu\n",
++			sensor_data->uvalue, jiffies);
++		return 0;
++	}
++
++	ret = peci_dimmpower_get_energy_counter(priv, &priv->energy_cache,
++						sensor_conf->update_interval);
++	if (ret) {
++		dev_dbg(priv->dev, "cannot update energy counter\n");
++		return ret;
++	}
++
++	ret = peci_pcs_get_units(priv->mgr, &priv->units, &priv->units_valid);
++	if (ret) {
++		dev_dbg(priv->dev, "not able to read units\n");
++		return ret;
++	}
++
++	ret = peci_pcs_calc_acc_eng(priv->dev,
++				    &priv->energy_sensor_prev_energy,
++				    &priv->energy_cache,
++				    priv->units.bits.eng_unit,
++				    &sensor_data->uvalue);
++
++	if (ret) {
++		dev_dbg(priv->dev, "cumulative energy calculation failed\n");
++		return ret;
++	}
++	peci_sensor_mark_updated_with_time(sensor_data,
++					   priv->energy_cache.last_updated);
++
++	dev_dbg(priv->dev, "energy %duJ, jif %lu, HZ is %d jiffies\n",
++		sensor_data->uvalue, sensor_data->last_updated, HZ);
++
++	return 0;
++}
++
++static struct peci_sensor_conf
++peci_dimmpower_power_cfg[PECI_DIMMPOWER_POWER_CHANNEL_COUNT]
++			[PECI_DIMMPOWER_POWER_SENSOR_COUNT] = {
++	/* Channel 0  - Power */
++	{
++		{
++			.attribute = hwmon_power_average,
++			.config = HWMON_P_AVERAGE,
++			.update_interval = UPDATE_INTERVAL_100MS,
++			.read = peci_dimmpower_get_avg_power,
++			.write = NULL,
++		},
++		{
++			.attribute = hwmon_power_cap,
++			.config = HWMON_P_CAP,
++			.update_interval = UPDATE_INTERVAL_100MS,
++			.read = peci_dimmpower_get_power_limit,
++			.write = peci_dimmpower_set_power_limit,
++		},
++		{
++			.attribute = hwmon_power_cap_max,
++			.config = HWMON_P_CAP_MAX,
++			.update_interval = UPDATE_INTERVAL_10S,
++			.read = peci_dimmpower_read_max_power,
++			.write = NULL,
++		},
++		{
++			.attribute = hwmon_power_cap_min,
++			.config = HWMON_P_CAP_MIN,
++			.update_interval = UPDATE_INTERVAL_10S,
++			.read = peci_dimmpower_read_min_power,
++			.write = NULL,
++		},
++	},
++};
++
++static struct peci_sensor_conf
++peci_dimmpower_energy_cfg[PECI_DIMMPOWER_ENERGY_CHANNEL_COUNT]
++			 [PECI_DIMMPOWER_ENERGY_SENSOR_COUNT] = {
++	/* Channel 0  - Energy */
++	{
++		{
++			.attribute = hwmon_energy_input,
++			.config = HWMON_E_INPUT,
++			.update_interval = UPDATE_INTERVAL_100MS,
++			.read = peci_dimmpower_read_energy,
++			.write = NULL,
++		},
++	}
++};
++
++static bool
++peci_dimmpower_is_channel_valid(enum hwmon_sensor_types type,
++				int channel)
++{
++	if ((type == hwmon_power && channel < PECI_DIMMPOWER_POWER_CHANNEL_COUNT) ||
++	    (type == hwmon_energy && channel < PECI_DIMMPOWER_ENERGY_CHANNEL_COUNT))
++		return true;
++
++	return false;
++}
++
++static int
++peci_dimmpower_read_string(struct device *dev, enum hwmon_sensor_types type,
++			   u32 attr, int channel, const char **str)
++{
++	if (!peci_dimmpower_is_channel_valid(type, channel))
++		return -EOPNOTSUPP;
++
++	switch (attr) {
++	case hwmon_power_label:
++		*str = peci_dimmpower_labels[PECI_DIMMPOWER_SENSOR_TYPE_POWER];
++		break;
++	case hwmon_energy_label:
++		*str = peci_dimmpower_labels[PECI_DIMMPOWER_SENSOR_TYPE_ENERGY];
++		break;
++	default:
++		return -EOPNOTSUPP;
++	}
++
++	return 0;
++}
++
++static int
++peci_dimmpower_read(struct device *dev, enum hwmon_sensor_types type,
++		    u32 attr, int channel, long *val)
++{
++	struct peci_dimmpower *priv = dev_get_drvdata(dev);
++	struct peci_sensor_conf *sensor_conf;
++	struct peci_sensor_data *sensor_data;
++	int ret;
++
++	if (!priv || !val)
++		return -EINVAL;
++
++	if (!peci_dimmpower_is_channel_valid(type, channel))
++		return -EOPNOTSUPP;
++
++	switch (type) {
++	case hwmon_power:
++		ret = peci_sensor_get_ctx(attr, peci_dimmpower_power_cfg[channel],
++					  &sensor_conf,
++					  priv->power_sensor_data_list[channel],
++					  &sensor_data,
++					  ARRAY_SIZE(peci_dimmpower_power_cfg[channel]));
++		break;
++	case hwmon_energy:
++		ret = peci_sensor_get_ctx(attr, peci_dimmpower_energy_cfg[channel],
++					  &sensor_conf,
++					  priv->energy_sensor_data_list[channel],
++					  &sensor_data,
++					  ARRAY_SIZE(peci_dimmpower_energy_cfg[channel]));
++		break;
++	default:
++		ret = -EOPNOTSUPP;
++	}
++
++	if (ret)
++		return ret;
++
++	if (sensor_conf->read) {
++		ret = sensor_conf->read(priv, sensor_conf, sensor_data);
++		if (!ret)
++			*val = (long)sensor_data->value;
++	} else {
++		ret = -EOPNOTSUPP;
++	}
++
++	return ret;
++}
++
++static int
++peci_dimmpower_write(struct device *dev, enum hwmon_sensor_types type,
++		     u32 attr, int channel, long val)
++{
++	struct peci_dimmpower *priv = dev_get_drvdata(dev);
++	struct peci_sensor_conf *sensor_conf;
++	struct peci_sensor_data *sensor_data;
++	int ret;
++
++	if (!priv)
++		return -EINVAL;
++
++	if (!peci_dimmpower_is_channel_valid(type, channel))
++		return -EOPNOTSUPP;
++
++	switch (type) {
++	case hwmon_power:
++		ret = peci_sensor_get_ctx(attr, peci_dimmpower_power_cfg[channel],
++					  &sensor_conf,
++					  priv->power_sensor_data_list[channel],
++					  &sensor_data,
++					  ARRAY_SIZE(peci_dimmpower_power_cfg[channel]));
++		break;
++	case hwmon_energy:
++		ret = peci_sensor_get_ctx(attr, peci_dimmpower_energy_cfg[channel],
++					  &sensor_conf,
++					  priv->energy_sensor_data_list[channel],
++					  &sensor_data,
++					  ARRAY_SIZE(peci_dimmpower_energy_cfg[channel]));
++		break;
++	default:
++		ret = -EOPNOTSUPP;
++	}
++
++	if (ret)
++		return ret;
++
++	if (sensor_conf->write) {
++		ret = sensor_conf->write(priv, sensor_conf, sensor_data,
++					 (s32)val);
++	} else {
++		ret = -EOPNOTSUPP;
++	}
++
++	return ret;
++}
++
++static umode_t
++peci_dimmpower_is_visible(const void *data, enum hwmon_sensor_types type,
++			  u32 attr, int channel)
++{
++	struct peci_sensor_conf *sensor_conf;
++	umode_t mode = 0;
++	int ret;
++
++	if (!peci_dimmpower_is_channel_valid(type, channel))
++		return mode;
++
++	if (attr == hwmon_power_label || attr == hwmon_energy_label)
++		return 0444;
++
++	switch (type) {
++	case hwmon_power:
++		ret = peci_sensor_get_ctx(attr, peci_dimmpower_power_cfg[channel],
++					  &sensor_conf, NULL, NULL,
++					  ARRAY_SIZE(peci_dimmpower_power_cfg[channel]));
++		break;
++	case hwmon_energy:
++		ret = peci_sensor_get_ctx(attr, peci_dimmpower_energy_cfg[channel],
++					  &sensor_conf, NULL, NULL,
++					  ARRAY_SIZE(peci_dimmpower_energy_cfg[channel]));
++		break;
++	default:
++		return mode;
++	}
++
++	if (!ret) {
++		if (sensor_conf->read)
++			mode |= 0444;
++		if (sensor_conf->write)
++			mode |= 0200;
++	}
++
++	return mode;
++}
++
++static const struct hwmon_ops peci_dimmpower_ops = {
++	.is_visible = peci_dimmpower_is_visible,
++	.read_string = peci_dimmpower_read_string,
++	.read = peci_dimmpower_read,
++	.write = peci_dimmpower_write,
++};
++
++static int peci_dimmpower_probe(struct platform_device *pdev)
++{
++	struct peci_client_manager *mgr = dev_get_drvdata(pdev->dev.parent);
++	struct device *dev = &pdev->dev;
++	struct peci_dimmpower *priv;
++	struct device *hwmon_dev;
++	u32 power_config_idx = 0;
++	u32 energy_config_idx = 0;
++	u32 cmd_mask;
++
++	cmd_mask = BIT(PECI_CMD_RD_PKG_CFG) | BIT(PECI_CMD_WR_PKG_CFG);
++	if ((mgr->client->adapter->cmd_mask & cmd_mask) != cmd_mask)
++		return -ENODEV;
++
++	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
++	if (!priv)
++		return -ENOMEM;
++
++	dev_set_drvdata(dev, priv);
++	priv->mgr = mgr;
++	priv->dev = dev;
++
++	snprintf(priv->name, PECI_NAME_SIZE, "peci_dimmpower.cpu%d",
++		 mgr->client->addr - PECI_BASE_ADDR);
++
++	priv->power_config[power_config_idx] = HWMON_P_LABEL |
++		peci_sensor_get_config(peci_dimmpower_power_cfg[power_config_idx],
++				       ARRAY_SIZE(peci_dimmpower_power_cfg[power_config_idx]));
++
++	priv->energy_config[energy_config_idx] = HWMON_E_LABEL |
++		peci_sensor_get_config(peci_dimmpower_energy_cfg[energy_config_idx],
++				       ARRAY_SIZE(peci_dimmpower_energy_cfg[energy_config_idx]));
++
++	priv->info[PECI_DIMMPOWER_SENSOR_TYPE_POWER] = &priv->power_info;
++	priv->power_info.type = hwmon_power;
++	priv->power_info.config = priv->power_config;
++
++	priv->info[PECI_DIMMPOWER_SENSOR_TYPE_ENERGY] = &priv->energy_info;
++	priv->energy_info.type = hwmon_energy;
++	priv->energy_info.config = priv->energy_config;
++
++	priv->chip.ops = &peci_dimmpower_ops;
++	priv->chip.info = priv->info;
++
++	hwmon_dev = devm_hwmon_device_register_with_info(priv->dev, priv->name,
++							 priv, &priv->chip,
++							 NULL);
++
++	if (IS_ERR(hwmon_dev))
++		return PTR_ERR(hwmon_dev);
++
++	dev_dbg(dev, "%s: sensor '%s'\n", dev_name(hwmon_dev), priv->name);
++
++	return 0;
++}
++
++static const struct platform_device_id peci_dimmpower_ids[] = {
++	{ .name = "peci-dimmpower", .driver_data = 0 },
++	{ }
++};
++MODULE_DEVICE_TABLE(platform, peci_dimmpower_ids);
++
++static struct platform_driver peci_dimmpower_driver = {
++	.probe    = peci_dimmpower_probe,
++	.id_table = peci_dimmpower_ids,
++	.driver   = { .name = KBUILD_MODNAME, },
++};
++module_platform_driver(peci_dimmpower_driver);
++
++MODULE_AUTHOR("Zbigniew Lukwinski <zbigniew.lukwinski@linux.intel.com>");
++MODULE_DESCRIPTION("PECI dimmpower driver");
++MODULE_LICENSE("GPL v2");
+\ No newline at end of file
+diff --git a/drivers/hwmon/peci-dimmtemp.c b/drivers/hwmon/peci-dimmtemp.c
+index 1555bfdefabd..b3936039f9a1 100644
+--- a/drivers/hwmon/peci-dimmtemp.c
++++ b/drivers/hwmon/peci-dimmtemp.c
+@@ -11,7 +11,10 @@
+ #include "peci-hwmon.h"
+ 
+ #define DIMM_MASK_CHECK_DELAY_JIFFIES	msecs_to_jiffies(5000)
+-#define DIMM_MASK_CHECK_RETRY_MAX	60 /* 60 x 5 secs = 5 minutes */
++#define DIMM_MASK_CHECK_RETRY_MAX	-1 /* 60 x 5 secs = 5 minutes */
++					   /* -1 = no timeout */
++#define DIMM_TEMP_MAX_DEFAULT		90000
++#define DIMM_TEMP_CRIT_DEFAULT		100000
+ 
+ struct peci_dimmtemp {
+ 	struct peci_client_manager	*mgr;
+@@ -32,11 +35,14 @@ struct peci_dimmtemp {
+ 	char				**dimmtemp_label;
+ };
+ 
+-static const u8 support_model[4] = {
++static const u8 support_model[] = {
+ 	INTEL_FAM6_HASWELL_X,
+ 	INTEL_FAM6_BROADWELL_X,
+ 	INTEL_FAM6_SKYLAKE_X,
+ 	INTEL_FAM6_SKYLAKE_XD,
++	INTEL_FAM6_ICELAKE_X,
++	INTEL_FAM6_ICELAKE_XD,
++	INTEL_FAM6_SAPPHIRERAPIDS_X,
+ };
+ 
+ static inline int read_ddr_dimm_temp_config(struct peci_dimmtemp *priv,
+@@ -53,19 +59,89 @@ static int get_dimm_temp(struct peci_dimmtemp *priv, int dimm_no)
+ 	int dimm_order = dimm_no % priv->gen_info->dimm_idx_max;
+ 	int chan_rank = dimm_no / priv->gen_info->dimm_idx_max;
+ 	struct peci_rd_pci_cfg_local_msg rp_msg;
++	struct peci_rd_end_pt_cfg_msg re_msg;
+ 	u8  cfg_data[4];
++	u8  cpu_seg, cpu_bus;
+ 	int ret;
+ 
+ 	if (!peci_sensor_need_update(&priv->temp[dimm_no]))
+ 		return 0;
+ 
+ 	ret = read_ddr_dimm_temp_config(priv, chan_rank, cfg_data);
+-	if (ret)
+-		return ret;
++	if (ret || cfg_data[dimm_order] == 0 || cfg_data[dimm_order] == 0xff)
++		return -ENODATA;
+ 
+ 	priv->temp[dimm_no].value = cfg_data[dimm_order] * 1000;
+ 
+ 	switch (priv->gen_info->model) {
++	case INTEL_FAM6_ICELAKE_X:
++	case INTEL_FAM6_ICELAKE_XD:
++		re_msg.addr = priv->mgr->client->addr;
++		re_msg.rx_len = 4;
++		re_msg.msg_type = PECI_ENDPTCFG_TYPE_LOCAL_PCI;
++		re_msg.params.pci_cfg.seg = 0;
++		re_msg.params.pci_cfg.bus = 13;
++		re_msg.params.pci_cfg.device = 0;
++		re_msg.params.pci_cfg.function = 2;
++		re_msg.params.pci_cfg.reg = 0xd4;
++
++		ret = peci_command(priv->mgr->client->adapter,
++				   PECI_CMD_RD_END_PT_CFG, &re_msg);
++		if (ret || re_msg.cc != PECI_DEV_CC_SUCCESS ||
++		    !(re_msg.data[3] & BIT(7))) {
++			/* Use default or previous value */
++			ret = 0;
++			break;
++		}
++
++		re_msg.msg_type = PECI_ENDPTCFG_TYPE_LOCAL_PCI;
++		re_msg.params.pci_cfg.reg = 0xd0;
++
++		ret = peci_command(priv->mgr->client->adapter,
++				   PECI_CMD_RD_END_PT_CFG, &re_msg);
++		if (ret || re_msg.cc != PECI_DEV_CC_SUCCESS) {
++			/* Use default or previous value */
++			ret = 0;
++			break;
++		}
++
++		cpu_seg = re_msg.data[2];
++		cpu_bus = re_msg.data[0];
++
++		re_msg.addr = priv->mgr->client->addr;
++		re_msg.msg_type = PECI_ENDPTCFG_TYPE_MMIO;
++		re_msg.params.mmio.seg = cpu_seg;
++		re_msg.params.mmio.bus = cpu_bus;
++		/*
++		 * Device 26, Offset 224e0: IMC 0 channel 0 -> rank 0
++		 * Device 26, Offset 264e0: IMC 0 channel 1 -> rank 1
++		 * Device 27, Offset 224e0: IMC 1 channel 0 -> rank 2
++		 * Device 27, Offset 264e0: IMC 1 channel 1 -> rank 3
++		 * Device 28, Offset 224e0: IMC 2 channel 0 -> rank 4
++		 * Device 28, Offset 264e0: IMC 2 channel 1 -> rank 5
++		 * Device 29, Offset 224e0: IMC 3 channel 0 -> rank 6
++		 * Device 29, Offset 264e0: IMC 3 channel 1 -> rank 7
++		 */
++		re_msg.params.mmio.device = 0x1a + chan_rank / 2;
++		re_msg.params.mmio.function = 0;
++		re_msg.params.mmio.bar = 0;
++		re_msg.params.mmio.addr_type = PECI_ENDPTCFG_ADDR_TYPE_MMIO_Q;
++		re_msg.params.mmio.offset = 0x224e0 + dimm_order * 4;
++		if (chan_rank % 2)
++			re_msg.params.mmio.offset += 0x4000;
++
++		ret = peci_command(priv->mgr->client->adapter,
++				   PECI_CMD_RD_END_PT_CFG, &re_msg);
++		if (ret || re_msg.cc != PECI_DEV_CC_SUCCESS ||
++		    re_msg.data[1] == 0 || re_msg.data[2] == 0) {
++			/* Use default or previous value */
++			ret = 0;
++			break;
++		}
++
++		priv->temp_max[dimm_no] = re_msg.data[1] * 1000;
++		priv->temp_crit[dimm_no] = re_msg.data[2] * 1000;
++		break;
+ 	case INTEL_FAM6_SKYLAKE_X:
+ 		rp_msg.addr = priv->mgr->client->addr;
+ 		rp_msg.bus = 2;
+@@ -85,10 +161,12 @@ static int get_dimm_temp(struct peci_dimmtemp *priv, int dimm_no)
+ 
+ 		ret = peci_command(priv->mgr->client->adapter,
+ 				   PECI_CMD_RD_PCI_CFG_LOCAL, &rp_msg);
+-		if (rp_msg.cc != PECI_DEV_CC_SUCCESS)
+-			ret = -EAGAIN;
+-		if (ret)
+-			return ret;
++		if (ret || rp_msg.cc != PECI_DEV_CC_SUCCESS ||
++		    rp_msg.pci_config[1] == 0 || rp_msg.pci_config[2] == 0) {
++			/* Use default or previous value */
++			ret = 0;
++			break;
++		}
+ 
+ 		priv->temp_max[dimm_no] = rp_msg.pci_config[1] * 1000;
+ 		priv->temp_crit[dimm_no] = rp_msg.pci_config[2] * 1000;
+@@ -109,10 +187,12 @@ static int get_dimm_temp(struct peci_dimmtemp *priv, int dimm_no)
+ 
+ 		ret = peci_command(priv->mgr->client->adapter,
+ 				   PECI_CMD_RD_PCI_CFG_LOCAL, &rp_msg);
+-		if (rp_msg.cc != PECI_DEV_CC_SUCCESS)
+-			ret = -EAGAIN;
+-		if (ret)
+-			return ret;
++		if (ret || rp_msg.cc != PECI_DEV_CC_SUCCESS ||
++		    rp_msg.pci_config[1] == 0 || rp_msg.pci_config[2] == 0) {
++			/* Use default or previous value */
++			ret = 0;
++			break;
++		}
+ 
+ 		priv->temp_max[dimm_no] = rp_msg.pci_config[1] * 1000;
+ 		priv->temp_crit[dimm_no] = rp_msg.pci_config[2] * 1000;
+@@ -138,14 +218,21 @@ static int get_dimm_temp(struct peci_dimmtemp *priv, int dimm_no)
+ 
+ 		ret = peci_command(priv->mgr->client->adapter,
+ 				   PECI_CMD_RD_PCI_CFG_LOCAL, &rp_msg);
+-		if (rp_msg.cc != PECI_DEV_CC_SUCCESS)
+-			ret = -EAGAIN;
+-		if (ret)
+-			return ret;
++		if (ret || rp_msg.cc != PECI_DEV_CC_SUCCESS ||
++		    rp_msg.pci_config[1] == 0 || rp_msg.pci_config[2] == 0) {
++			/* Use default or previous value */
++			ret = 0;
++			break;
++		}
+ 
+ 		priv->temp_max[dimm_no] = rp_msg.pci_config[1] * 1000;
+ 		priv->temp_crit[dimm_no] = rp_msg.pci_config[2] * 1000;
+ 		break;
++	case INTEL_FAM6_SAPPHIRERAPIDS_X:
++		/*<TBD> not sure how to get temp config hard code here as Icelake patch*/
++		priv->temp_max[dimm_no] = 85 * 1000; //85C
++		priv->temp_crit[dimm_no] = 90 * 1000; //90C
++		break;
+ 	default:
+ 		return -EOPNOTSUPP;
+ 	}
+@@ -220,23 +307,29 @@ static int check_populated_dimms(struct peci_dimmtemp *priv)
+ {
+ 	u32 chan_rank_max = priv->gen_info->chan_rank_max;
+ 	u32 dimm_idx_max = priv->gen_info->dimm_idx_max;
+-	int chan_rank, dimm_idx;
++	int chan_rank;
+ 	u8  cfg_data[4];
+ 
+ 	for (chan_rank = 0; chan_rank < chan_rank_max; chan_rank++) {
+-		int ret;
++		int ret, idx;
+ 
+ 		ret = read_ddr_dimm_temp_config(priv, chan_rank, cfg_data);
+ 		if (ret) {
++			if (ret == -EAGAIN)
++				continue;
++
+ 			priv->dimm_mask = 0;
+ 			return ret;
+ 		}
+ 
+-		for (dimm_idx = 0; dimm_idx < dimm_idx_max; dimm_idx++)
+-			if (cfg_data[dimm_idx])
+-				priv->dimm_mask |= BIT(chan_rank *
+-						       dimm_idx_max +
+-						       dimm_idx);
++		for (idx = 0; idx < dimm_idx_max; idx++) {
++			if (cfg_data[idx]) {
++				uint chan = chan_rank * dimm_idx_max + idx;
++				priv->dimm_mask |= BIT(chan);
++				priv->temp_max[chan] = DIMM_TEMP_MAX_DEFAULT;
++				priv->temp_crit[chan] = DIMM_TEMP_CRIT_DEFAULT;
++			}
++		}
+ 	}
+ 
+ 	if (!priv->dimm_mask)
+@@ -260,7 +353,8 @@ static int create_dimm_temp_label(struct peci_dimmtemp *priv, int chan)
+ 	rank = chan / priv->gen_info->dimm_idx_max;
+ 	idx = chan % priv->gen_info->dimm_idx_max;
+ 
+-	sprintf(priv->dimmtemp_label[chan], "DIMM %c%d", 'A' + rank, idx + 1);
++	snprintf(priv->dimmtemp_label[chan], PECI_HWMON_LABEL_STR_LEN,
++		 "DIMM %c%d", 'A' + rank, idx + 1);
+ 
+ 	return 0;
+ }
+@@ -273,7 +367,8 @@ static int create_dimm_temp_info(struct peci_dimmtemp *priv)
+ 	ret = check_populated_dimms(priv);
+ 	if (ret) {
+ 		if (ret == -EAGAIN) {
+-			if (priv->retry_count < DIMM_MASK_CHECK_RETRY_MAX) {
++			if (DIMM_MASK_CHECK_RETRY_MAX == -1 ||
++			    priv->retry_count < DIMM_MASK_CHECK_RETRY_MAX) {
+ 				queue_delayed_work(priv->work_queue,
+ 						   &priv->work_handler,
+ 						 DIMM_MASK_CHECK_DELAY_JIFFIES);
+@@ -422,4 +517,4 @@ module_platform_driver(peci_dimmtemp_driver);
+ 
+ MODULE_AUTHOR("Jae Hyun Yoo <jae.hyun.yoo@linux.intel.com>");
+ MODULE_DESCRIPTION("PECI dimmtemp driver");
+-MODULE_LICENSE("GPL v2");
++MODULE_LICENSE("GPL v2");
+\ No newline at end of file
+diff --git a/drivers/hwmon/peci-hwmon.h b/drivers/hwmon/peci-hwmon.h
+index 4d78c528c4c8..8c69e6f728a1 100644
+--- a/drivers/hwmon/peci-hwmon.h
++++ b/drivers/hwmon/peci-hwmon.h
+@@ -1,25 +1,31 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
+-/* Copyright (c) 2018-2019 Intel Corporation */
++/* Copyright (c) 2018-2020 Intel Corporation */
+ 
+ #ifndef __PECI_HWMON_H
+ #define __PECI_HWMON_H
+ 
+ #include <linux/peci.h>
++#include <asm/div64.h>
+ 
+ #define TEMP_TYPE_PECI			6 /* Sensor type 6: Intel PECI */
+-#define UPDATE_INTERVAL			HZ
++#define UPDATE_INTERVAL_DEFAULT		HZ
++#define UPDATE_INTERVAL_100MS		(HZ / 10)
++#define UPDATE_INTERVAL_10S		(HZ * 10)
+ 
+ #define PECI_HWMON_LABEL_STR_LEN	10
+ 
+ /**
+  * struct peci_sensor_data - PECI sensor information
+  * @valid: flag to indicate the sensor value is valid
+- * @value: sensor value in millidegree Celsius
++ * @value: sensor value in milli units
+  * @last_updated: time of the last update in jiffies
+  */
+ struct peci_sensor_data {
+-	uint  valid;
+-	s32   value;
++	uint valid;
++	union {
++		s32 value;
++		u32 uvalue;
++	};
+ 	ulong last_updated;
+ };
+ 
+@@ -32,7 +38,24 @@ struct peci_sensor_data {
+ static inline bool peci_sensor_need_update(struct peci_sensor_data *sensor)
+ {
+ 	return !sensor->valid ||
+-	       time_after(jiffies, sensor->last_updated + UPDATE_INTERVAL);
++	       time_after(jiffies,
++			  sensor->last_updated + UPDATE_INTERVAL_DEFAULT);
++}
++
++/**
++ * peci_sensor_need_update_with_time - check whether sensor update is needed
++ * or not
++ * @sensor: pointer to sensor data struct
++ * @update_interval: update interval to check
++ *
++ * Return: true if update is needed, false if not.
++ */
++static inline bool
++peci_sensor_need_update_with_time(struct peci_sensor_data *sensor,
++				  ulong update_interval)
++{
++	return !sensor->valid ||
++	       time_after(jiffies, sensor->last_updated + update_interval);
+ }
+ 
+ /**
+@@ -45,4 +68,576 @@ static inline void peci_sensor_mark_updated(struct peci_sensor_data *sensor)
+ 	sensor->last_updated = jiffies;
+ }
+ 
+-#endif /* __PECI_HWMON_H */
++/**
++ * peci_sensor_mark_updated_with_time - mark the sensor is updated
++ * @sensor: pointer to sensor data struct
++ * @jif: jiffies value to update with
++ */
++static inline void
++peci_sensor_mark_updated_with_time(struct peci_sensor_data *sensor, ulong jif)
++{
++	sensor->valid = 1;
++	sensor->last_updated = jif;
++}
++
++/**
++ * struct peci_sensor_conf - PECI sensor information
++ * @attribute: Sensor attribute
++ * @config: Part of channel parameters brought by single sensor
++ * @update_interval: time in jiffies needs to elapse to read sensor again
++ * @read:	Read callback for data attributes. Mandatory if readable
++ *		data attributes are present.
++ *		Parameters are:
++ *		@module_ctx:	Pointer peci module context
++ *		@sensor_conf:	Pointer to sensor configuration object
++ *		@sensor_data:	Pointer to sensor data object
++ *		@val:	Pointer to returned value
++ *		The function returns 0 on success or a negative error number.
++ * @write:	Write callback for data attributes. Mandatory if writeable
++ *		data attributes are present.
++ *		Parameters are:
++ *		@module_ctx:	Pointer peci module context
++ *		@sensor_conf:	Pointer to sensor configuration object
++ *		@sensor_data:	Pointer to sensor data object
++ *		@val:	Value to write
++ *		The function returns 0 on success or a negative error number.
++ */
++struct peci_sensor_conf {
++	const s32 attribute;
++	const u32 config;
++	const ulong update_interval;
++
++	int (*const read)(void *priv, struct peci_sensor_conf *sensor_conf,
++			  struct peci_sensor_data *sensor_data);
++	int (*const write)(void *priv, struct peci_sensor_conf *sensor_conf,
++			   struct peci_sensor_data *sensor_data, s32 val);
++};
++
++/**
++ * peci_sensor_get_config - get peci sensor configuration for provided channel
++ * @sensors: Sensors list
++ * @sensor_count: Sensors count
++ *
++ * Return: sensor configuration
++ */
++static inline u32 peci_sensor_get_config(struct peci_sensor_conf sensors[],
++					 u8 sensor_count)
++{
++	u32 config = 0u;
++	int iter;
++
++	for (iter = 0; iter < sensor_count; ++iter)
++		config |= sensors[iter].config;
++
++	return config;
++}
++
++/**
++ * peci_sensor_get_ctx - get peci sensor context - both configuration and data
++ * @attribute: Sensor attribute
++ * @sensor_conf_list: Sensors configuration object list
++ * @sensor_conf: Sensor configuration object found
++ * @sensor_data_list: Sensors data object list, maybe NULL in case there is no
++ *		need to find sensor data object
++ * @sensor_data: Sensor data object found, maybe NULL in case there is no need
++ *		to find sensor data object
++ * @sensor_count: Sensor count
++ *
++ * Return: 0 on success or -EOPNOTSUPP in case sensor attribute not found
++ */
++static inline int
++peci_sensor_get_ctx(s32 attribute, struct peci_sensor_conf sensor_conf_list[],
++		    struct peci_sensor_conf **sensor_conf,
++		    struct peci_sensor_data sensor_data_list[],
++		    struct peci_sensor_data **sensor_data,
++		    const u8 sensor_count)
++{
++	int iter;
++
++	for (iter = 0; iter < sensor_count; ++iter) {
++		if (attribute == sensor_conf_list[iter].attribute) {
++			*sensor_conf = &sensor_conf_list[iter];
++			if (sensor_data_list && sensor_data)
++				*sensor_data = &sensor_data_list[iter];
++			return 0;
++		}
++	}
++
++	return -EOPNOTSUPP;
++}
++
++/* Value for the most common parameter used for PCS accessing */
++#define PECI_PCS_PARAM_ZERO 0x0000u
++
++#define PECI_PCS_REGISTER_SIZE 4u /* PCS register size in bytes */
++
++/* PPL1 value to PPL2 value conversation macro */
++#define PECI_PCS_PPL1_TO_PPL2(ppl1_value) ((((u32)(ppl1_value)) * 12uL) / 10uL)
++
++#define PECI_PCS_PPL1_TIME_WINDOW 250 /* PPL1 Time Window value in ms */
++
++#define PECI_PCS_PPL2_TIME_WINDOW 10 /* PPL2 Time Window value in ms */
++
++/**
++ * union peci_pkg_power_sku_unit - PECI Package Power Unit PCS
++ * This register coresponds to the MSR@606h - MSR_RAPL_POWER_UNIT
++ * Accessing over PECI: PCS=0x1E, Parameter=0x0000
++ * @value: PCS register value
++ * @bits:	PCS register bits
++ *		@pwr_unit:	Bits [3:0] - Power Unit
++ *		@rsvd0:		Bits [7:4]
++ *		@eng_unit:	Bits [12:8] - Energy Unit
++ *		@rsvd1:		Bits [15:13]
++ *		@tim_unit:	Bits [19:16] - Time Unit
++ *		@rsvd2:		Bits [31:20]
++ */
++union peci_pkg_power_sku_unit {
++	u32 value;
++	struct {
++		u32 pwr_unit	: 4;
++		u32 rsvd0	: 4;
++		u32 eng_unit	: 5;
++		u32 rsvd1	: 3;
++		u32 tim_unit	: 4;
++		u32 rsvd2	: 12;
++	} __attribute__((__packed__)) bits;
++} __attribute__((__packed__));
++
++static_assert(sizeof(union peci_pkg_power_sku_unit) == PECI_PCS_REGISTER_SIZE);
++
++/**
++ * union peci_package_power_info_low - Platform and Package Power SKU (Low) PCS
++ * This PCS coresponds to the MSR@614h - PACKAGE_POWER_SKU, bits [31:0]
++ * Accessing over PECI: PCS=0x1C, parameter=0x00FF
++ * @value: PCS register value
++ * @bits:	PCS register bits
++ *		@pkg_tdp:	Bits [14:0] - TDP Package Power
++ *		@rsvd0:		Bits [15:15]
++ *		@pkg_min_pwr:	Bits [30:16] - Minimal Package Power
++ *		@rsvd1:		Bits [31:31]
++ */
++union peci_package_power_info_low {
++	u32 value;
++	struct {
++		u32 pkg_tdp	: 15;
++		u32 rsvd0	: 1;
++		u32 pkg_min_pwr	: 15;
++		u32 rsvd1	: 1;
++	} __attribute__((__packed__)) bits;
++} __attribute__((__packed__));
++
++static_assert(sizeof(union peci_package_power_info_low) ==
++	      PECI_PCS_REGISTER_SIZE);
++
++/**
++ * union peci_package_power_limit_high - Package Power Limit 2 PCS
++ * This PCS coresponds to the MSR@610h - PACKAGE_RAPL_LIMIT, bits [63:32]
++ * Accessing over PECI: PCS=0x1B, Parameter=0x0000
++ * @value: PCS register value
++ * @bits:	PCS register bits
++ *		@pwr_lim_2:	Bits [14:0] - Power Limit 2
++ *		@pwr_lim_2_en:	Bits [15:15] - Power Limit 2 Enable
++ *		@pwr_clmp_lim_2:Bits [16:16] - Package Clamping Limitation 2
++ *		@pwr_lim_2_time:Bits [23:17] - Power Limit 2 Time Window
++ *		@rsvd0:		Bits [31:24]
++ */
++union peci_package_power_limit_high {
++	u32 value;
++	struct {
++		u32 pwr_lim_2		: 15;
++		u32 pwr_lim_2_en	: 1;
++		u32 pwr_clmp_lim_2	: 1;
++		u32 pwr_lim_2_time	: 7;
++		u32 rsvd0		: 8;
++	} __attribute__((__packed__)) bits;
++} __attribute__((__packed__));
++
++static_assert(sizeof(union peci_package_power_limit_high) ==
++	      PECI_PCS_REGISTER_SIZE);
++
++/**
++ * union peci_package_power_limit_low - Package Power Limit 1 PCS
++ * This PCS coresponds to the MSR@610h - PACKAGE_RAPL_LIMIT, bits [31:0]
++ * Accessing over PECI: PCS=0x1A, Parameter=0x0000
++ * @value: PCS register value
++ * @bits:	PCS register bits
++ *		@pwr_lim_1:	Bits [14:0] - Power Limit 1
++ *		@pwr_lim_1_en:	Bits [15:15] - Power Limit 1 Enable
++ *		@pwr_clmp_lim_1:Bits [16:16] - Package Clamping Limitation 1
++ *		@pwr_lim_1_time:Bits [23:17] - Power Limit 1 Time Window
++ *		@rsvd0:		Bits [31:24]
++ */
++union peci_package_power_limit_low {
++	u32 value;
++	struct {
++		u32 pwr_lim_1		: 15;
++		u32 pwr_lim_1_en	: 1;
++		u32 pwr_clmp_lim_1	: 1;
++		u32 pwr_lim_1_time	: 7;
++		u32 rsvd0		: 8;
++	} __attribute__((__packed__)) bits;
++} __attribute__((__packed__));
++
++static_assert(sizeof(union peci_package_power_limit_low) ==
++	      PECI_PCS_REGISTER_SIZE);
++
++/**
++ * union peci_dram_power_info_low - DRAM Power Info low PCS
++ * This PCS coresponds to the MSR@61Ch - MSR_DRAM_POWER_INFO, bits [31:0]
++ * Accessing over PECI: PCS=0x24, Parameter=0x0000
++ * @value: PCS register value
++ * @bits:	PCS register bits
++ *		@tdp:		Bits [14:0] - Spec DRAM Power
++ *		@rsvd0:		Bits [15:15]
++ *		@min_pwr:	Bits [30:16] - Minimal DRAM Power
++ *		@rsvd1:		Bits [31:31]
++ */
++union peci_dram_power_info_low {
++	u32 value;
++	struct {
++		u32 tdp		: 15;
++		u32 rsvd0	: 1;
++		u32 min_pwr	: 15;
++		u32 rsvd1	: 1;
++	} __attribute__((__packed__)) bits;
++} __attribute__((__packed__));
++
++static_assert(sizeof(union peci_dram_power_info_low) == PECI_PCS_REGISTER_SIZE);
++
++/**
++ * union peci_dram_power_limit - DRAM Power Limit PCS
++ * This PCS coresponds to the MSR@618h - DRAM_PLANE_POWER_LIMIT, bits [31:0]
++ * Accessing over PECI: PCS=0x22, Parameter=0x0000
++ * @value: PCS register value
++ * @bits:	PCS register bits
++ *		@pp_pwr_lim:	Bits [14:0] - Power Limit[0] for DDR domain,
++ *				format: U11.3
++ *		@pwr_lim_ctrl_en:Bits [15:15] - Power Limit[0] enable bit for
++ *				DDR domain
++ *		@rsvd0:		Bits [16:16]
++ *		@ctrl_time_win:	Bits [23:17] - Power Limit[0] time window for
++ *				DDR domain
++ *		@rsvd1:		Bits [31:24]
++ */
++union peci_dram_power_limit {
++	u32 value;
++	struct {
++		u32 pp_pwr_lim		: 15;
++		u32 pwr_lim_ctrl_en	: 1;
++		u32 rsvd0		: 1;
++		u32 ctrl_time_win	: 7;
++		u32 rsvd1		: 8;
++	} __attribute__((__packed__)) bits;
++} __attribute__((__packed__));
++
++static_assert(sizeof(union peci_dram_power_limit) == PECI_PCS_REGISTER_SIZE);
++
++/**
++ * peci_pcs_xn_to_uunits - function converting value in units in x.N format to
++ * micro units (microjoules, microseconds, microdegrees) in regular format
++ * @x_n_value: Value in units in x.n format
++ * @n: n factor for x.n format
++ *
++ * Return: value in micro units (microjoules, microseconds, microdegrees)
++ * in regular format
++ */
++static inline u64 peci_pcs_xn_to_uunits(u32 x_n_value, u8 n)
++{
++	u64 mx_n_value = (u64)x_n_value * 1000000uLL;
++
++	return mx_n_value >> n;
++}
++
++/**
++ * peci_pcs_xn_to_munits - function converting value in units in x.N format to
++ * milli units (millijoules, milliseconds, millidegrees) in regular format
++ * @x_n_value: Value in units in x.n format
++ * @n: n factor for x.n format
++ *
++ * Return: value in milli units (millijoules, milliseconds, millidegrees)
++ * in regular format
++ */
++static inline u64 peci_pcs_xn_to_munits(u32 x_n_value, u8 n)
++{
++	u64 mx_n_value = (u64)x_n_value * 1000uLL;
++
++	return mx_n_value >> n;
++}
++
++/**
++ * peci_pcs_munits_to_xn - function converting value in milli units
++ * (millijoules,milliseconds, millidegrees) in regular format to value in units
++ * in x.n format
++ * @mu_value: Value in milli units (millijoules, milliseconds, millidegrees)
++ * @n: n factor for x.n format, assumed here maximal value for n is 32
++ *
++ * Return: value in units in x.n format
++ */
++static inline u32 peci_pcs_munits_to_xn(u32 mu_value, u8 n)
++{
++	/* Convert value in milli units (regular format) to the x.n format */
++	u64 mx_n_value = (u64)mu_value << n;
++	/* Convert milli units (x.n format) to units (x.n format) */
++	if (mx_n_value > (u64)U32_MAX) {
++		do_div(mx_n_value, 1000uL);
++		return (u32)mx_n_value;
++	} else {
++		return (u32)mx_n_value / 1000uL;
++	}
++}
++
++/**
++ * peci_pcs_read - read PCS register
++ * @peci_mgr: PECI client manager handle
++ * @index: PCS index
++ * @parameter: PCS parameter
++ * @reg: Pointer to the variable read value is going to be put
++ *
++ * Return: 0 if succeeded,
++ *	-EINVAL if there are null pointers among arguments,
++ *	other values in case other errors.
++ */
++static inline int peci_pcs_read(struct peci_client_manager *peci_mgr, u8 index,
++				u16 parameter, u32 *reg)
++{
++	u32 pcs_reg;
++	int ret;
++
++	if (!reg)
++		return -EINVAL;
++
++	ret = peci_client_read_package_config(peci_mgr, index, parameter,
++					      (u8 *)&pcs_reg);
++	if (!ret)
++		*reg = le32_to_cpup((__le32 *)&pcs_reg);
++
++	return ret;
++}
++
++/**
++ * peci_pcs_write - write PCS register
++ * @peci_mgr: PECI client manager handle
++ * @index: PCS index
++ * @parameter: PCS parameter
++ * @reg: Variable which value is going to be written to the PCS
++ *
++ * Return: 0 if succeeded, other values in case an error.
++ */
++static inline int peci_pcs_write(struct peci_client_manager *peci_mgr, u8 index,
++				 u16 parameter, u32 reg)
++{
++	u32 pcs_reg;
++	int ret;
++
++	pcs_reg = cpu_to_le32p(&reg);
++
++	ret = peci_client_write_package_config(peci_mgr, index, parameter,
++					       (u8 *)&pcs_reg);
++
++	return ret;
++}
++
++/**
++ * peci_pcs_calc_pwr_from_eng - calculate power (in milliwatts) based on
++ * two energy readings
++ * @dev: Device handle
++ * @prev_energy: Previous energy reading context with raw energy counter value
++ * @energy: Current energy reading context with raw energy counter value
++ * @unit: Calculation factor
++ * @power_val_in_mW: Pointer to the variable calculation result is going to
++ * be put
++ *
++ * Return: 0 if succeeded,
++ *	-EINVAL if there are null pointers among arguments,
++ *	-EAGAIN if calculation is skipped.
++ */
++static inline int peci_pcs_calc_pwr_from_eng(struct device *dev,
++					     struct peci_sensor_data *prev_energy,
++					     struct peci_sensor_data *energy,
++					     u32 unit, s32 *power_in_mW)
++{
++	ulong elapsed;
++	int ret;
++
++
++	elapsed = energy->last_updated - prev_energy->last_updated;
++
++	dev_dbg(dev, "raw energy before %u, raw energy now %u, unit %u, jiffies elapsed %lu\n",
++		prev_energy->value, energy->value, unit, elapsed);
++
++	/*
++	 * Don't calculate average power for first counter read  last counter
++	 * read was more than 60 minutes ago (jiffies did not wrap and power
++	 * calculation does not overflow or underflow).
++	 */
++	if (prev_energy->last_updated > 0 && elapsed < (HZ * 3600) && elapsed) {
++		u32 energy_consumed;
++		u64 energy_consumed_in_mJ;
++		u64 energy_by_jiffies;
++
++		if (energy->uvalue >= prev_energy->uvalue)
++			energy_consumed = energy->uvalue - prev_energy->uvalue;
++		else
++			energy_consumed = (U32_MAX - prev_energy->uvalue) +
++					energy->uvalue + 1u;
++
++		energy_consumed_in_mJ =
++				peci_pcs_xn_to_munits(energy_consumed, unit);
++		energy_by_jiffies = energy_consumed_in_mJ * HZ;
++
++		if (energy_by_jiffies > (u64)U32_MAX) {
++			do_div(energy_by_jiffies, elapsed);
++			*power_in_mW = (long)energy_by_jiffies;
++		} else {
++			*power_in_mW = (u32)energy_by_jiffies / elapsed;
++		}
++
++		dev_dbg(dev, "raw energy consumed %u, scaled energy consumed %llumJ, scaled power %dmW\n",
++			energy_consumed, energy_consumed_in_mJ, *power_in_mW);
++
++		ret = 0;
++	} else {
++		dev_dbg(dev, "skipping calculate power, try again\n");
++		*power_in_mW = 0;
++		ret = -EAGAIN;
++	}
++
++	prev_energy->uvalue = energy->uvalue;
++	peci_sensor_mark_updated_with_time(prev_energy, energy->last_updated);
++
++	return ret;
++}
++
++/**
++ * peci_pcs_calc_acc_eng - calculate accumulated energy (in microjoules) based
++ * on two energy readings
++ * @dev: Device handle
++ * @prev_energy: Previous energy reading context with raw energy counter value
++ * @energy: Current energy reading context with raw energy counter value
++ * @unit: Calculation factor
++ * @acc_energy_in_uJ: Pointer to the variable with cumulative energy counter
++ *
++ * Return: 0 if succeeded,
++ *	-EINVAL if there are null pointers among arguments,
++ *	-EAGAIN if calculation is skipped.
++ */
++static inline int peci_pcs_calc_acc_eng(struct device *dev,
++					struct peci_sensor_data *prev_energy,
++					struct peci_sensor_data *curr_energy,
++					u32 unit, u32 *acc_energy_in_uJ)
++{
++	ulong elapsed;
++	int ret;
++
++	elapsed = curr_energy->last_updated - prev_energy->last_updated;
++
++	dev_dbg(dev, "raw energy before %u, raw energy now %u, unit %u, jiffies elapsed %lu\n",
++		prev_energy->uvalue, curr_energy->value, unit, elapsed);
++
++	/*
++	 * Don't calculate cumulative energy for first counter read - last counter
++	 * read was more than 17 minutes ago (jiffies and energy raw counter did not wrap
++	 * and power calculation does not overflow or underflow).
++	 */
++	if (prev_energy->last_updated > 0 && elapsed < (HZ * 17 * 60)) {
++		u32 energy_consumed;
++		u64 energy_consumed_in_uJ;
++
++		if (curr_energy->uvalue >= prev_energy->uvalue)
++			energy_consumed = curr_energy->uvalue -
++					prev_energy->uvalue;
++		else
++			energy_consumed = (U32_MAX - prev_energy->uvalue) +
++					curr_energy->uvalue + 1u;
++
++		energy_consumed_in_uJ =
++				peci_pcs_xn_to_uunits(energy_consumed, unit);
++		*acc_energy_in_uJ = S32_MAX &
++				(*acc_energy_in_uJ + (u32)energy_consumed_in_uJ);
++
++		dev_dbg(dev, "raw energy %u, scaled energy %llumJ, cumulative energy %dmJ\n",
++			energy_consumed, energy_consumed_in_uJ,
++			*acc_energy_in_uJ);
++
++		ret = 0;
++	} else {
++		dev_dbg(dev, "skipping calculate cumulative energy, try again\n");
++
++		*acc_energy_in_uJ = 0;
++		ret = -EAGAIN;
++	}
++
++	prev_energy->uvalue = curr_energy->uvalue;
++	peci_sensor_mark_updated_with_time(prev_energy,
++					   curr_energy->last_updated);
++
++	return ret;
++}
++
++/**
++ * peci_pcs_get_units - read units (power, energy, time) from HW or cache
++ * @peci_mgr: PECI client manager handle
++ * @units: Pointer to the variable read value is going to be put in case reading
++ * from HW
++ * @valid: Flag telling cache is valid
++ *
++ * Return: 0 if succeeded
++ *	-EINVAL if there are null pointers among arguments,
++ *	other values in case other errors.
++ */
++static inline int peci_pcs_get_units(struct peci_client_manager *peci_mgr,
++				     union peci_pkg_power_sku_unit *units,
++				     bool *valid)
++{
++	int ret = 0;
++
++	if (!valid)
++		return -EINVAL;
++
++	if (!(*valid)) {
++		ret = peci_pcs_read(peci_mgr, PECI_MBX_INDEX_TDP_UNITS,
++				    PECI_PCS_PARAM_ZERO, &units->value);
++		if (!ret)
++			*valid = true;
++	}
++	return ret;
++}
++
++/**
++ * peci_pcs_calc_plxy_time_window - calculate power limit time window in
++ * PCS format. To figure that value out needs to solve the following equation:
++ * time_window = (1+(x/4)) * (2 ^ y), where time_window is known value and
++ * x and y values are variables to find.
++ * Return value is about X & Y compostion according to the following:
++ * x = ret[6:5], y = ret[4:0].
++ * @pl_tim_wnd_in_xn: PPL time window in X-n format
++ *
++ * Return: Power limit time window value
++ */
++static inline u32 peci_pcs_calc_plxy_time_window(u32 pl_tim_wnd_in_xn)
++{
++	u32 x = 0u;
++	u32 y = 0u;
++
++	/* Calculate y first */
++	while (pl_tim_wnd_in_xn > 7u) {
++		pl_tim_wnd_in_xn >>= 1;
++		y++;
++	}
++
++	/* Correct y value */
++	if (pl_tim_wnd_in_xn >= 4u)
++		y += 2u;
++	else if (pl_tim_wnd_in_xn >= 2u)
++		y += 1u;
++
++	/* Calculate x then */
++	if (pl_tim_wnd_in_xn >= 4u)
++		x = pl_tim_wnd_in_xn % 4;
++	else
++		x = 0u;
++
++	return ((x & 0x3) << 5) | (y & 0x1F);
++}
++
++#endif /* __PECI_HWMON_H */
+\ No newline at end of file
+diff --git a/drivers/mfd/intel-peci-client.c b/drivers/mfd/intel-peci-client.c
+index 24f15438634c..354ce1ce3067 100644
+--- a/drivers/mfd/intel-peci-client.c
++++ b/drivers/mfd/intel-peci-client.c
+@@ -21,33 +21,53 @@
+ static struct mfd_cell peci_functions[] = {
+ 	{ .name = "peci-cputemp", },
+ 	{ .name = "peci-dimmtemp", },
++	{ .name = "peci-cpupower", },
++	{ .name = "peci-dimmpower", },
+ };
+ 
+ static const struct cpu_gen_info cpu_gen_info_table[] = {
+ 	{ /* Haswell Xeon */
+-		.family        = INTEL_FAM6,
+-		.model         = INTEL_FAM6_HASWELL_X,
+-		.core_max      = CORE_MAX_ON_HSX,
+-		.chan_rank_max = CHAN_RANK_MAX_ON_HSX,
+-		.dimm_idx_max  = DIMM_IDX_MAX_ON_HSX },
++		.family         = INTEL_FAM6,
++		.model          = INTEL_FAM6_HASWELL_X,
++		.core_mask_bits = CORE_MASK_BITS_ON_HSX,
++		.chan_rank_max  = CHAN_RANK_MAX_ON_HSX,
++		.dimm_idx_max   = DIMM_IDX_MAX_ON_HSX },
+ 	{ /* Broadwell Xeon */
+-		.family        = INTEL_FAM6,
+-		.model         = INTEL_FAM6_BROADWELL_X,
+-		.core_max      = CORE_MAX_ON_BDX,
+-		.chan_rank_max = CHAN_RANK_MAX_ON_BDX,
+-		.dimm_idx_max  = DIMM_IDX_MAX_ON_BDX },
++		.family         = INTEL_FAM6,
++		.model          = INTEL_FAM6_BROADWELL_X,
++		.core_mask_bits = CORE_MASK_BITS_ON_BDX,
++		.chan_rank_max  = CHAN_RANK_MAX_ON_BDX,
++		.dimm_idx_max   = DIMM_IDX_MAX_ON_BDX },
+ 	{ /* Skylake Xeon */
+-		.family        = INTEL_FAM6,
+-		.model         = INTEL_FAM6_SKYLAKE_X,
+-		.core_max      = CORE_MAX_ON_SKX,
+-		.chan_rank_max = CHAN_RANK_MAX_ON_SKX,
+-		.dimm_idx_max  = DIMM_IDX_MAX_ON_SKX },
++		.family         = INTEL_FAM6,
++		.model          = INTEL_FAM6_SKYLAKE_X,
++		.core_mask_bits = CORE_MASK_BITS_ON_SKX,
++		.chan_rank_max  = CHAN_RANK_MAX_ON_SKX,
++		.dimm_idx_max   = DIMM_IDX_MAX_ON_SKX },
+ 	{ /* Skylake Xeon D */
+-		.family        = INTEL_FAM6,
+-		.model         = INTEL_FAM6_SKYLAKE_XD,
+-		.core_max      = CORE_MAX_ON_SKXD,
+-		.chan_rank_max = CHAN_RANK_MAX_ON_SKXD,
+-		.dimm_idx_max  = DIMM_IDX_MAX_ON_SKXD },
++		.family         = INTEL_FAM6,
++		.model          = INTEL_FAM6_SKYLAKE_XD,
++		.core_mask_bits = CORE_MASK_BITS_ON_SKXD,
++		.chan_rank_max  = CHAN_RANK_MAX_ON_SKXD,
++		.dimm_idx_max   = DIMM_IDX_MAX_ON_SKXD },
++	{ /* Icelake Xeon */
++		.family         = INTEL_FAM6,
++		.model          = INTEL_FAM6_ICELAKE_X,
++		.core_mask_bits = CORE_MASK_BITS_ON_ICX,
++		.chan_rank_max  = CHAN_RANK_MAX_ON_ICX,
++		.dimm_idx_max   = DIMM_IDX_MAX_ON_ICX },
++	{ /* Icelake Xeon D */
++		.family         = INTEL_FAM6,
++		.model          = INTEL_FAM6_ICELAKE_XD,
++		.core_mask_bits = CORE_MASK_BITS_ON_ICXD,
++		.chan_rank_max  = CHAN_RANK_MAX_ON_ICXD,
++		.dimm_idx_max   = DIMM_IDX_MAX_ON_ICXD },
++	{ /* SAPPHIRERAPIDS */
++		.family         = INTEL_FAM6,
++		.model          = INTEL_FAM6_SAPPHIRERAPIDS_X,
++		.core_mask_bits = CORE_MASK_BITS_ON_SAPPHIRERAPIDS,
++		.chan_rank_max  = CHAN_RANK_MAX_ON_SAPPHIRERAPIDS,
++		.dimm_idx_max   = DIMM_IDX_MAX_ON_SAPPHIRERAPIDS },
+ };
+ 
+ static int peci_client_get_cpu_gen_info(struct peci_client_manager *priv)
+@@ -145,4 +165,4 @@ module_peci_driver(peci_client_driver);
+ 
+ MODULE_AUTHOR("Jae Hyun Yoo <jae.hyun.yoo@linux.intel.com>");
+ MODULE_DESCRIPTION("PECI client driver");
+-MODULE_LICENSE("GPL v2");
++MODULE_LICENSE("GPL v2");
+\ No newline at end of file
+diff --git a/drivers/peci/Makefile b/drivers/peci/Makefile
+index da8b0a33fa42..492e6f94f01a 100644
+--- a/drivers/peci/Makefile
++++ b/drivers/peci/Makefile
+@@ -8,4 +8,4 @@ obj-$(CONFIG_PECI)		+= peci-core.o
+ obj-$(CONFIG_PECI_CHARDEV)	+= peci-dev.o
+ 
+ # Hardware specific bus drivers
+-obj-y				+= busses/
++obj-y				+= busses/
+\ No newline at end of file
+diff --git a/drivers/peci/busses/Kconfig b/drivers/peci/busses/Kconfig
+index 4316234db67c..20a1a7472d96 100644
+--- a/drivers/peci/busses/Kconfig
++++ b/drivers/peci/busses/Kconfig
+@@ -31,4 +31,17 @@ config PECI_NPCM
+ 	  This support is also available as a module. If so, the module
+ 	  will be called peci-npcm.
+ 
++config PECI_MCTP
++	tristate "PECI over MCTP support"
++	depends on ARCH_ASPEED || COMPILE_TEST
++	depends on PECI
++	depends on ASPEED_MCTP
++
++	help
++	  Say Y here if you want support for the Platform Environment Control
++	  Interface (PECI) over MCTP bus adapter driver.
++
++	  This support is also available as a module. If so, the module
++	  will be called peci-mctp.
++
+ endmenu
+diff --git a/drivers/peci/busses/Makefile b/drivers/peci/busses/Makefile
+index aa8ce3ae5947..43d3c0831351 100644
+--- a/drivers/peci/busses/Makefile
++++ b/drivers/peci/busses/Makefile
+@@ -5,3 +5,4 @@
+ 
+ obj-$(CONFIG_PECI_ASPEED)	+= peci-aspeed.o
+ obj-$(CONFIG_PECI_NPCM)		+= peci-npcm.o
++obj-$(CONFIG_PECI_MCTP)		+= peci-mctp.o
+\ No newline at end of file
+diff --git a/drivers/peci/busses/peci-aspeed.c b/drivers/peci/busses/peci-aspeed.c
+index 2673d4c4dcf9..0a7f54e21d7f 100644
+--- a/drivers/peci/busses/peci-aspeed.c
++++ b/drivers/peci/busses/peci-aspeed.c
+@@ -39,6 +39,7 @@
+ #define ASPEED_PECI_CMD				0x08
+ #define   ASPEED_PECI_CMD_PIN_MON		BIT(31)
+ #define   ASPEED_PECI_CMD_STS_MASK		GENMASK(27, 24)
++#define     ASPEED_PECI_CMD_STS_ADDR_T_NEGO	0x3
+ #define   ASPEED_PECI_CMD_IDLE_MASK		\
+ 	  (ASPEED_PECI_CMD_STS_MASK | ASPEED_PECI_CMD_PIN_MON)
+ #define   ASPEED_PECI_CMD_FIRE			BIT(0)
+@@ -125,11 +126,49 @@ struct aspeed_peci {
+ 	struct completion	xfer_complete;
+ 	u32			status;
+ 	u32			cmd_timeout_ms;
++	u32			msg_timing;
++	u32			addr_timing;
++	u32			rd_sampling_point;
++	u32			clk_div_val;
+ };
+ 
++static void aspeed_peci_init_regs(struct aspeed_peci *priv)
++{
++	writel(FIELD_PREP(ASPEED_PECI_CTRL_CLK_DIV_MASK,
++			  ASPEED_PECI_CLK_DIV_DEFAULT) |
++	       ASPEED_PECI_CTRL_PECI_CLK_EN, priv->base + ASPEED_PECI_CTRL);
++
++	/*
++	 * Timing negotiation period setting.
++	 * The unit of the programmed value is 4 times of PECI clock period.
++	 */
++	writel(FIELD_PREP(ASPEED_PECI_TIMING_MESSAGE_MASK, priv->msg_timing) |
++	       FIELD_PREP(ASPEED_PECI_TIMING_ADDRESS_MASK, priv->addr_timing),
++	       priv->base + ASPEED_PECI_TIMING_NEGOTIATION);
++
++	/* Clear interrupts */
++	writel(readl(priv->base + ASPEED_PECI_INT_STS) | ASPEED_PECI_INT_MASK,
++	       priv->base + ASPEED_PECI_INT_STS);
++
++	/* Set timing negotiation mode and enable interrupts */
++	writel(FIELD_PREP(ASPEED_PECI_TIMING_NEGO_SEL_MASK,
++			  ASPEED_PECI_1ST_BIT_OF_ADDR_NEGO) |
++	       ASPEED_PECI_INT_MASK, priv->base + ASPEED_PECI_INT_CTRL);
++
++	/* Read sampling point and clock speed setting */
++	writel(FIELD_PREP(ASPEED_PECI_CTRL_SAMPLING_MASK, priv->rd_sampling_point) |
++	       FIELD_PREP(ASPEED_PECI_CTRL_CLK_DIV_MASK, priv->clk_div_val) |
++	       ASPEED_PECI_CTRL_PECI_EN | ASPEED_PECI_CTRL_PECI_CLK_EN,
++	       priv->base + ASPEED_PECI_CTRL);
++}
++
+ static inline int aspeed_peci_check_idle(struct aspeed_peci *priv)
+ {
+-	u32 cmd_sts;
++	u32 cmd_sts = readl(priv->base + ASPEED_PECI_CMD);
++
++	if (FIELD_GET(ASPEED_PECI_CMD_STS_MASK,
++		      cmd_sts) == ASPEED_PECI_CMD_STS_ADDR_T_NEGO)
++		aspeed_peci_init_regs(priv);
+ 
+ 	return readl_poll_timeout(priv->base + ASPEED_PECI_CMD,
+ 				  cmd_sts,
+@@ -305,8 +344,9 @@ static int aspeed_peci_init_ctrl(struct aspeed_peci *priv)
+ 
+ 	clk_divisor = clk_get_rate(priv->clk) / clk_freq;
+ 
+-	while ((clk_divisor >> 1) && (clk_div_val < ASPEED_PECI_CLK_DIV_MAX))
++	while ((clk_divisor >>= 1) && (clk_div_val < ASPEED_PECI_CLK_DIV_MAX))
+ 		clk_div_val++;
++	priv->clk_div_val = clk_div_val;
+ 
+ 	ret = device_property_read_u32(priv->dev, "msg-timing", &msg_timing);
+ 	if (ret || msg_timing > ASPEED_PECI_MSG_TIMING_MAX) {
+@@ -316,6 +356,7 @@ static int aspeed_peci_init_ctrl(struct aspeed_peci *priv)
+ 				 msg_timing, ASPEED_PECI_MSG_TIMING_DEFAULT);
+ 		msg_timing = ASPEED_PECI_MSG_TIMING_DEFAULT;
+ 	}
++	priv->msg_timing = msg_timing;
+ 
+ 	ret = device_property_read_u32(priv->dev, "addr-timing", &addr_timing);
+ 	if (ret || addr_timing > ASPEED_PECI_ADDR_TIMING_MAX) {
+@@ -325,6 +366,7 @@ static int aspeed_peci_init_ctrl(struct aspeed_peci *priv)
+ 				 addr_timing, ASPEED_PECI_ADDR_TIMING_DEFAULT);
+ 		addr_timing = ASPEED_PECI_ADDR_TIMING_DEFAULT;
+ 	}
++	priv->addr_timing = addr_timing;
+ 
+ 	ret = device_property_read_u32(priv->dev, "rd-sampling-point",
+ 				       &rd_sampling_point);
+@@ -336,6 +378,7 @@ static int aspeed_peci_init_ctrl(struct aspeed_peci *priv)
+ 				 ASPEED_PECI_RD_SAMPLING_POINT_DEFAULT);
+ 		rd_sampling_point = ASPEED_PECI_RD_SAMPLING_POINT_DEFAULT;
+ 	}
++	priv->rd_sampling_point = rd_sampling_point;
+ 
+ 	ret = device_property_read_u32(priv->dev, "cmd-timeout-ms",
+ 				       &priv->cmd_timeout_ms);
+@@ -349,32 +392,7 @@ static int aspeed_peci_init_ctrl(struct aspeed_peci *priv)
+ 		priv->cmd_timeout_ms = ASPEED_PECI_CMD_TIMEOUT_MS_DEFAULT;
+ 	}
+ 
+-	writel(FIELD_PREP(ASPEED_PECI_CTRL_CLK_DIV_MASK,
+-			  ASPEED_PECI_CLK_DIV_DEFAULT) |
+-	       ASPEED_PECI_CTRL_PECI_CLK_EN, priv->base + ASPEED_PECI_CTRL);
+-
+-	/*
+-	 * Timing negotiation period setting.
+-	 * The unit of the programmed value is 4 times of PECI clock period.
+-	 */
+-	writel(FIELD_PREP(ASPEED_PECI_TIMING_MESSAGE_MASK, msg_timing) |
+-	       FIELD_PREP(ASPEED_PECI_TIMING_ADDRESS_MASK, addr_timing),
+-	       priv->base + ASPEED_PECI_TIMING_NEGOTIATION);
+-
+-	/* Clear interrupts */
+-	writel(readl(priv->base + ASPEED_PECI_INT_STS) | ASPEED_PECI_INT_MASK,
+-	       priv->base + ASPEED_PECI_INT_STS);
+-
+-	/* Set timing negotiation mode and enable interrupts */
+-	writel(FIELD_PREP(ASPEED_PECI_TIMING_NEGO_SEL_MASK,
+-			  ASPEED_PECI_1ST_BIT_OF_ADDR_NEGO) |
+-	       ASPEED_PECI_INT_MASK, priv->base + ASPEED_PECI_INT_CTRL);
+-
+-	/* Read sampling point and clock speed setting */
+-	writel(FIELD_PREP(ASPEED_PECI_CTRL_SAMPLING_MASK, rd_sampling_point) |
+-	       FIELD_PREP(ASPEED_PECI_CTRL_CLK_DIV_MASK, clk_div_val) |
+-	       ASPEED_PECI_CTRL_PECI_EN | ASPEED_PECI_CTRL_PECI_CLK_EN,
+-	       priv->base + ASPEED_PECI_CTRL);
++	aspeed_peci_init_regs(priv);
+ 
+ 	return 0;
+ }
+@@ -452,9 +470,10 @@ static int aspeed_peci_remove(struct platform_device *pdev)
+ {
+ 	struct aspeed_peci *priv = dev_get_drvdata(&pdev->dev);
+ 
++	peci_del_adapter(priv->adapter);
++	complete(&priv->xfer_complete);
+ 	clk_disable_unprepare(priv->clk);
+ 	reset_control_assert(priv->rst);
+-	peci_del_adapter(priv->adapter);
+ 	of_node_put(priv->adapter->dev.of_node);
+ 
+ 	return 0;
+@@ -481,4 +500,4 @@ module_platform_driver(aspeed_peci_driver);
+ MODULE_AUTHOR("Ryan Chen <ryan_chen@aspeedtech.com>");
+ MODULE_AUTHOR("Jae Hyun Yoo <jae.hyun.yoo@linux.intel.com>");
+ MODULE_DESCRIPTION("ASPEED PECI driver");
+-MODULE_LICENSE("GPL v2");
++MODULE_LICENSE("GPL v2");
+\ No newline at end of file
+diff --git a/drivers/peci/busses/peci-mctp.c b/drivers/peci/busses/peci-mctp.c
+new file mode 100644
+index 000000000000..255a172f5d2f
+--- /dev/null
++++ b/drivers/peci/busses/peci-mctp.c
+@@ -0,0 +1,410 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (c) 2020 Intel Corporation
++
++#include <linux/aspeed-mctp.h>
++#include <linux/jiffies.h>
++#include <linux/module.h>
++#include <linux/peci.h>
++#include <linux/platform_device.h>
++
++#define PCIE_SET_DATA_LEN(x, val)	((x)->len_lo |= (val))
++#define PCIE_SET_TARGET_ID(x, val)	((x)->target |= (swab16(val)))
++#define PCIE_PKT_ALIGN(x)		ALIGN(x, sizeof(u32))
++#define PCIE_GET_REQUESTER_ID(x)	(swab16((x)->requester))
++
++/*
++ * PCIe header template in "network format" - Big Endian
++ */
++#define MSG_4DW_HDR_ROUTE_BY_ID	0x72
++#define MSG_CODE_VDM_TYPE_1	0x7f
++#define VENDOR_ID_DMTF_VDM	0xb41a
++static const struct pcie_transport_hdr pcie_hdr_template_be = {
++	.fmt_type = MSG_4DW_HDR_ROUTE_BY_ID,
++	.code = MSG_CODE_VDM_TYPE_1,
++	.vendor = VENDOR_ID_DMTF_VDM
++};
++
++#define MSG_TAG_MASK			GENMASK(2, 0)
++#define MCTP_SET_MSG_TAG(x, val)	((x)->flags_seq_tag |= ((val) & MSG_TAG_MASK))
++#define MCTP_GET_MSG_TAG(x)		((x)->flags_seq_tag & MSG_TAG_MASK)
++#define MCTP_HDR_VERSION		1
++#define REQUEST_FLAGS			0xc8
++#define RESPONSE_FLAGS			0xc0
++static const struct mctp_protocol_hdr mctp_hdr_template_be = {
++	.ver = MCTP_HDR_VERSION,
++	.flags_seq_tag = REQUEST_FLAGS
++};
++
++static struct mctp_peci_vdm_hdr {
++	u8 type;
++	u16 vendor_id;
++	u8 instance_req_d;
++	u8 vendor_code;
++} __packed;
++
++#define PCIE_VDM_TYPE	0x7e
++#define INTEL_VENDOR_ID	0x8680
++#define PECI_REQUEST	0x80
++#define PECI_RESPONSE	0
++#define PECI_MSG_OPCODE	0x02
++static const struct mctp_peci_vdm_hdr peci_hdr_template = {
++	.type = PCIE_VDM_TYPE,
++	.vendor_id = INTEL_VENDOR_ID,
++	.instance_req_d = PECI_REQUEST,
++	.vendor_code = PECI_MSG_OPCODE
++};
++
++#define PECI_VDM_TYPE	0x0200
++#define PECI_VDM_MASK	0xff00
++
++#define CPUNODEID_CFG_LCLNODEID_MASK	GENMASK(2, 0)
++#define CPUNODEID_CFG_OFFSET	0xc0
++#define CPUNODEID_CFG_BUS	0x1e
++#define CPUNODEID_CFG_DEV	0
++#define CPUNODEID_CFG_FUNC	0
++
++struct node_cfg {
++	u8 eid;
++	u16 bdf;
++};
++
++struct mctp_peci {
++	struct peci_adapter *adapter;
++	struct device *dev;
++	struct mctp_client *peci_client;
++	struct node_cfg cpus[PECI_OFFSET_MAX];
++	u8 tag;
++};
++
++static void
++prepare_tx_packet(struct mctp_pcie_packet *tx_packet, struct node_cfg *cpu,
++		  u8 tx_len, u8 rx_len, u8 *tx_buf, u8 tag)
++{
++	struct pcie_transport_hdr *pcie_hdr;
++	struct mctp_protocol_hdr *mctp_hdr;
++	struct mctp_peci_vdm_hdr *peci_hdr;
++	u8 *peci_payload;
++	u32 payload_len, payload_len_dw;
++
++	BUILD_BUG_ON((sizeof(struct pcie_transport_hdr) +
++		     sizeof(struct mctp_protocol_hdr)) != PCIE_VDM_HDR_SIZE);
++
++	pcie_hdr = (struct pcie_transport_hdr *)tx_packet;
++	*pcie_hdr = pcie_hdr_template_be;
++
++	mctp_hdr = (struct mctp_protocol_hdr *)&tx_packet->data.hdr[3];
++	*mctp_hdr = mctp_hdr_template_be;
++
++	peci_hdr = (struct mctp_peci_vdm_hdr *)tx_packet->data.payload;
++	*peci_hdr = peci_hdr_template;
++
++	peci_payload = (u8 *)(tx_packet->data.payload) + sizeof(struct mctp_peci_vdm_hdr);
++	peci_payload[0] = tx_len;
++	peci_payload[1] = rx_len;
++	memcpy(&peci_payload[2], tx_buf, tx_len);
++
++	/*
++	 * MCTP packet payload consists of PECI VDM header, WL, RL and actual
++	 * PECI payload
++	 */
++	payload_len = sizeof(struct mctp_peci_vdm_hdr) + 2 + tx_len;
++	payload_len_dw = PCIE_PKT_ALIGN(payload_len) / sizeof(u32);
++
++	PCIE_SET_DATA_LEN(pcie_hdr, payload_len_dw);
++
++	tx_packet->size = PCIE_PKT_ALIGN(payload_len) + PCIE_VDM_HDR_SIZE;
++
++	mctp_hdr->dest = cpu->eid;
++	PCIE_SET_TARGET_ID(pcie_hdr, cpu->bdf);
++	MCTP_SET_MSG_TAG(mctp_hdr, tag);
++}
++
++static int
++verify_rx_packet(struct peci_adapter *adapter, struct mctp_pcie_packet *rx_packet,
++		 struct node_cfg *cpu, u8 tag)
++{
++	struct mctp_peci *priv = peci_get_adapdata(adapter);
++	bool invalid_packet = false;
++	struct pcie_transport_hdr *pcie_hdr;
++	struct mctp_protocol_hdr *mctp_hdr;
++	struct mctp_peci_vdm_hdr *peci_hdr;
++	u8 expected_flags;
++	u16 requester_id;
++
++	expected_flags = (RESPONSE_FLAGS | (tag & MSG_TAG_MASK));
++
++	pcie_hdr = (struct pcie_transport_hdr *)rx_packet;
++	mctp_hdr = (struct mctp_protocol_hdr *)&rx_packet->data.hdr[3];
++	peci_hdr = (struct mctp_peci_vdm_hdr *)rx_packet->data.payload;
++
++	requester_id = PCIE_GET_REQUESTER_ID(pcie_hdr);
++
++	if (requester_id != cpu->bdf) {
++		dev_dbg(priv->dev,
++			"mismatch in src bdf: expected: 0x%.4x, got: 0x%.4x",
++			cpu->bdf, requester_id);
++		invalid_packet = true;
++	}
++	if (mctp_hdr->src != cpu->eid) {
++		dev_dbg(priv->dev,
++			"mismatch in src eid: expected: 0x%.2x, got: 0x%.2x",
++			cpu->eid, mctp_hdr->src);
++		invalid_packet = true;
++	}
++	if (mctp_hdr->flags_seq_tag != expected_flags) {
++		dev_dbg(priv->dev,
++			"mismatch in mctp flags: expected: 0x%.2x, got: 0x%.2x",
++			expected_flags, mctp_hdr->flags_seq_tag);
++		invalid_packet = true;
++	}
++	if (peci_hdr->instance_req_d != PECI_RESPONSE) {
++		dev_dbg(priv->dev,
++			"packet doesn't match a response: expected: 0x%.2x, got: 0x%.2x",
++			PECI_RESPONSE, peci_hdr->instance_req_d);
++		invalid_packet = true;
++	}
++
++	if (invalid_packet) {
++		dev_warn_ratelimited(priv->dev, "unexpected peci response found\n");
++		return -EIO;
++	}
++
++	return 0;
++}
++
++static struct mctp_pcie_packet *
++mctp_peci_send_receive(struct peci_adapter *adapter, struct node_cfg *cpu,
++		       u8 tx_len, u8 rx_len, u8 *tx_buf)
++{
++	struct mctp_peci *priv = peci_get_adapdata(adapter);
++	/* XXX: Sporadically it can take up to 1100 ms for response to arrive */
++	unsigned long timeout = msecs_to_jiffies(1100);
++	u8 tag = priv->tag;
++	struct mctp_pcie_packet *tx_packet, *rx_packet;
++	unsigned long current_time, end_time;
++	int ret;
++
++	tx_packet = aspeed_mctp_packet_alloc(GFP_KERNEL);
++	if (!tx_packet)
++		return ERR_PTR(-ENOMEM);
++
++	prepare_tx_packet(tx_packet, cpu, tx_len, rx_len, tx_buf, tag);
++
++	aspeed_mctp_flush_rx_queue(priv->peci_client);
++
++	ret = aspeed_mctp_send_packet(priv->peci_client, tx_packet);
++	if (ret) {
++		dev_dbg_ratelimited(priv->dev, "failed to send mctp packet: %d\n", ret);
++		aspeed_mctp_packet_free(tx_packet);
++		return ERR_PTR(ret);
++	}
++	priv->tag++;
++
++	end_time = jiffies + timeout;
++retry:
++	rx_packet = aspeed_mctp_receive_packet(priv->peci_client, timeout);
++	if (IS_ERR(rx_packet)) {
++		if (PTR_ERR(rx_packet) != -ERESTARTSYS)
++			dev_err_ratelimited(priv->dev, "failed to receive mctp packet: %ld\n",
++					    PTR_ERR(rx_packet));
++
++		return rx_packet;
++	}
++	BUG_ON(!rx_packet);
++
++	ret = verify_rx_packet(adapter, rx_packet, cpu, tag);
++	current_time = jiffies;
++	if (ret && time_before(current_time, end_time)) {
++		aspeed_mctp_packet_free(rx_packet);
++		timeout = ((long)end_time - (long)current_time);
++		goto retry;
++	}
++
++	return rx_packet;
++}
++
++static void mctp_peci_cpu_discovery(struct peci_adapter *adapter)
++{
++	const u8 eids[] = { 0x1d, 0x3d, 0x5d, 0x7d, 0x9d, 0xbd, 0xdd, 0xfd };
++	struct mctp_peci *priv = peci_get_adapdata(adapter);
++	u8 tx_buf[PECI_RDENDPTCFG_PCI_WRITE_LEN];
++	struct mctp_pcie_packet *rx_packet;
++	struct node_cfg cpu;
++	int i, node_id, ret;
++	u8 *rx_buf;
++	u32 addr;
++
++	addr = CPUNODEID_CFG_OFFSET;     /* [11:0] offset */
++	addr |= CPUNODEID_CFG_FUNC << 12;/* [14:12] function */
++	addr |= CPUNODEID_CFG_DEV << 15; /* [19:15] device */
++	addr |= CPUNODEID_CFG_BUS << 20; /* [27:20] bus, [31:28] reserved */
++
++	tx_buf[0] = PECI_RDENDPTCFG_CMD;
++	tx_buf[1] = 0;
++	tx_buf[2] = PECI_ENDPTCFG_TYPE_LOCAL_PCI;
++	tx_buf[3] = 0; /* Endpoint ID */
++	tx_buf[4] = 0; /* Reserved */
++	tx_buf[5] = 0; /* Reserved */
++	tx_buf[6] = PECI_ENDPTCFG_ADDR_TYPE_PCI;
++	tx_buf[7] = 0; /* PCI Segment */
++	tx_buf[8] = (u8)addr;
++	tx_buf[9] = (u8)(addr >> 8);
++	tx_buf[10] = (u8)(addr >> 16);
++	tx_buf[11] = (u8)(addr >> 24);
++
++	for (i = 0; i < PECI_OFFSET_MAX; i++) {
++		cpu.eid = eids[i];
++
++		ret = aspeed_mctp_get_eid_bdf(priv->peci_client, cpu.eid, &cpu.bdf);
++		if (ret)
++			continue;
++
++		rx_packet = mctp_peci_send_receive(adapter, &cpu,
++						   PECI_RDENDPTCFG_PCI_WRITE_LEN,
++						   PECI_RDENDPTCFG_READ_LEN_BASE + 4,
++						   tx_buf);
++		if (IS_ERR(rx_packet))
++			continue;
++
++		rx_buf = (u8 *)(rx_packet->data.payload) + sizeof(struct mctp_peci_vdm_hdr);
++		node_id = rx_buf[1] & CPUNODEID_CFG_LCLNODEID_MASK;
++
++		priv->cpus[node_id] = cpu;
++		aspeed_mctp_packet_free(rx_packet);
++	}
++}
++
++static int
++mctp_peci_get_address(struct peci_adapter *adapter, u8 peci_addr, struct node_cfg *cpu)
++{
++	struct mctp_peci *priv = peci_get_adapdata(adapter);
++	int node_id = peci_addr - 0x30;
++
++	/*
++	 * XXX: Is it possible we're able to communicate with CPU 0 before other
++	 * CPUs are up? Make sure we're always discovering all CPUs.
++	 */
++	if (!priv->cpus[0].eid)
++		mctp_peci_cpu_discovery(adapter);
++
++	if (!priv->cpus[node_id].eid)
++		return -EINVAL;
++
++	*cpu = priv->cpus[node_id];
++
++	return 0;
++}
++
++static int
++mctp_peci_xfer(struct peci_adapter *adapter, struct peci_xfer_msg *msg)
++{
++	u32 max_len = sizeof(struct mctp_pcie_packet_data) -
++		PCIE_VDM_HDR_SIZE - sizeof(struct mctp_peci_vdm_hdr);
++	struct mctp_pcie_packet *rx_packet;
++	struct node_cfg cpu;
++	int ret;
++
++	if (msg->tx_len > max_len || msg->rx_len > max_len)
++		return -EINVAL;
++
++	ret = mctp_peci_get_address(adapter, msg->addr, &cpu);
++	if (ret)
++		return ret;
++
++	rx_packet = mctp_peci_send_receive(adapter, &cpu, msg->tx_len, msg->rx_len, msg->tx_buf);
++	if (IS_ERR(rx_packet))
++		return PTR_ERR(rx_packet);
++
++	memcpy(msg->rx_buf,
++	       (u8 *)(rx_packet->data.payload) + sizeof(struct mctp_peci_vdm_hdr),
++	       msg->rx_len);
++
++	aspeed_mctp_packet_free(rx_packet);
++
++	return 0;
++}
++
++static int mctp_peci_init_peci_client(struct mctp_peci *priv)
++{
++	struct device *parent = priv->dev->parent;
++	int ret;
++
++	priv->peci_client = aspeed_mctp_create_client(dev_get_drvdata(parent));
++	if (IS_ERR(priv->peci_client))
++		return -ENOMEM;
++
++	ret = aspeed_mctp_add_type_handler(priv->peci_client, PCIE_VDM_TYPE,
++					   INTEL_VENDOR_ID, PECI_VDM_TYPE,
++					   PECI_VDM_MASK);
++	if (ret)
++		aspeed_mctp_delete_client(priv->peci_client);
++
++	return ret;
++}
++
++static int mctp_peci_probe(struct platform_device *pdev)
++{
++	struct peci_adapter *adapter;
++	struct mctp_peci *priv;
++	int ret;
++
++	adapter = peci_alloc_adapter(&pdev->dev, sizeof(*priv));
++	if (!adapter)
++		return -ENOMEM;
++
++	priv = peci_get_adapdata(adapter);
++	priv->dev = &pdev->dev;
++	dev_set_drvdata(&pdev->dev, priv);
++
++	adapter->owner = THIS_MODULE;
++	strlcpy(adapter->name, pdev->name, sizeof(adapter->name));
++
++	adapter->xfer = mctp_peci_xfer;
++	adapter->peci_revision = 0x41;
++
++	priv->adapter = adapter;
++
++	ret = mctp_peci_init_peci_client(priv);
++	if (ret)
++		goto out_put_device;
++
++	ret = peci_add_adapter(adapter);
++	if (ret)
++		goto out_del_client;
++
++	return 0;
++
++out_del_client:
++	aspeed_mctp_delete_client(priv->peci_client);
++out_put_device:
++	put_device(&adapter->dev);
++	return ret;
++}
++
++static int mctp_peci_remove(struct platform_device *pdev)
++{
++	struct mctp_peci *priv = dev_get_drvdata(&pdev->dev);
++
++	if (!priv)
++		goto out;
++
++	aspeed_mctp_delete_client(priv->peci_client);
++
++	peci_del_adapter(priv->adapter);
++out:
++	return 0;
++}
++
++static struct platform_driver mctp_peci_driver = {
++	.probe  = mctp_peci_probe,
++	.remove = mctp_peci_remove,
++	.driver = {
++		.name = "peci-mctp",
++	},
++};
++module_platform_driver(mctp_peci_driver);
++
++MODULE_ALIAS("platform:peci-mctp");
++MODULE_LICENSE("GPL");
++MODULE_AUTHOR("Iwona Winiarska <iwona.winiarska@intel.com>");
++MODULE_DESCRIPTION("PECI MCTP driver");
+\ No newline at end of file
+diff --git a/drivers/peci/busses/peci-npcm.c b/drivers/peci/busses/peci-npcm.c
+index bdebbf1ec7f1..c3a59388f5e5 100644
+--- a/drivers/peci/busses/peci-npcm.c
++++ b/drivers/peci/busses/peci-npcm.c
+@@ -403,4 +403,4 @@ module_platform_driver(npcm_peci_driver);
+ 
+ MODULE_AUTHOR("Tomer Maimon <tomer.maimon@nuvoton.com>");
+ MODULE_DESCRIPTION("NPCM Platform Environment Control Interface (PECI) driver");
+-MODULE_LICENSE("GPL v2");
++MODULE_LICENSE("GPL v2");
+\ No newline at end of file
+diff --git a/drivers/peci/peci-core.c b/drivers/peci/peci-core.c
+index 9aedb74710e6..a9bd6e646cc4 100644
+--- a/drivers/peci/peci-core.c
++++ b/drivers/peci/peci-core.c
+@@ -3,6 +3,7 @@
+ 
+ #include <linux/bitfield.h>
+ #include <linux/crc8.h>
++#include <linux/delay.h>
+ #include <linux/mm.h>
+ #include <linux/module.h>
+ #include <linux/of_device.h>
+@@ -192,7 +193,7 @@ static int peci_aw_fcs(struct peci_xfer_msg *msg, int len, u8 *aw_fcs)
+ static int __peci_xfer(struct peci_adapter *adapter, struct peci_xfer_msg *msg,
+ 		       bool do_retry, bool has_aw_fcs)
+ {
+-	uint interval_ms = PECI_DEV_RETRY_INTERVAL_MIN_MSEC;
++	uint interval_us = PECI_DEV_RETRY_INTERVAL_MIN_USEC;
+ 	ulong timeout = jiffies;
+ 	u8 aw_fcs;
+ 	int ret;
+@@ -256,15 +257,11 @@ static int __peci_xfer(struct peci_adapter *adapter, struct peci_xfer_msg *msg,
+ 			break;
+ 		}
+ 
+-		set_current_state(TASK_INTERRUPTIBLE);
+-		if (schedule_timeout(msecs_to_jiffies(interval_ms))) {
+-			ret = -EINTR;
+-			break;
+-		}
++		usleep_range(interval_us, interval_us * 2);
+ 
+-		interval_ms *= 2;
+-		if (interval_ms > PECI_DEV_RETRY_INTERVAL_MAX_MSEC)
+-			interval_ms = PECI_DEV_RETRY_INTERVAL_MAX_MSEC;
++		interval_us *= 2;
++		if (interval_us > PECI_DEV_RETRY_INTERVAL_MAX_USEC)
++			interval_us = PECI_DEV_RETRY_INTERVAL_MAX_USEC;
+ 	}
+ 
+ 	if (ret)
+@@ -304,23 +301,33 @@ static int peci_scan_cmd_mask(struct peci_adapter *adapter)
+ 	msg->tx_buf[0] = PECI_GET_DIB_CMD;
+ 
+ 	ret = peci_xfer(adapter, msg);
+-	if (ret)
+-		return ret;
++	if (ret) {
++		ret = -EAGAIN;
++		goto out;
++	}
++	if (msg->rx_buf[0] == PECI_DEV_CC_INVALID_REQ) {
++		/*
++		 * if GetDIB() is not supported, use a revision property of
++		 * hardware adapter
++		 */
++		revision = adapter->peci_revision;
++	} else {
++		dib = le64_to_cpup((__le64 *)msg->rx_buf);
+ 
+-	dib = le64_to_cpup((__le64 *)msg->rx_buf);
++		/* Check special case for Get DIB command */
++		if (dib == 0) {
++			dev_dbg(&adapter->dev, "DIB read as 0\n");
++			ret = -EIO;
++			goto out;
++		}
+ 
+-	/* Check special case for Get DIB command */
+-	if (dib == 0) {
+-		dev_dbg(&adapter->dev, "DIB read as 0\n");
+-		ret = -EIO;
+-		goto out;
++		/*
++		 * Setting up the supporting commands based on revision number.
++		 * See PECI Spec Table 3-1.
++		 */
++		revision = FIELD_GET(REVISION_NUM_MASK, dib);
+ 	}
+ 
+-	/*
+-	 * Setting up the supporting commands based on revision number.
+-	 * See PECI Spec Table 3-1.
+-	 */
+-	revision = FIELD_GET(REVISION_NUM_MASK, dib);
+ 	if (revision >= 0x40) { /* Rev. 4.0 */
+ 		adapter->cmd_mask |= BIT(PECI_CMD_RD_IA_MSREX);
+ 		adapter->cmd_mask |= BIT(PECI_CMD_RD_END_PT_CFG);
+@@ -383,46 +390,30 @@ static int peci_cmd_xfer(struct peci_adapter *adapter, void *vmsg)
+ 		ret = peci_xfer(adapter, msg);
+ 	} else {
+ 		switch (msg->tx_buf[0]) {
+-		case PECI_RDPKGCFG_CMD:
+-		case PECI_RDIAMSR_CMD:
+-		case PECI_RDIAMSREX_CMD:
+-		case PECI_RDPCICFG_CMD:
+-		case PECI_RDPCICFGLOCAL_CMD:
+-		case PECI_RDENDPTCFG_CMD:
+-		case PECI_CRASHDUMP_CMD:
+-			ret = peci_xfer_with_retries(adapter, msg, false);
++		case PECI_GET_DIB_CMD:
++		case PECI_GET_TEMP_CMD:
++			ret = peci_xfer(adapter, msg);
+ 			break;
+ 		case PECI_WRPKGCFG_CMD:
+ 		case PECI_WRIAMSR_CMD:
+ 		case PECI_WRPCICFG_CMD:
+ 		case PECI_WRPCICFGLOCAL_CMD:
+ 		case PECI_WRENDPTCFG_CMD:
+-			/* Check if the AW FCS byte is already provided */
++			/*
++			 * The sender may not have supplied the AW FCS byte.
++			 * Unconditionally add an Assured Write Frame Check
++			 * Sequence byte
++			 */
+ 			ret = peci_aw_fcs(msg, 2 + msg->tx_len, &aw_fcs);
+ 			if (ret)
+ 				break;
+ 
+-			if (msg->tx_buf[msg->tx_len - 1] != (0x80 ^ aw_fcs)) {
+-				/*
+-				 * Add an Assured Write Frame Check Sequence
+-				 * byte and increment the tx_len to include
+-				 * the new byte.
+-				 */
+-				msg->tx_len++;
+-				ret = peci_aw_fcs(msg, 2 + msg->tx_len,
+-						  &aw_fcs);
+-				if (ret)
+-					break;
+-
+-				msg->tx_buf[msg->tx_len - 1] = 0x80 ^ aw_fcs;
+-			}
++			msg->tx_buf[msg->tx_len - 1] = 0x80 ^ aw_fcs;
+ 
+ 			ret = peci_xfer_with_retries(adapter, msg, true);
+ 			break;
+-		case PECI_GET_DIB_CMD:
+-		case PECI_GET_TEMP_CMD:
+ 		default:
+-			ret = peci_xfer(adapter, msg);
++			ret = peci_xfer_with_retries(adapter, msg, false);
+ 			break;
+ 		}
+ 	}
+@@ -1040,7 +1031,6 @@ static int peci_cmd_wr_end_pt_cfg(struct peci_adapter *adapter, void *vmsg)
+ 				       >> 24); /* MSB - DWORD Register Offset */
+ 		if (umsg->params.mmio.addr_type ==
+ 		    PECI_ENDPTCFG_ADDR_TYPE_MMIO_Q) {
+-			msg->tx_len = PECI_WRENDPTCFG_MMIO_Q_WRITE_LEN_BASE;
+ 			msg->tx_buf[14] = (u8)(umsg->params.mmio.offset
+ 					       >> 32); /* Register Offset */
+ 			msg->tx_buf[15] = (u8)(umsg->params.mmio.offset
+@@ -1069,7 +1059,7 @@ static int peci_cmd_wr_end_pt_cfg(struct peci_adapter *adapter, void *vmsg)
+ 		return -EINVAL;
+ 	}
+ 
+-	ret = peci_xfer_with_retries(adapter, msg, false);
++	ret = peci_xfer_with_retries(adapter, msg, true);
+ 
+ out:
+ 	umsg->cc = msg->rx_buf[0];
+@@ -2086,4 +2076,4 @@ module_exit(peci_exit);
+ MODULE_AUTHOR("Jason M Biils <jason.m.bills@linux.intel.com>");
+ MODULE_AUTHOR("Jae Hyun Yoo <jae.hyun.yoo@linux.intel.com>");
+ MODULE_DESCRIPTION("PECI bus core module");
+-MODULE_LICENSE("GPL v2");
++MODULE_LICENSE("GPL v2");
+\ No newline at end of file
+diff --git a/drivers/peci/peci-dev.c b/drivers/peci/peci-dev.c
+index 84e90af81ccc..f415c530b471 100644
+--- a/drivers/peci/peci-dev.c
++++ b/drivers/peci/peci-dev.c
+@@ -138,8 +138,13 @@ static long peci_dev_ioctl(struct file *file, uint iocmd, ulong arg)
+ 		xmsg->tx_len = uxmsg.tx_len;
+ 		xmsg->rx_len = uxmsg.rx_len;
+ 
++		/*
++		 * Send the command and copy the results back to user space on
++		 * either success or timeout to provide the completion code to
++		 * the caller.
++		 */
+ 		ret = peci_command(peci_dev->adapter, cmd, xmsg);
+-		if (!ret && xmsg->rx_len &&
++		if ((!ret || ret == -ETIMEDOUT) && xmsg->rx_len &&
+ 		    copy_to_user((__u8 __user *)uxmsg.rx_buf, xmsg->rx_buf,
+ 				 xmsg->rx_len))
+ 			ret = -EFAULT;
+@@ -153,6 +158,11 @@ static long peci_dev_ioctl(struct file *file, uint iocmd, ulong arg)
+ 			break;
+ 		}
+ 
++		/*
++		 * Send the command and copy the results back to user space on
++		 * either success or timeout to provide the completion code to
++		 * the caller.
++		 */
+ 		ret = peci_command(peci_dev->adapter, cmd, msg);
+ 		if ((!ret || ret == -ETIMEDOUT) &&
+ 		    copy_to_user(umsg, msg, msg_len))
+@@ -346,4 +356,4 @@ module_exit(peci_dev_exit);
+ 
+ MODULE_AUTHOR("Jae Hyun Yoo <jae.hyun.yoo@linux.intel.com>");
+ MODULE_DESCRIPTION("PECI /dev entries driver");
+-MODULE_LICENSE("GPL v2");
++MODULE_LICENSE("GPL v2");
+\ No newline at end of file
+diff --git a/include/linux/mfd/intel-peci-client.h b/include/linux/mfd/intel-peci-client.h
+index 7668d0cfa843..1b49ab1f2e09 100644
+--- a/include/linux/mfd/intel-peci-client.h
++++ b/include/linux/mfd/intel-peci-client.h
+@@ -1,5 +1,5 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
+-/* Copyright (c) 2018-2019 Intel Corporation */
++/* Copyright (c) 2018-2020 Intel Corporation */
+ 
+ #ifndef __LINUX_MFD_INTEL_PECI_CLIENT_H
+ #define __LINUX_MFD_INTEL_PECI_CLIENT_H
+@@ -18,27 +18,44 @@
+ #define INTEL_FAM6_BROADWELL_X		0x4F
+ #define INTEL_FAM6_SKYLAKE_X		0x55
+ #define INTEL_FAM6_SKYLAKE_XD		0x56
++#define INTEL_FAM6_ICELAKE_X		0x6A
++#define INTEL_FAM6_ICELAKE_XD		0x6C
++#define INTEL_FAM6_SAPPHIRERAPIDS_X		0x8F
+ #endif
+ 
+ #define INTEL_FAM6             6 /* P6 (Pentium Pro and later) */
+ 
+-#define CORE_MAX_ON_HSX        18 /* Max number of cores on Haswell */
++#define CORE_MASK_BITS_ON_HSX  18
+ #define CHAN_RANK_MAX_ON_HSX   8  /* Max number of channel ranks on Haswell */
+ #define DIMM_IDX_MAX_ON_HSX    3  /* Max DIMM index per channel on Haswell */
+ 
+-#define CORE_MAX_ON_BDX        24 /* Max number of cores on Broadwell */
++#define CORE_MASK_BITS_ON_BDX  24
+ #define CHAN_RANK_MAX_ON_BDX   4  /* Max number of channel ranks on Broadwell */
+ #define DIMM_IDX_MAX_ON_BDX    3  /* Max DIMM index per channel on Broadwell */
+ 
+-#define CORE_MAX_ON_SKX        28 /* Max number of cores on Skylake */
++#define CORE_MASK_BITS_ON_SKX  28
+ #define CHAN_RANK_MAX_ON_SKX   6  /* Max number of channel ranks on Skylake */
+ #define DIMM_IDX_MAX_ON_SKX    2  /* Max DIMM index per channel on Skylake */
+ 
+-#define CORE_MAX_ON_SKXD       16 /* Max number of cores on Skylake D */
++#define CORE_MASK_BITS_ON_SKXD 28
+ #define CHAN_RANK_MAX_ON_SKXD  2  /* Max number of channel ranks on Skylake D */
+ #define DIMM_IDX_MAX_ON_SKXD   2  /* Max DIMM index per channel on Skylake D */
+ 
+-#define CORE_NUMS_MAX          CORE_MAX_ON_SKX
++#define CORE_MASK_BITS_ON_ICX  64
++#define CHAN_RANK_MAX_ON_ICX   8  /* Max number of channel ranks on Icelake */
++#define DIMM_IDX_MAX_ON_ICX    2  /* Max DIMM index per channel on Icelake */
++
++#define CORE_MASK_BITS_ON_ICXD 64
++#define CHAN_RANK_MAX_ON_ICXD  4  /* Max number of channel ranks on Icelake D */
++#define DIMM_IDX_MAX_ON_ICXD   2  /* Max DIMM index per channel on Icelake D */
++
++/*SAPPHIRERAPIDS*/
++#define CORE_MASK_BITS_ON_SAPPHIRERAPIDS 50 /* Max number of cores */
++#define CHAN_RANK_MAX_ON_SAPPHIRERAPIDS  8  /* Max number of channel ranks*/
++#define DIMM_IDX_MAX_ON_SAPPHIRERAPIDS   2  /* Max DIMM index per channel*/
++
++
++#define CORE_MASK_BITS_MAX     CORE_MASK_BITS_ON_ICX
+ #define CHAN_RANK_MAX          CHAN_RANK_MAX_ON_HSX
+ #define DIMM_IDX_MAX           DIMM_IDX_MAX_ON_HSX
+ #define DIMM_NUMS_MAX          (CHAN_RANK_MAX * DIMM_IDX_MAX)
+@@ -47,7 +64,7 @@
+  * struct cpu_gen_info - CPU generation specific information
+  * @family: CPU family ID
+  * @model: CPU model
+- * @core_max: max number of cores
++ * @core_mask_bits: number of resolved core bits
+  * @chan_rank_max: max number of channel ranks
+  * @dimm_idx_max: max number of DIMM indices
+  *
+@@ -57,7 +74,7 @@
+ struct cpu_gen_info {
+ 	u16  family;
+ 	u8   model;
+-	uint core_max;
++	uint core_mask_bits;
+ 	uint chan_rank_max;
+ 	uint dimm_idx_max;
+ };
+@@ -116,4 +133,36 @@ peci_client_read_package_config(struct peci_client_manager *priv,
+ 	return 0;
+ }
+ 
+-#endif /* __LINUX_MFD_INTEL_PECI_CLIENT_H */
++/**
++ * peci_client_write_package_config - write to the Package Configuration Space
++ * @priv: driver private data structure
++ * @index: encoding index for the requested service
++ * @param: parameter to specify the exact data being requested
++ * @data: data buffer with values to write
++ * Context: can sleep
++ *
++ * Return: zero on success, else a negative error code.
++ */
++static inline int
++peci_client_write_package_config(struct peci_client_manager *priv,
++				 u8 index, u16 param, u8 *data)
++{
++	struct peci_rd_pkg_cfg_msg msg;
++	int ret;
++
++	msg.addr = priv->client->addr;
++	msg.index = index;
++	msg.param = param;
++	msg.rx_len = 4u;
++	memcpy(msg.pkg_config, data, msg.rx_len);
++
++	ret = peci_command(priv->client->adapter, PECI_CMD_WR_PKG_CFG, &msg);
++	if (!ret) {
++		if (msg.cc != PECI_DEV_CC_SUCCESS)
++			ret = -EAGAIN;
++	}
++
++	return ret;
++}
++
++#endif /* __LINUX_MFD_INTEL_PECI_CLIENT_H */
+\ No newline at end of file
+diff --git a/include/linux/peci.h b/include/linux/peci.h
+index 4bc4595c797d..0344d2eee88b 100644
+--- a/include/linux/peci.h
++++ b/include/linux/peci.h
+@@ -44,6 +44,7 @@ struct peci_adapter {
+ 					struct peci_xfer_msg *msg);
+ 	u32			cmd_mask;
+ 	bool			use_dma;
++	u8			peci_revision;
+ };
+ 
+ static inline struct peci_adapter *to_peci_adapter(void *d)
+@@ -147,4 +148,4 @@ void peci_put_xfer_msg(struct peci_xfer_msg *msg);
+ int  peci_command(struct peci_adapter *adpater, enum peci_cmd cmd, void *vmsg);
+ int  peci_get_cpu_id(struct peci_adapter *adapter, u8 addr, u32 *cpu_id);
+ 
+-#endif /* __LINUX_PECI_H */
++#endif /* __LINUX_PECI_H */
+\ No newline at end of file
+diff --git a/include/uapi/linux/peci-ioctl.h b/include/uapi/linux/peci-ioctl.h
+index c74b3cde52e8..1f74c41ccd92 100644
+--- a/include/uapi/linux/peci-ioctl.h
++++ b/include/uapi/linux/peci-ioctl.h
+@@ -33,8 +33,8 @@
+ #define PECI_DEV_CC_RETRY_CHECK_MASK			0xf0
+ 
+ #define PECI_DEV_RETRY_TIMEOUT				msecs_to_jiffies(700)
+-#define PECI_DEV_RETRY_INTERVAL_MIN_MSEC		1
+-#define PECI_DEV_RETRY_INTERVAL_MAX_MSEC		128
++#define PECI_DEV_RETRY_INTERVAL_MIN_USEC		100
++#define PECI_DEV_RETRY_INTERVAL_MAX_USEC		(128 * 1000)
+ #define PECI_DEV_RETRY_BIT				0x01
+ 
+ /**
+@@ -183,7 +183,7 @@ struct peci_rd_pkg_cfg_msg {
+ #define PECI_MBX_INDEX_WAKE_MODE_BIT		5  /* "Wake on PECI" Mode bit */
+ #define PECI_MBX_INDEX_EPI			6  /* Efficient Performance Indication */
+ #define PECI_MBX_INDEX_PKG_RAPL_PERF		8  /* Pkg RAPL Performance Status Read */
+-#define PECI_MBX_INDEX_PER_CORE_DTS_TEMP	9  /* Per Core DTS Temperature Read */
++#define PECI_MBX_INDEX_MODULE_TEMP		9  /* Module Temperature Read */
+ #define PECI_MBX_INDEX_DTS_MARGIN		10 /* DTS thermal margin */
+ #define PECI_MBX_INDEX_SKT_PWR_THRTL_DUR	11 /* Socket Power Throttled Duration */
+ #define PECI_MBX_INDEX_CFG_TDP_CONTROL		12 /* TDP Config Control */
+@@ -226,11 +226,15 @@ struct peci_rd_pkg_cfg_msg {
+ 	__u16	param;
+ /* When index is PECI_MBX_INDEX_CPU_ID */
+ #define PECI_PKG_ID_CPU_ID			0x0000  /* CPUID Info */
++#define PECI_PKG_POWER_SKU_UNIT		0x0000 /* Time, Energy, Power units */
+ #define PECI_PKG_ID_PLATFORM_ID			0x0001  /* Platform ID */
+ #define PECI_PKG_ID_UNCORE_ID			0x0002  /* Uncore Device ID */
+ #define PECI_PKG_ID_MAX_THREAD_ID		0x0003  /* Max Thread ID */
+ #define PECI_PKG_ID_MICROCODE_REV		0x0004  /* CPU Microcode Update Revision */
+ #define PECI_PKG_ID_MACHINE_CHECK_STATUS	0x0005  /* Machine Check Status */
++#define PECI_PKG_ID_CPU_PACKAGE		0x00ff  /* CPU package ID*/
++#define PECI_PKG_ID_DIMM			0x00ff  /* DIMM ID*/
++#define PECI_PKG_ID_PLATFORM			0x00fe  /* Entire platform ID */
+ 
+ 	__u8	rx_len;
+ 	__u8	cc;
+@@ -599,7 +603,7 @@ struct peci_crashdump_get_frame_msg {
+ 	__u8	data[16];
+ } __attribute__((__packed__));
+ 
+-#define PECI_IOC_BASE	0xb7
++#define PECI_IOC_BASE	0xb8
+ 
+ #define PECI_IOC_XFER \
+ 	_IOWR(PECI_IOC_BASE, PECI_CMD_XFER, struct peci_xfer_msg)
+@@ -658,4 +662,4 @@ struct peci_crashdump_get_frame_msg {
+ 	_IOWR(PECI_IOC_BASE, PECI_CMD_CRASHDUMP_GET_FRAME, \
+ 	      struct peci_crashdump_get_frame_msg)
+ 
+-#endif /* __PECI_IOCTL_H */
++#endif /* __PECI_IOCTL_H */
+\ No newline at end of file
+-- 
+2.33.0
+

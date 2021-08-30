@@ -9,7 +9,7 @@ OBMC_MACHINE_FEATURES += "\
         obmc-bmc-state-mgmt \
         "
 
-#VIRTUAL-RUNTIME_skeleton_workbook = "${MACHINE}-config"
+VIRTUAL-RUNTIME_skeleton_workbook = "${MACHINE}-config"
 
 # since we use x86-power-control service, we don't need below three services
 VIRTUAL-RUNTIME_obmc-host-state-manager = "x86-power-control"

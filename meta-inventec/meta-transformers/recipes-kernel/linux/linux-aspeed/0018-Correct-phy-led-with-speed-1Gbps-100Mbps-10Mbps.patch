@@ -1,0 +1,39 @@
+From c6f2bcaa99971c4051574a7320d7266a318cc2a9 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Fri, 15 May 2020 14:35:14 -0400
+Subject: [PATCH 18/34] Correct phy led with speed 1Gbps/100Mbps/10Mbps
+
+---
+ drivers/net/phy/broadcom.c | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/net/phy/broadcom.c b/drivers/net/phy/broadcom.c
+index dbed15dc0fe7..b9349704bda1 100644
+--- a/drivers/net/phy/broadcom.c
++++ b/drivers/net/phy/broadcom.c
+@@ -372,14 +372,14 @@ static int bcm54xx_config_init(struct phy_device *phydev)
+ 	 * Also flash these two LEDs on activity. This means configuring
+ 	 * them for MULTICOLOR and encoding link/activity into them.
+ 	 */
+-	val = BCM5482_SHD_LEDS1_LED1(BCM_LED_SRC_MULTICOLOR1) |
+-		BCM5482_SHD_LEDS1_LED3(BCM_LED_SRC_MULTICOLOR1);
+-	bcm_phy_write_shadow(phydev, BCM5482_SHD_LEDS1, val);
+-
+-	val = BCM_LED_MULTICOLOR_IN_PHASE |
+-		BCM5482_SHD_LEDS1_LED1(BCM_LED_MULTICOLOR_LINK_ACT) |
+-		BCM5482_SHD_LEDS1_LED3(BCM_LED_MULTICOLOR_LINK_ACT);
+-	bcm_phy_write_exp(phydev, BCM_EXP_MULTICOLOR, val);
++	// val = BCM5482_SHD_LEDS1_LED1(BCM_LED_SRC_MULTICOLOR1) |
++	// 	BCM5482_SHD_LEDS1_LED3(BCM_LED_SRC_MULTICOLOR1);
++	// bcm_phy_write_shadow(phydev, BCM5482_SHD_LEDS1, val);
++
++	// val = BCM_LED_MULTICOLOR_IN_PHASE |
++	// 	BCM5482_SHD_LEDS1_LED1(BCM_LED_MULTICOLOR_LINK_ACT) |
++	// 	BCM5482_SHD_LEDS1_LED3(BCM_LED_MULTICOLOR_LINK_ACT);
++	// bcm_phy_write_exp(phydev, BCM_EXP_MULTICOLOR, val);
+ 
+ 	return 0;
+ }
+-- 
+2.33.0
+

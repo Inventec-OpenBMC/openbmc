@@ -13,12 +13,9 @@ BBLAYERS ?= " \
   ##OEROOT##/meta-openembedded/meta-perl \
   ##OEROOT##/meta-openembedded/meta-python \
   ##OEROOT##/meta-openembedded/meta-webserver \
-  ##OEROOT##/meta-openpower \
   ##OEROOT##/meta-phosphor \
-  ##OEROOT##/meta-aspeed \
-  ##OEROOT##/meta-x86 \
-  ##OEROOT##/meta-inventec \
   ##OEROOT##/meta-nuvoton \
+  ##OEROOT##/meta-x86 \
   ##OEROOT##/meta-inventec/meta-transformers-nuv \
 "
 BBLAYERS_NON_REMOVABLE ?= " \
@@ -29,12 +26,9 @@ BBLAYERS_NON_REMOVABLE ?= " \
   ##OEROOT##/meta-openembedded/meta-perl \
   ##OEROOT##/meta-openembedded/meta-python \
   ##OEROOT##/meta-openembedded/meta-webserver \
-  ##OEROOT##/meta-openpower \
-  ##OEROOT##/meta-phosphor \
-  ##OEROOT##/meta-aspeed \
-  ##OEROOT##/meta-x86 \
-  ##OEROOT##/meta-inventec \
   ##OEROOT##/meta-nuvoton \
+  ##OEROOT##/meta-phosphor \
+  ##OEROOT##/meta-x86 \
   ##OEROOT##/meta-inventec/meta-transformers-nuv \
 "
 
