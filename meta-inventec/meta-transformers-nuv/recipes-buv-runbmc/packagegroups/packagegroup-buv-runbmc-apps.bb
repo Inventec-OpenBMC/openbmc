@@ -1,4 +1,4 @@
-SUMMARY = "OpenBMC for BUV RUNBMC system - Applications"
+SUMMARY = "OpenBMC for TRANSFORMERS NUVOTON system - Applications"
 PR = "r1"
 
 inherit packagegroup
@@ -8,36 +8,58 @@ PROVIDES = "${PACKAGES}"
 PACKAGES = " \
     ${PN}-chassis \
     ${PN}-fans \
+    ${PN}-flash \
     ${PN}-system \
-    ${@entity_enabled(d, '${PN}-entity')} \
+    ${PN}-ipmi-oem \
     ${@bb.utils.contains('DISTRO_FEATURES', 'buv-dev', '${PN}-dev', '', d)} \
     "
+
 PROVIDES += "virtual/oobmc-chassis-mgmt"
 PROVIDES += "virtual/obmc-fan-mgmt"
+PROVIDES += "virtual/obmc-flash-mgmt"
 PROVIDES += "virtual/obmc-system-mgmt"
+PROVIDES += "virtual/obmc-ipmi-oem"
 
 RPROVIDES_${PN}-chassis += "virtual-obmc-chassis-mgmt"
 RPROVIDES_${PN}-fans += "virtual-obmc-fan-mgmt"
-RPROVIDES_${PN}-system = "virtual-obmc-system-mgmt"
+RPROVIDES_${PN}-flash += "virtual-obmc-flash-mgmt"
+RPROVIDES_${PN}-system += "virtual-obmc-system-mgmt"
+RPROVIDES_${PN}-ipmi-oem += "virtual-obmc-ipmi-oem"
 
-SUMMARY_${PN}-chassis = "BUV RUNBMC Chassis"
+
+SUMMARY_${PN}-chassis = "TRANSFORMERS NUVOTON Chassis"
 RDEPENDS_${PN}-chassis = " \
-    phosphor-pid-control \
+    x86-power-control \
+    obmc-host-failure-reboots \
     "
 
-SUMMARY_${PN}-fans = "BUV RUNBMC Fans"
+SUMMARY_${PN}-fans = "TRANSFORMERS NUVOTON Fans"
 RDEPENDS_${PN}-fans = " \
     phosphor-pid-control \
     "
 
-SUMMARY_${PN}-system = "BUV RUNBMC System"
+SUMMARY_${PN}-flash = "TRANSFORMERS NUVOTON Flash"
+RDEPENDS_${PN}-flash = " \
+        obmc-flash-bmc \
+        obmc-mgr-download \
+        obmc-control-bmc \
+        phosphor-ipmi-blobs \
+        phosphor-ipmi-flash \
+        "
+
+SUMMARY_${PN}-system = "TRANSFORMERS NUVOTON System"
 RDEPENDS_${PN}-system = " \
+    bmcweb \
+    entity-manager \
+    dbus-sensors \
     ipmitool \
     webui-vue \
-    phosphor-host-postd \
     loadsvf \
     obmc-console \
     phosphor-sel-logger \
+    phosphor-snmp \
+    phosphor-gpio-monitor \
+    phosphor-gpio-monitor-monitor \
     rsyslog \
     obmc-ikvm \
     iperf3 \
@@ -47,14 +69,16 @@ RDEPENDS_${PN}-system = " \
     memtester \
     usb-emmc-storage \
     loadmcu \
+    vlan \
+    tzdata \
     "
 
-SUMMARY_${PN}-entity = "BUV RUNBMC entity"
-RDEPENDS_${PN}-entity = " \
-    intel-ipmi-oem \
-    "
+SUMMARY_${PN}-ipmi-oem = "TRANSFORMERS NUVOTON IPMI OEM"
+RDEPENDS_${PN}-ipmi-oem = " \
+        intel-ipmi-oem \
+        "
 
-SUMMARY_${PN}-dev = "BUV RUNBMC development tools"
+SUMMARY_${PN}-dev = "TRANSFORMERS NUVOTON development tools"
 RDEPENDS_${PN}-dev = " \
     ent \
     dhrystone \

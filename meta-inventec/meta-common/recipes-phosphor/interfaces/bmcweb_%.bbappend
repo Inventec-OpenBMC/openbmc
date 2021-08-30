@@ -11,6 +11,16 @@ DEPENDS += " phosphor-dbus-interfaces"
 #EXTRA_OEMESON += " --buildtype=debug -Dbmcweb-logging=enabled"
 
 EXTRA_OEMESON += "-Dhttp-body-limit=512 -Dinsecure-tftp-update=enabled"
+# Enable Redfish BMC Journal support
+EXTRA_OEMESON += "-Dredfish-bmc-journal=enabled"
+
+# Enable CPU Log and Raw PECI support
+#EXTRA_OEMESON += "-Dredfish-cpu-log=enabled"
+#EXTRA_OEMESON += "-Dredfish-raw-peci=enabled"
+
+
+# Enable DBUS log service
+# EXTRA_OEMESON_append_transformers-nuv = " -Dredfish-dbus-log=enabled"
 
 #SRC_URI_append += " file://0001-Modify-firmware-update-mechanism.patch \
 #"
