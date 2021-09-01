@@ -64,7 +64,7 @@
         };
 	vga-shared-memory {
 		compatible = "aspeed,ast2500-vga-sharedmem";
-		reg = <0xbff00000 0x100000>;
+		reg = <0xbff00000 0x10000>;
 	};
 
 		iio-hwmon {
