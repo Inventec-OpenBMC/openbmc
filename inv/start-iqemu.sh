@@ -16,6 +16,7 @@ function print_help() {
   echo 
   echo "Options:"
   echo "  -m     QEMU machine name, default is $QEMU_MECHINE"
+  echo "  -p     Platform name, default is $PLATFORM"
   echo "  -v     Print version"
   echo "  -h     Print this message"
   echo 
@@ -25,6 +26,7 @@ function print_help() {
   echo "          $PROGRAM_NAME -m ast2600-evb"
   echo "          $PROGRAM_NAME -m ast2600-evb xxx.mtd"
   echo "          $PROGRAM_NAME -m transformers-bmc your/mtd/path/xxx.mtd"
+  echo "          $PROGRAM_NAME -p transformers"
   echo 
   exit 0
 }
@@ -44,9 +46,9 @@ function print_version() {
 # Default Configurations #
 ##########################
 TOP_PATH=$(dirname `pwd`)
-DEFALUT_MTD_PATH=build/transformers/tmp/deploy/images/transformers
 DEFAULT_QEMU_MACHINE=transformers-bmc
 DEFAULT_DOCKER_IMAGE=iqemu:latest
+DEFAULT_PLATFORM=transformers
 
 
 #######################
@@ -54,6 +56,7 @@ DEFAULT_DOCKER_IMAGE=iqemu:latest
 #######################
 VERSION=1.0.0
 QEMU_MECHINE=$DEFAULT_QEMU_MACHINE
+PLATFORM=$DEFAULT_PLATFORM
 DOCKER_IMAGE=$DEFAULT_DOCKER_IMAGE
 USER_NAME=$(id -u -n)
 CONTAINER_NAME=${USER_NAME}_iqemu
@@ -62,17 +65,26 @@ CONTAINER_NAME=${USER_NAME}_iqemu
 ##################
 # Option parsing #
 ##################
-opts=`getopt -o hvm: -- "$@"`
+opts=`getopt -o hvm:p: -- "$@"`
 eval set -- "$opts"
 
 while true; do
     case "$1" in
       -m) QEMU_MECHINE=$2; shift 2;;
+      -p) PLATFORM=$2; shift 2;;
       -v) print_version; exit 0;;
       -h) print_help; exit 0;;
       --) shift; break;;
     esac
 done
+
+DEFALUT_MTD_PATH=build/$PLATFORM/tmp/deploy/images/$PLATFORM
+
+if [ $PLATFORM == "transformers-nuv" ]; then
+    echo "Nuvoton platform detected"
+    QEMU_MECHINE=npcm750-evb
+    DOCKER_IMAGE=iqemu_nuvoton_v2:latest
+fi
 
 
 ######################

@@ -23,3 +23,41 @@ QEMU usage:
        i. USER_NETWORK_OPTION is the user network setting for qemu.
        ii. TAP_NETWORK_OPTION is the tap network setting, should use create_bridge_tap.sh first(need sudo).
 
+iQEMU uasge:
+    start-iqemu.sh:
+    USAGE: start-iqemu.sh <Image path> [OPTIONS]
+
+    Options:
+    -m     QEMU machine name, default is transformers-bmc
+    -p     Platform name, default is transformers
+    -v     Print version
+    -h     Print this message
+
+    Example:  start-iqemu.sh
+            start-iqemu.sh xxx.mtd
+            start-iqemu.sh -m transformers-bmc
+            start-iqemu.sh -m ast2600-evb
+            start-iqemu.sh -m ast2600-evb xxx.mtd
+            start-iqemu.sh -m transformers-bmc your/mtd/path/xxx.mtd
+            start-iqemu.sh -p transformers
+
+    iqemu-util.sh:
+    USAGE: iqemu-util.sh [COMMAND] <options..>
+
+    Commands:
+    help      Print this message
+    show      Show command examples
+    ssh       Connect to QEMU container via SSH
+    web       Open firefox and browse OpenBMC WebUI
+    ipmi      Run ipmitool command
+    scp       Copy file from host to guest
+    cleankey  Clean RSA host key for container
+    version   Show version of this script
+
+    Example:  iqemu-util.sh show
+            iqemu-util.sh ssh
+            iqemu-util.sh web
+            iqemu-util.sh ipmi mc info
+            iqemu-util.sh ipmi sdr
+            iqemu-util.sh scp file /guest/path
+
