@@ -1,7 +1,7 @@
-From 130ab14b34199e9e1e426d3de359e96b2dde1527 Mon Sep 17 00:00:00 2001
+From 4dcea02e450d338f8593c8cd4f4b26b855205b5c Mon Sep 17 00:00:00 2001
 From: cwsun <sun.cwsun@inventec.com>
 Date: Tue, 24 Aug 2021 17:03:27 +0800
-Subject: [PATCH] [Transformers][SW] Support IPMI v1.5 Session Management
+Subject: [PATCH] Support IPMI v1.5 Session Management
 
     Symptom/Reason :
         - The OpenBMC does not support IPMI v1.5 RMCP type Session Management
@@ -19,6 +19,7 @@ Subject: [PATCH] [Transformers][SW] Support IPMI v1.5 Session Management
               -- ipmiAppGetSessionInfo()
               -- getSessionDetails()
               -- remove garbage code
+              -- fix the wrong userID caused by wrong data struct definition
 
         [phosphor-ipmi-net]
             - When user assign into the system via netipmid and register a session.
@@ -66,17 +67,27 @@ Subject: [PATCH] [Transformers][SW] Support IPMI v1.5 Session Management
             privilege level               : ADMINISTRATOR
             session type                  : IPMIv2/RMCP+
             channel number                : 0x01
+
 ---
- apphandler.cpp                            | 23 +++++++++++++++++++----
+ apphandler.cpp                            | 25 ++++++++++++++++++-----
  test/dbus-sdr/sensorcommands_unittest.cpp |  2 --
  transporthandler.cpp                      |  4 +---
- user_channel/usercommands.cpp             |  9 +++++++--
- 4 files changed, 27 insertions(+), 11 deletions(-)
+ user_channel/usercommands.cpp             |  9 ++++++--
+ 4 files changed, 28 insertions(+), 12 deletions(-)
 
 diff --git a/apphandler.cpp b/apphandler.cpp
-index 44f23ab..403df6b 100644
+index 44f23ab..eeecf3c 100644
 --- a/apphandler.cpp
 +++ b/apphandler.cpp
+@@ -1077,7 +1077,7 @@ static constexpr uint8_t macAddrLen = 6;
+  *  @param port - uint16_t remote port
+  */
+ using SessionDetails =
+-    std::tuple<uint2_t, uint6_t, uint4_t, uint4_t, uint4_t, uint4_t, uint32_t,
++    std::tuple<uint6_t, uint2_t, uint4_t, uint4_t, uint4_t, uint4_t, uint32_t,
+                std::array<uint8_t, macAddrLen>, uint16_t>;
+ 
+ /** @brief get session details for a given session
 @@ -1123,7 +1123,10 @@ ipmi::Cc getSessionDetails(ipmi::Context::ptr ctx, const std::string& service,
          // std::get<3>(details) = 0; // (default constructed to 0)
          std::get<4>(details) =
