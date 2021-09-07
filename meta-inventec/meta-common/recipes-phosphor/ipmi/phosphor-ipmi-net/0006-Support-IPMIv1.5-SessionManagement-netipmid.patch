@@ -1,7 +1,7 @@
-From d51ab7ee7217c8b89f8b990cd4245e91f94289e6 Mon Sep 17 00:00:00 2001
+From be23e71b344cbc8669102eaa50cd6665de9b910c Mon Sep 17 00:00:00 2001
 From: cwsun <sun.cwsun@inventec.com>
 Date: Fri, 20 Aug 2021 21:07:18 +0800
-Subject: [PATCH] [Transformers][SW] Support IPMI v1.5 Session Management
+Subject: [PATCH] Support IPMI v1.5 Session Management
 
     Symptom/Reason :
         - The OpenBMC does not support IPMI v1.5 RMCP type Session Management
@@ -23,6 +23,7 @@ Subject: [PATCH] [Transformers][SW] Support IPMI v1.5 Session Management
             - When user assign into the system via netipmid and register a session.
               The registered session will be record its type of RMCP or RMCP+ and be kept
               in the dbus system.
+            - enable per-message authentication
 
     Entry Test:
         - Open RMCP(-Ilan) and RMCP+(-Ilanplus) sessions with IPMI shell
@@ -65,10 +66,25 @@ Subject: [PATCH] [Transformers][SW] Support IPMI v1.5 Session Management
             privilege level               : ADMINISTRATOR
             session type                  : IPMIv2/RMCP+
             channel number                : 0x01
----
- sessions_manager.cpp | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
 
+---
+ command/channel_auth.cpp | 2 +-
+ sessions_manager.cpp     | 4 +++-
+ 2 files changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/command/channel_auth.cpp b/command/channel_auth.cpp
+index 451fb27..9a389e5 100644
+--- a/command/channel_auth.cpp
++++ b/command/channel_auth.cpp
+@@ -52,7 +52,7 @@ std::vector<uint8_t>
+ 
+     response->reserved3 = 0;
+     response->KGStatus = 0;       // KG is set to default
+-    response->perMessageAuth = 1; // Per-message Authentication disabled
++    response->perMessageAuth = 0; // Per-message Authentication enable, bug492
+     response->userAuth = 0;       // User Level Authentication is enabled
+     uint8_t maxChUsers = 0;
+     uint8_t enabledUsers = 0;
 diff --git a/sessions_manager.cpp b/sessions_manager.cpp
 index e1611b3..88579dd 100644
 --- a/sessions_manager.cpp
