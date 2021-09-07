@@ -243,7 +243,6 @@
                reg = <(0x10 | I2C_OWN_SLAVE_ADDRESS)>;
                i2c-protocol;
         };
-
 };
 
 &i2c1 {
@@ -265,6 +264,12 @@
 	#size-cells = <0>;
 	clock-frequency = <100000>;
 	status = "okay";
+
+	eeprom@50 {
+		compatible = "atmel,24c512";
+		reg = <0x50>;
+		pagesize = <128>;
+	};
 };
 
 &i2c4 {
@@ -272,10 +277,6 @@
 	#size-cells = <0>;
 	clock-frequency = <100000>;
 	status = "okay";
-	eeprom@50 {
-		compatible = "atmel,24c64";
-		reg = <0x50>;
-	};
 };
 
 &i2c5 {
@@ -290,6 +291,23 @@
 	#size-cells = <0>;
 	clock-frequency = <100000>;
 	status = "okay";
+
+	tmp75@49 {
+			compatible = "ti,tmp75";
+			reg = <0x49>;
+			status = "okay";
+	};
+
+	tmp75@4f {
+			compatible = "ti,tmp75";
+			reg = <0x4f>;
+			status = "okay";
+	};
+
+	tmp468@48 {
+			compatible = "ti,tmp468";
+			reg = <0x48>;
+	};
 };
 
 &i2c7 {
@@ -297,6 +315,12 @@
 	#size-cells = <0>;
 	clock-frequency = <100000>;
 	status = "okay";
+
+	status = "okay";
+	adm1278@40 {
+			compatible = "adi,adm1278";
+			reg = <0x40>;
+	};
 };
 
 &i2c8 {
@@ -304,9 +328,17 @@
 	#size-cells = <0>;
 	clock-frequency = <100000>;
 	status = "okay";
-	npcm7xx-ssif-bmc@40000010 {
-		compatible = "nuvoton,npcm7xx-ssif-bmc";
-		reg = <0x40000010>;
+
+	eeprom@51 {
+			compatible = "atmel,24c512";
+			reg = <0x51>;
+			pagesize = <128>;
+	};
+
+	eeprom@53 {
+			compatible = "atmel,24c512";
+			reg = <0x53>;
+			pagesize = <128>;
 	};
 };
 
@@ -382,11 +414,6 @@
 			reg = <1>;
 		};
 	};
-	tmp75@48 {
-		compatible = "ti,tmp75";
-		reg = <0x48>;
-		status = "okay";
-	};
 };
 
 &i2c13 {
@@ -394,17 +421,6 @@
 	#size-cells = <0>;
 	clock-frequency = <100000>;
 	status = "okay";
-	tmp75@4a {
-		compatible = "ti,tmp75";
-		reg = <0x4a>;
-		status = "okay";
-	};
-	m24128_fru@51 {
-		compatible = "atmel,24c128";
-		reg = <0x51>;
-		pagesize = <64>;
-		status = "okay";
-	};
 };
 
 &pwm_fan {

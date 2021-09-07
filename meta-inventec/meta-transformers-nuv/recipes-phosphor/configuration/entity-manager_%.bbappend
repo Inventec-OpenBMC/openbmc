@@ -1,12 +1,13 @@
-FILESEXTRAPATHS_prepend_transformers-nuv := "${THISDIR}/${PN}:"
+FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
 
-SRC_URI_append_transformers-nuv = " file://F0B_BMC_BMC.json"
+DISTRO_FEATURES += "ipmi-fru"
 
-FILES_${PN}_append_transformers-nuv = " \
-    ${datadir}/entity-manager/F0B_BMC_BMC.json"
+SRC_URI += "file://blacklist.json"
+SRC_URI += "file://motherboard.json"
 
-do_install_append_transformers-nuv() {
-    install -d ${D}${datadir}/entity-manager
-    install -m 0644 -D ${WORKDIR}/F0B_BMC_BMC.json \
-        ${D}${datadir}/entity-manager/configurations/F0B_BMC_BMC.json
+do_install_append() {
+    install -d 0755 ${D}/usr/share/entity-manager/configurations
+    rm  -rf ${D}/usr/share/entity-manager/configurations/*.json
+    install -m 0644 ${WORKDIR}/blacklist.json ${D}/usr/share/entity-manager/blacklist.json
+    install -m 0644 ${WORKDIR}/motherboard.json ${D}/usr/share/entity-manager/configurations
 }
