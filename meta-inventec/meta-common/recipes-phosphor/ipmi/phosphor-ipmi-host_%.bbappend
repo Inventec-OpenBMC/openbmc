@@ -23,6 +23,7 @@ SRC_URI_append = " file://0001-sensorhandler-fix-get-threshold-error.patch \
                    file://0019-Add-IPv6-Header-Traffic-Class-support.patch \
                    file://0020-Add-encoding-byte-support-for-System-Info-Parameters.patch \
                    file://0021-Support-IPMIv1.5-SessionManagement-ipmid.patch \
+                   file://0022-Add-error-checking-to-prevent-core-dump.patch \
 "
 
 

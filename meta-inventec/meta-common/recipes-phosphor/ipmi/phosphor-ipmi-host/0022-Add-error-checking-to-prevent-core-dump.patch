@@ -1,0 +1,43 @@
+From 484b9bd041965c017fff375c1d8cc8d005a8912b Mon Sep 17 00:00:00 2001
+From: "Lin.TommySC" <lin.tommysc@inventec.com>
+Date: Wed, 8 Sep 2021 01:56:26 +0000
+Subject: [PATCH] Add error checking to prevent core dump
+
+Root Cause:
+    - xyz.openbmc_project.Channel.ChannelAccess d-bus interface was not available
+
+Solution/Change:
+    [phosphor-ipmi-config]
+        - Modify channel_access.json to fit transformers's configuration
+    [phosphor-ipmi-config]
+        - Add error checking to prevent core dump
+    [phosphor-network]
+        - Implement xyz.openbmc_project.Channel.ChannelAccess d-bus interface
+
+Entry Test:
+    - Disable Lan Channel Access
+        ipmitool lan set 1 access off
+    - Enable Lan Channel Access
+        ipmitool lan set 1 access on
+---
+ user_channel/channel_mgmt.cpp | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/user_channel/channel_mgmt.cpp b/user_channel/channel_mgmt.cpp
+index b682ccb..9b219f7 100644
+--- a/user_channel/channel_mgmt.cpp
++++ b/user_channel/channel_mgmt.cpp
+@@ -1331,6 +1331,10 @@ int ChannelConfig::syncNetworkChannelConfig()
+                     continue;
+                 }
+                 intfPrivStr = std::get<std::string>(variant);
++                if (intfPrivStr.empty())
++                {
++                    continue;
++                }
+             }
+             catch (const std::bad_variant_access& e)
+             {
+-- 
+2.17.1
+
