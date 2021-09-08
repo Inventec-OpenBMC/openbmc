@@ -8,7 +8,6 @@ inherit allarch
 SRC_URI_transformers-nuv = " \
     file://buv-runbmc-ipmi-fru.yaml \
     file://buv-runbmc-ipmi-fru-properties.yaml \
-    file://buv-runbmc-ipmi-sensors.yaml \
     "
 
 S = "${WORKDIR}"
@@ -18,14 +17,11 @@ do_install_transformers-nuv() {
         ${D}${datadir}/${BPN}/ipmi-extra-properties.yaml
     install -m 0644 -D buv-runbmc-ipmi-fru.yaml \
         ${D}${datadir}/${BPN}/ipmi-fru-read.yaml
-    install -m 0644 -D buv-runbmc-ipmi-sensors.yaml \
-        ${D}${datadir}/${BPN}/ipmi-sensors.yaml
 }
 
 FILES_${PN}-dev = " \
     ${datadir}/${BPN}/ipmi-extra-properties.yaml \
     ${datadir}/${BPN}/ipmi-fru-read.yaml \
-    ${datadir}/${BPN}/ipmi-sensors.yaml \
     "
 
 ALLOW_EMPTY_${PN} = "1"
