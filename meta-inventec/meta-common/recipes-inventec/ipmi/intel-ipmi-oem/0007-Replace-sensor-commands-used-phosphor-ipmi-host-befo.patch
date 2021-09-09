@@ -1,9 +1,8 @@
-From 2f73c09d16c58025edcf96213177f335198fc9b6 Mon Sep 17 00:00:00 2001
+From 80ca2fb7567df3b8494872d259a073693100f32f Mon Sep 17 00:00:00 2001
 From: cynthia <wu.cynthia@inventec.com>
 Date: Thu, 20 May 2021 21:20:09 +0800
-Subject: [PATCH 07/10] - Replace sensor commands ( used phosphor-ipmi-host
- before ) - Modify fru functions to rescan periodically - Modify fru with
- limit size
+Subject: [PATCH] - Replace sensor commands ( used phosphor-ipmi-host before )
+ - Modify fru functions to rescan periodically - Modify fru with limit size
 
 [Symptom/Reason]
 	1. The fru functions are related to sensor ( sdr list ), thus
@@ -161,8 +160,8 @@ sysadmin@transformers:~# ipmitool fru print 1
  Board Extra           :  X04
 ---
  include/sdrutils.hpp    |  3 +-
- src/storagecommands.cpp | 87 ++++++++++++++++++++++++++++++++++++++++---------
- 2 files changed, 74 insertions(+), 16 deletions(-)
+ src/storagecommands.cpp | 91 ++++++++++++++++++++++++++++++++++-------
+ 2 files changed, 78 insertions(+), 16 deletions(-)
 
 diff --git a/include/sdrutils.hpp b/include/sdrutils.hpp
 index 697dad3..7154312 100644
@@ -179,7 +178,7 @@ index 697dad3..7154312 100644
              return &entry;
          }
 diff --git a/src/storagecommands.cpp b/src/storagecommands.cpp
-index c450b01..9bcc353 100644
+index c450b01..d8c192c 100644
 --- a/src/storagecommands.cpp
 +++ b/src/storagecommands.cpp
 @@ -33,6 +33,8 @@
@@ -266,7 +265,18 @@ index c450b01..9bcc353 100644
  
      std::copy(dataToWrite.begin(), dataToWrite.begin() + writeLen,
                fruCache.begin() + fruInventoryOffset);
-@@ -502,7 +515,7 @@ ipmi::RspType<uint8_t>
+@@ -477,6 +490,10 @@ ipmi::RspType<uint8_t>
+             // Walk the MultiRecord headers until the last record
+             while (!endOfList)
+             {
++                if(lastRecordStart >= FRU_MAX_SIZE ){
++                    fprintf(stderr,"Can't find the end of multi record area\n");
++                    return ipmi::responseUnspecifiedError();
++                }
+                 // The MSB in the second byte of the MultiRecord header signals
+                 // "End of list"
+                 endOfList = fruCache[lastRecordStart + 1] & 0x80;
+@@ -502,7 +519,7 @@ ipmi::RspType<uint8_t>
                  areaLength *= 8; // it is in multiples of 8 bytes
              }
          }
@@ -275,7 +285,7 @@ index c450b01..9bcc353 100644
          {
              atEnd = true;
          }
-@@ -549,16 +562,10 @@ ipmi::RspType<uint16_t, // inventorySize
+@@ -549,16 +566,10 @@ ipmi::RspType<uint16_t, // inventorySize
          return ipmi::responseInvalidFieldRequest();
      }
  
@@ -293,7 +303,7 @@ index c450b01..9bcc353 100644
  }
  
  ipmi_ret_t getFruSdrCount(ipmi::Context::ptr ctx, size_t& count)
-@@ -1470,15 +1477,65 @@ std::vector<uint8_t> getNMDiscoverySDR(uint16_t index, uint16_t recordId)
+@@ -1470,15 +1481,65 @@ std::vector<uint8_t> getNMDiscoverySDR(uint16_t index, uint16_t recordId)
      return resp;
  }
  
@@ -360,5 +370,5 @@ index c450b01..9bcc353 100644
      ipmi::registerHandler(ipmi::prioOpenBmcBase, ipmi::netFnStorage,
                            ipmi::storage::cmdReadFruData, ipmi::Privilege::User,
 -- 
-2.7.4
+2.33.0
 
