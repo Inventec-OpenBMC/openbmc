@@ -7,7 +7,7 @@ SRCREV = "f54b260b6261f644a65efe5445a9e93a418c2eed"
 SRC_URI_append = " file://config.json \
                    file://fan-default-speed.sh \
                    file://phosphor-pid-control.service \
-                   file://0001-fix-sensor-reading-logging-problem.patch \
+                   file://0001-add-etc-adaptive-pid-control-algorithm.patch \
                  "
 
 inherit obmc-phosphor-systemd

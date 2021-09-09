@@ -15,6 +15,6 @@ for num in $(seq 0 $HWMON_MAX) ; do
         fi
 
 done
-echo "$d is not a fan driver"
+echo "$name is not a fan driver"
 exit 1
 
