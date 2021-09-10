@@ -4,11 +4,23 @@
 #include <vector>
 
 
-
-#define INVENTEC_MACADDR_I2C_BUS            8
-#define INVENTEC_MACADDR_I2C_ADDR        0x51
-#define INVENTEC_MACADDR_EEPROM_OFFSET  0x400
-
-
+#define INTF_NAME_MAX_LEN 50
 #define MAC_UTIL_MAC_LEN  6
+
+typedef struct IntfInfoStruct
+{
+    char name[INTF_NAME_MAX_LEN];
+    int bus;
+    int address;
+    int offset;
+}IntfInfo;
+
+
+IntfInfo intfInfoList[] = {
+    {"eth0", 8, 0x51, 0x400}
+};
+
+
+
+
 

@@ -1,6 +1,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <string.h> 
 #include <netinet/ether.h>
 
 #include "mac_util.hpp"
@@ -8,6 +9,41 @@
 
 using namespace std;
 
+static void print_help(void)
+{
+	printf("mac_util usage:\n");
+	printf("\n");
+	printf("mac_util r <interface name>\n");
+	printf("mac_util w <interface name> <mac address>\n");
+	printf("\n");
+	printf("example:\n");
+	printf("mac_util r eth0\n");
+	printf("0x38 0x68 0xdd 0x3e 0x99 0xec\n");
+	printf("\n");
+	printf("mac_util w eth0 02:00:ff:00:00:01\n");
+	printf("\n");
+	return;
+}
+
+
+
+static IntfInfo* findIntfInfo(char* intfName)
+{
+	int intfSize, i;
+	IntfInfo* ret=NULL;
+
+	intfSize = sizeof(intfInfoList)/sizeof(IntfInfo);
+
+	for(i=0; i< intfSize; i++)
+	{
+		if(strcmp(intfName,intfInfoList[i].name)==0)
+		{
+			ret = &intfInfoList[i];
+			break;
+		}
+	}
+	return ret;
+}
 
 static string getEepromPath(size_t bus, size_t address)
 {
@@ -42,14 +78,14 @@ int parse_mac(char* out, char* in)
 }
 
 
-int get_mac(string path)
+int get_mac(string path, int offset)
 {
 	int ret = 0;
 	char mac_addr[MAC_UTIL_MAC_LEN] = {0};
 
 	ifstream file (path.c_str(), ios::in | ios::binary | ios::ate);
 	if (file.is_open()) {
-		file.seekg (INVENTEC_MACADDR_EEPROM_OFFSET, ios::beg);
+		file.seekg (offset, ios::beg);
 		file.read (mac_addr, MAC_UTIL_MAC_LEN);
 		file.close();
 
@@ -64,13 +100,13 @@ int get_mac(string path)
 	return ret;
 }
 
-int set_mac(string path, char* mac_addr)
+int set_mac(string path, char* mac_addr, int offset)
 {
 	int ret = 0;
 	fstream file (path.c_str(), ios::out | ios::binary | ios::ate);
 
 	if (file.is_open()) {
-		file.seekp (INVENTEC_MACADDR_EEPROM_OFFSET, ios::beg);
+		file.seekp (offset, ios::beg);
 		file.write (mac_addr, MAC_UTIL_MAC_LEN);
 		file.close();
 
@@ -89,29 +125,52 @@ int main(int argc, char* argv[])
 	int ret;
 	int i;
 	char mac_addr[MAC_UTIL_MAC_LEN] = {0};
+	IntfInfo* intfInfo;
 
 	for (i = 0; i < argc; i++) {
 		switch (argv[i][0]) {
 		case 'r':
-			path = getEepromPath(INVENTEC_MACADDR_I2C_BUS, INVENTEC_MACADDR_I2C_ADDR);
-			ret = get_mac(path);
+			if (argc < i + 2) {
+				std::fprintf(stderr, "mac_util:input not enought\n");
+				print_help();
+				return -1;
+			}
+			intfInfo = findIntfInfo(argv[i + 1]);
+			if(intfInfo == NULL)
+			{
+				std::fprintf(stderr, "mac_util:interface %s not found\n",argv[i + 1]);
+				return -1;
+			}
+		
+			path = getEepromPath(intfInfo->bus, intfInfo->address);
+			ret = get_mac(path, intfInfo->offset);
 			/*leave loop*/
 			i = argc;
 			break;
 		case 'w':
-			if (argc < i + 2) {
+			if (argc < i + 3) {
 				std::fprintf(stderr, "mac_util:input not enought\n");
+				print_help();
 				return -1;
-			} else {
-				path = getEepromPath(INVENTEC_MACADDR_I2C_BUS, INVENTEC_MACADDR_I2C_ADDR);
 			}
-			ret = parse_mac(mac_addr, argv[i + 1]);
+			intfInfo = findIntfInfo(argv[i + 1]);
+			if(intfInfo == NULL)
+			{
+				std::fprintf(stderr, "mac_util:interface %s not found\n",argv[i + 1]);
+				return -1;
+			}
+
+			path = getEepromPath(intfInfo->bus, intfInfo->address);
+
+			ret = parse_mac(mac_addr, argv[i + 2]);
 			if (!ret) {
-				ret = set_mac(path, mac_addr);
+				ret = set_mac(path, mac_addr, intfInfo->offset);
 			}
 			/*leave loop*/
 			i = argc;
 			break;
+		case 'h':
+			print_help();
 		default:
 			break;
 		}
