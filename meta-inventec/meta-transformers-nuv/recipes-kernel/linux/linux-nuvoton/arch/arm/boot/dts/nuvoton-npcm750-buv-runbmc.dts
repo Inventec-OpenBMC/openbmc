@@ -171,7 +171,7 @@
 		#address-cells = <1>;
 		#size-cells = <1>;
 		reg = <0>;
-		spi-rx-bus-width = <2>;
+		spi-rx-bus-width = <1>;
 
 		partitions@A0000000 {
 			compatible = "fixed-partitions";
@@ -179,7 +179,7 @@
 			#size-cells = <1>;
 			bios@0 {
 				label = "bios";
-				reg = <0x0 0x2000000>;
+				reg = <0x0 0x4000000>;
 			};
 		};
 	};
@@ -187,7 +187,6 @@
 
 &fiux {
 	pinctrl-0 = <&spix_pins>;
-	status = "okay";
 	spix-mode;
 	spi-nor@0 {
 		compatible = "m25p80-nonjedec";
