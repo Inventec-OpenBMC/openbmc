@@ -2,6 +2,7 @@
 Description=Inventec DCMI power service
 Requires=xyz.openbmc_project.psusensor.service
 After=xyz.openbmc_project.psusensor.service
+After=xyz.openbmc_project.Settings.service
 
 [Service]
 Restart=always
