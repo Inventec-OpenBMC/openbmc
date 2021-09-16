@@ -710,7 +710,7 @@
 	gpio-line-names =
 	/*128-159*/
 	"","","","","","","","",
-	"","PRDY_N","BMC_READY","I2C_HSC_ALERT","","","","",
+	"SPI_BMC_PROG_CPLD_R_EN","PRDY_N","BMC_READY","I2C_HSC_ALERT","","","","",
 	"","","","","","","","",
 	"","","","","","","","";
 };
