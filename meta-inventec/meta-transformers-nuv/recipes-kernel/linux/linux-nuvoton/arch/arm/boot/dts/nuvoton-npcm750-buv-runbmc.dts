@@ -214,7 +214,7 @@
 		#mux-control-cells = <1>;
 
 		mux-reg-masks = <0x38 0x07>;
-		idle-states = <6>;
+		idle-states = <0>;
 	};
 };
 
