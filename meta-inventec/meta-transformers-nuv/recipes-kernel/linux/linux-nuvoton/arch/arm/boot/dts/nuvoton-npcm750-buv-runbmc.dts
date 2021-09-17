@@ -240,13 +240,6 @@
         };
 };
 
-&i2c1 {
-	#address-cells = <1>;
-	#size-cells = <0>;
-	clock-frequency = <100000>;
-	status = "okay";
-};
-
 &i2c2 {
 	#address-cells = <1>;
 	#size-cells = <0>;
@@ -265,13 +258,6 @@
 		reg = <0x50>;
 		pagesize = <128>;
 	};
-};
-
-&i2c4 {
-	#address-cells = <1>;
-	#size-cells = <0>;
-	clock-frequency = <100000>;
-	status = "okay";
 };
 
 &i2c5 {
@@ -342,10 +328,6 @@
 	#size-cells = <0>;
 	clock-frequency = <100000>;
 	status = "okay";
-	ipmi_ssif@10 {
-		compatible = "ipmi_ssif";
-		reg = <0x10>;
-	};
 };
 
 &i2c10 {
@@ -353,10 +335,19 @@
 	#size-cells = <0>;
 	clock-frequency = <100000>;
 	status = "okay";
-	tpm@20 {
-		compatible = "infineon,slb9645tt";
-		reg = <0x20>;
-	};
+        i2c-switch@71 {
+                        compatible = "nxp,pca9544";
+                        #address-cells = <1>;
+                        #size-cells = <0>;
+                        reg = <0x71>;
+        };
+
+        i2c-switch@73 {
+                        compatible = "nxp,pca9544";
+                        #address-cells = <1>;
+                        #size-cells = <0>;
+                        reg = <0x73>;
+        };
 };
 
 &i2c11 {
@@ -364,26 +355,48 @@
 	#size-cells = <0>;
 	clock-frequency = <100000>;
 	status = "okay";
-	pca9555@21 {
-		compatible = "nxp,pca9555";
-		reg = <0x21>;
-		gpio-controller;
-		#gpio-cells = <2>;
-	};
-	pca9554@38 {
-		compatible = "nxp,pca9554";
-		reg = <0x38>;
-		gpio-controller;
-		#gpio-cells = <2>;
-	};
-	ina219@40 {
-		compatible = "ti,ina219";
-		reg = <0x40>;
-	};
-	ina219@41 {
-		compatible = "ti,ina219";
-		reg = <0x41>;
-	};
+
+        i2c-switch@70 {
+            compatible = "nxp,pca9544";
+            #address-cells = <1>;
+            #size-cells = <0>;
+            reg = <0x70>;
+
+            pcie_eeprom_riser1: i2c@0 {
+                #address-cells = <1>;
+                #size-cells = <0>;
+                reg = <0>;
+
+                eeprom@55 {
+                    compatible = "atmel,24c512";
+                    reg = <0x55>;
+                    pagesize = <128>;
+                };
+            };
+            pcie_eeprom_riser2: i2c@1 {
+                #address-cells = <1>;
+                #size-cells = <0>;
+                reg = <1>;
+
+                eeprom@55 {
+                    compatible = "atmel,24c512";
+                    reg = <0x55>;
+                    pagesize = <128>;
+                };
+            };
+
+            pcie_eeprom_riser3: i2c@2 {
+                #address-cells = <1>;
+                #size-cells = <0>;
+                reg = <2>;
+
+                eeprom@55 {
+                    compatible = "atmel,24c512";
+                    reg = <0x55>;
+                    pagesize = <128>;
+                };
+            };
+        };
 };
 
 &i2c12 {
@@ -391,24 +404,11 @@
 	#size-cells = <0>;
 	clock-frequency = <100000>;
 	status = "okay";
-	i2c-switch@70 {
-		compatible = "nxp,pca9548";
-		#address-cells = <1>;
-		#size-cells = <0>;
-		reg = <0x70>;
-		i2c-mux-idle-disconnect;
-		i2c-bus@0 {
-			#address-cells = <1>;
-			#size-cells = <0>;
-			reg = <0>;
-		};
 
-		i2c-bus@1 {
-			#address-cells = <1>;
-			#size-cells = <0>;
-			reg = <1>;
-		};
-	};
+        psu0:psu0@58 {
+            compatible = "pmbus";
+            reg = <0x58>;
+        };
 };
 
 &i2c13 {

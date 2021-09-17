@@ -11,6 +11,7 @@ SRC_URI_append_transformers-nuv = " \
   file://0009-virtual-Add-virtual-driver-config.patch \
   file://0010-inventec-transformers-nuv-Modify-TOCK-to-PLL0-for-RGMII-issue.patch \
   file://0011-peci-Sync-peci-verion-with-Intel-BMC-linux-and-Eagle.patch \
+  file://0012-Add-tmp468-driver.patch \
   "
 
 # Merge source tree by original project with our layer of additional files
