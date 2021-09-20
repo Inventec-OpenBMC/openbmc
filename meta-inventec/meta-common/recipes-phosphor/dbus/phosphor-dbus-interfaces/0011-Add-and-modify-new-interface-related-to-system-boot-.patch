@@ -1,4 +1,4 @@
-From 0cb45a29c677734be91ebc1fd5aea29cc08490a7 Mon Sep 17 00:00:00 2001
+From 0072cd167a4c21a099b24a6fda4f4adb96a2ee78 Mon Sep 17 00:00:00 2001
 From: cynthia <wu.cynthia@inventec.com>
 Date: Sat, 24 Jul 2021 13:04:43 +0800
 Subject: [PATCH] Add and modify new interface related to system boot options
@@ -23,12 +23,12 @@ Entry Test:
  .../Control/Boot/Partition/meson.build        | 14 ++++
  .../openbmc_project/Control/Boot/meson.build  | 75 +++++++++++++++++++
  .../Control/Boot/Config.interface.yaml        | 13 ++++
- .../Control/Boot/Flag.interface.yaml          | 45 +++++++++++
+ .../Control/Boot/Flag.interface.yaml          | 42 +++++++++++
  .../Control/Boot/InitiatorInfo.interface.yaml |  9 +++
  .../Control/Boot/Mailbox.interface.yaml       |  6 ++
  .../Control/Boot/Partition.interface.yaml     | 10 +++
  .../Control/Boot/Source.interface.yaml        | 21 ++++++
- 12 files changed, 249 insertions(+)
+ 12 files changed, 246 insertions(+)
  create mode 100644 gen/xyz/openbmc_project/Control/Boot/Config/meson.build
  create mode 100644 gen/xyz/openbmc_project/Control/Boot/Flag/meson.build
  create mode 100644 gen/xyz/openbmc_project/Control/Boot/InitiatorInfo/meson.build
@@ -245,15 +245,12 @@ index 0000000..8e62d98
 \ No newline at end of file
 diff --git a/xyz/openbmc_project/Control/Boot/Flag.interface.yaml b/xyz/openbmc_project/Control/Boot/Flag.interface.yaml
 new file mode 100644
-index 0000000..544c47d
+index 0000000..701065b
 --- /dev/null
 +++ b/xyz/openbmc_project/Control/Boot/Flag.interface.yaml
-@@ -0,0 +1,45 @@
+@@ -0,0 +1,42 @@
 +properties:
 +    - name: BootFlagValid
-+      type: boolean
-+      default: false
-+    - name: OptionPresistent
 +      type: boolean
 +      default: false
 +    - name: CMOSClear
@@ -379,5 +376,5 @@ index facf5d7..4fa1688 100644
 +            Boot from remotely connected floppy/primary removable media (USB).
 \ No newline at end of file
 -- 
-2.17.1
+2.33.0
 

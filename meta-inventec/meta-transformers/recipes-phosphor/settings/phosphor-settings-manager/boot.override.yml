@@ -1,4 +1,4 @@
-/xyz/openbmc_project/control/host0:
+/xyz/openbmc_project/control/host0/boot/boot_options:
     - Interface: xyz.openbmc_project.Control.Boot.Mailbox
       Properties:
           Selector:
@@ -17,14 +17,6 @@
       Properties:
           ChannelId:
               Default: 0
-    - Interface: xyz.openbmc_project.Control.Boot.Source
-      Properties:
-        BootSource:
-          Default: Source::Sources::Default
-    - Interface: xyz.openbmc_project.Control.Boot.Mode
-      Properties:
-          BootMode:
-              Default: Mode::Modes::Safe
     - Interface: xyz.openbmc_project.Control.Boot.Type
       Properties:
           BootType:
