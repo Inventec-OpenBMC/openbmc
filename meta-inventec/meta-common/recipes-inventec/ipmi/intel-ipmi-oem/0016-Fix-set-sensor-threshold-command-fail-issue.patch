@@ -1,0 +1,60 @@
+From f224da04f960830dfd094578e874426978db7fad Mon Sep 17 00:00:00 2001
+From: "Lin.TommySC" <lin.tommysc@inventec.com>
+Date: Wed, 22 Sep 2021 01:52:50 +0000
+Subject: [PATCH] Fix set sensor threshold command fail issue
+
+Symptom/Reason :
+    - Set sensor threshold command may fail under intensive test
+
+Root Cause:
+    - Sensor tree was regenerated after next record ID was determined
+
+Solution/Change:
+    [intel-ipmi-oem]
+        - Sensor tree should be regenerated before next record ID was determined
+
+Entry Test:
+    - Copy following commands and paste them on BMC console
+      ipmitool sensor thresh THERMAL_U95 lcr 6.000
+      ipmitool sensor thresh THERMAL_U95 lnc 11.000
+      ipmitool sensor thresh THERMAL_U95 unc 66.000
+      ipmitool sensor thresh THERMAL_U95 ucr 71.000
+      ipmitool sensor thresh THERMAL_U95 lcr 5.000
+      ipmitool sensor thresh THERMAL_U95 lnc 10.000
+      ipmitool sensor thresh THERMAL_U95 unc 65.000
+      ipmitool sensor thresh THERMAL_U95 ucr 70.000
+---
+ src/sensorcommands.cpp | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/src/sensorcommands.cpp b/src/sensorcommands.cpp
+index c59419f..1e18845 100644
+--- a/src/sensorcommands.cpp
++++ b/src/sensorcommands.cpp
+@@ -1676,11 +1676,6 @@ ipmi::RspType<uint16_t,            // next record ID
+         return ipmi::response(ret);
+     }
+ 
+-    size_t lastRecord = sensorTree.size() + fruCount +
+-                        ipmi::storage::type12Count +
+-                        ipmi::storage::nmDiscoverySDRCount - 1;
+-    uint16_t nextRecordId = lastRecord > recordID ? recordID + 1 : 0XFFFF;
+-
+     if (!getSensorSubtree(sensorTree) && sensorTree.empty())
+     {
+         phosphor::logging::log<phosphor::logging::level::ERR>(
+@@ -1688,6 +1683,11 @@ ipmi::RspType<uint16_t,            // next record ID
+         return ipmi::responseResponseError();
+     }
+ 
++    size_t lastRecord = sensorTree.size() + fruCount +
++                        ipmi::storage::type12Count +
++                        ipmi::storage::nmDiscoverySDRCount - 1;
++    uint16_t nextRecordId = lastRecord > recordID ? recordID + 1 : 0XFFFF;
++
+     std::vector<uint8_t> record;
+     if (getSensorDataRecord(ctx, record, recordID))
+     {
+-- 
+2.17.1
+
