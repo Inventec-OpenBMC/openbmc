@@ -499,7 +499,7 @@
 };
 
 &ohci1 {
-	status = "okay";
+	status = "disable";
 };
 
 &udc0 {
@@ -539,7 +539,7 @@
 };
 
 &udc9 {
-	status = "disabled";
+	status = "okay";
 };
 
 &aes {

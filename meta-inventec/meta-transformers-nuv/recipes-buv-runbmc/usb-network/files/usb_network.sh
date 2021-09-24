@@ -21,7 +21,7 @@ if [ ! -f "g1" ]; then
     
     ln -s functions/rndis.usb0 configs/c.1
     
-    echo f0832000.udc > UDC
+    echo f0839000.udc > UDC
 
 fi
 exit 0
