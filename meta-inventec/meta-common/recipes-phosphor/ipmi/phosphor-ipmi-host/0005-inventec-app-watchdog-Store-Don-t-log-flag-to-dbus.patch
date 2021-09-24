@@ -1,7 +1,7 @@
-From caf6c4b98ebfd15ee640112d9f4411c5e468acef Mon Sep 17 00:00:00 2001
+From 4e72687f5324f7d25640e393514dc4a3ad1bb8d2 Mon Sep 17 00:00:00 2001
 From: "pj.chen" <chen.pj@inventec.com>
 Date: Tue, 9 Mar 2021 05:20:27 +0000
-Subject: [PATCH 05/16] - Store Don't log flag to dbus
+Subject: [PATCH] - Store Don't log flag to dbus
 
 Symtom/Reason:
     Save the don't log flag to dbus for watchdog command.
@@ -24,14 +24,15 @@ xyz.openbmc_project.State.Watchdog  interface -         -                       
 .ResetTimeRemaining                 method    b         -                                        -
 .CurrentTimerUse                    property  s         "xyz.openbmc_project.State.Watchdog.T... emits-change writable
 .DontLog                            property  b         true                                     emits-change writable
+
 ---
- app/watchdog.cpp         | 23 +++++++++++++++++++++--
+ app/watchdog.cpp         | 25 ++++++++++++++++++++++---
  app/watchdog_service.cpp | 12 ++++++++++++
  app/watchdog_service.hpp | 14 ++++++++++++++
- 3 files changed, 47 insertions(+), 2 deletions(-)
+ 3 files changed, 48 insertions(+), 3 deletions(-)
 
 diff --git a/app/watchdog.cpp b/app/watchdog.cpp
-index cb0b1fd..b9bd992 100644
+index cb0b1fd..bfbdbcd 100644
 --- a/app/watchdog.cpp
 +++ b/app/watchdog.cpp
 @@ -211,8 +211,12 @@ WatchdogService::TimerUse ipmiTimerUseToWdTimerUse(IpmiTimerUse ipmiTimerUse)
@@ -73,10 +74,12 @@ index cb0b1fd..b9bd992 100644
          lastCallSuccessful = true;
          return ipmi::responseSuccess();
      }
-@@ -452,8 +466,13 @@ ipmi::RspType<uint3_t, // timerUse - timer use
+@@ -451,9 +465,14 @@ ipmi::RspType<uint3_t, // timerUse - timer use
+             }
              else
              {
-                 presentCountdown = 0;
+-                presentCountdown = 0;
++                presentCountdown = initialCountdown;
 +                /*
 +                    Inventec - Store Don't log flag to dbus
 +                */
@@ -157,6 +160,3 @@ index 32b7461..5a3f33d 100644
    private:
      /** @brief sdbusplus handle */
      sdbusplus::bus::bus bus;
--- 
-2.7.4
-

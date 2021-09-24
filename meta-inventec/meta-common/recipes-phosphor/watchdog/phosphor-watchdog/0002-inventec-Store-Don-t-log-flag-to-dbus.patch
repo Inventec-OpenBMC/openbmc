@@ -1,7 +1,7 @@
-From b236ff1bedf31e2388e7147ed2e6dd80b68c6df5 Mon Sep 17 00:00:00 2001
+From 19f3e62c50085d836b4c68f2956fe390c4c485b9 Mon Sep 17 00:00:00 2001
 From: "pj.chen" <chen.pj@inventec.com>
 Date: Tue, 9 Mar 2021 06:22:35 +0000
-Subject: [PATCH 2/2] - Store Don't log flag to dbus
+Subject: [PATCH] wq- Store Don't log flag to dbus
 
 Symtom/Reason:
     Save the don't log flag to dbus for watchdog command.
@@ -24,12 +24,13 @@ Start Watchdog countdown
 Wait for timeout.
 Check ipmitool sel list.
 There should have not watchdog entry.
+
 ---
- src/watchdog.cpp | 92 +++++++++++++++++++++++++++++++-------------------------
- 1 file changed, 51 insertions(+), 41 deletions(-)
+ src/watchdog.cpp | 93 +++++++++++++++++++++++++++---------------------
+ 1 file changed, 52 insertions(+), 41 deletions(-)
 
 diff --git a/src/watchdog.cpp b/src/watchdog.cpp
-index a4bde44..8674f8f 100644
+index a4bde44..11e8a4f 100644
 --- a/src/watchdog.cpp
 +++ b/src/watchdog.cpp
 @@ -406,57 +406,63 @@ void Watchdog::timeOutHandler()
@@ -137,7 +138,15 @@ index a4bde44..8674f8f 100644
      }
  
      // Update WATCHDOG Sensor value and state
-@@ -510,6 +516,10 @@ void Watchdog::tryFallbackOrDisable()
+@@ -480,6 +486,7 @@ void Watchdog::timeOutHandler()
+                            wdt::propertyValue,
+                            std::variant<uint8_t>(selTimerAction));
+         bus.call(writeSensor);
++ 	interval(interval()); //set to original config value 
+     }
+     catch (sdbusplus::exception_t& e)
+     {
+@@ -510,6 +517,10 @@ void Watchdog::tryFallbackOrDisable()
      // Make sure we accurately reflect our enabled state to the
      // dbus interface.
      WatchdogInherits::enabled(false);
@@ -148,6 +157,3 @@ index a4bde44..8674f8f 100644
  }
  
  } // namespace watchdog
--- 
-2.7.4
-
