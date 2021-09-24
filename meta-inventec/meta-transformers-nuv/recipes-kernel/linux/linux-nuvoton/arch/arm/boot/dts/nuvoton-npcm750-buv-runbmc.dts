@@ -91,7 +91,7 @@
 
 		identify {
 			label = "identify";
-			gpios = <&gpio3 15 1>;
+			gpios = <&gpio7 0 1>;
 		};
 	};
 };
