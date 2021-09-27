@@ -1,7 +1,7 @@
-From be23e71b344cbc8669102eaa50cd6665de9b910c Mon Sep 17 00:00:00 2001
-From: cwsun <sun.cwsun@inventec.com>
-Date: Fri, 20 Aug 2021 21:07:18 +0800
-Subject: [PATCH] Support IPMI v1.5 Session Management
+From e8ec731fe1e690356479d281a2d7836602de7893 Mon Sep 17 00:00:00 2001
+From: "sun.cwsun" <sun.cwsun@inventec.com>
+Date: Sun, 26 Sep 2021 21:14:37 -0700
+Subject: [PATCH] [Transformers][SW] Support IPMI v1.5 Session Management
 
     Symptom/Reason :
         - The OpenBMC does not support IPMI v1.5 RMCP type Session Management
@@ -18,12 +18,13 @@ Subject: [PATCH] Support IPMI v1.5 Session Management
             - support RMCP type session of "Get Session Info" command
               -- ipmiAppGetSessionInfo()
               -- getSessionDetails()
+              -- remove garbage code
 
         [phosphor-ipmi-net]
             - When user assign into the system via netipmid and register a session.
               The registered session will be record its type of RMCP or RMCP+ and be kept
               in the dbus system.
-            - enable per-message authentication
+	    - enable per-message authentication
 
     Entry Test:
         - Open RMCP(-Ilan) and RMCP+(-Ilanplus) sessions with IPMI shell
@@ -66,11 +67,11 @@ Subject: [PATCH] Support IPMI v1.5 Session Management
             privilege level               : ADMINISTRATOR
             session type                  : IPMIv2/RMCP+
             channel number                : 0x01
-
 ---
  command/channel_auth.cpp | 2 +-
+ message_parsers.cpp      | 9 ++++++++-
  sessions_manager.cpp     | 4 +++-
- 2 files changed, 4 insertions(+), 2 deletions(-)
+ 3 files changed, 12 insertions(+), 3 deletions(-)
 
 diff --git a/command/channel_auth.cpp b/command/channel_auth.cpp
 index 451fb27..9a389e5 100644
@@ -85,6 +86,27 @@ index 451fb27..9a389e5 100644
      response->userAuth = 0;       // User Level Authentication is enabled
      uint8_t maxChUsers = 0;
      uint8_t enabledUsers = 0;
+diff --git a/message_parsers.cpp b/message_parsers.cpp
+index d02cee4..3b34a10 100644
+--- a/message_parsers.cpp
++++ b/message_parsers.cpp
+@@ -221,8 +221,15 @@ std::vector<uint8_t> flatten(std::shared_ptr<Message> outMessage,
+         header->base.rmcp.classOfMsg = static_cast<uint8_t>(ClassOfMsg::IPMI);
+         header->base.format.formatType =
+             static_cast<uint8_t>(parser::SessionHeader::IPMI15);
+-        header->sessSeqNum = 0;
+         header->sessId = sessionid;
++	//fix bug557, outbound sequence number does not increase
++        if(sessionid == 0x00){
++            header->sessSeqNum = 0;
++        }else{
++            auto sequenceNum = session->sequenceNums.get(false);
++            header->sessSeqNum = endian::to_ipmi(sequenceNum);
++            session->sequenceNums.increment();
++        }
+         header->payloadLength =
+             static_cast<uint8_t>(outMessage->payload.size());
+     }else
 diff --git a/sessions_manager.cpp b/sessions_manager.cpp
 index e1611b3..88579dd 100644
 --- a/sessions_manager.cpp
