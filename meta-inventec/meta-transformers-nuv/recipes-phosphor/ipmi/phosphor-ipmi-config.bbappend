@@ -1,33 +1,14 @@
-FILESEXTRAPATHS_prepend_transformers-nuv := "${THISDIR}/${PN}:"
+FILESEXTRAPATHS_prepend_transformers-nuv := "${THISDIR}/${BPN}:"
 
-inherit image_version
+SRC_URI_append_transformers-nuv = " file://dev_id.json"
+SRC_URI_append_transformers-nuv = " file://channel_access.json"
+SRC_URI_append_transformers-nuv = " file://channel_config.json"
 
-unset do_patch[noexec]
-do_patch[depends] = "os-release:do_populate_sysroot"
-
-python do_patch() {
-    import json
-    import re
-    from shutil import copyfile
-    version_id = do_get_version(d)
-
-    # count from the commit version
-    count = re.findall("-(\d{1,4})-", version_id)
-
-    release = re.findall("-r(\d{1,4})", version_id)
-    if release:
-        auxVer = count[0] + "{0:0>4}".format(release[0])
-    else:
-        auxVer = count[0] + "0000"
-
-    workdir = d.getVar('WORKDIR', True)
-    file = os.path.join(workdir, 'dev_id.json')
-
-    # Update dev_id.json with the auxiliary firmware revision
-    with open(file, "r+") as jsonFile:
-        data = json.load(jsonFile)
-        jsonFile.seek(0)
-        jsonFile.truncate()
-        data["aux"] = int(auxVer, 16)
-        json.dump(data, jsonFile)
+do_install_append_transformers-nuv() {
+    install -m 0644 -D ${WORKDIR}/dev_id.json \
+        ${D}/usr/share/ipmi-providers/dev_id.json
+    install -m 0644 -D ${WORKDIR}/channel_access.json \
+        ${D}/usr/share/ipmi-providers/channel_config.json
+    install -m 0644 -D ${WORKDIR}/channel_config.json \
+        ${D}/usr/share/ipmi-providers/channel_config.json
 }
