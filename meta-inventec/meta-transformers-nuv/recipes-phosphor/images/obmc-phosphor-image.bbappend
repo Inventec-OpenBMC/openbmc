@@ -28,3 +28,6 @@ OBMC_IMAGE_EXTRA_INSTALL_append += " monitor-bios-update"
 OBMC_IMAGE_EXTRA_INSTALL_append += " smbios-mdr"
 #OBMC_IMAGE_EXTRA_INSTALL_append += " gpio-event-handler"
 OBMC_IMAGE_EXTRA_INSTALL_append += "inventec-mac-config"
+
+OBMC_IMAGE_EXTRA_INSTALL_append += "usb-network"
+OBMC_IMAGE_EXTRA_INSTALL_append += "phosphor-ipmi-flash"
