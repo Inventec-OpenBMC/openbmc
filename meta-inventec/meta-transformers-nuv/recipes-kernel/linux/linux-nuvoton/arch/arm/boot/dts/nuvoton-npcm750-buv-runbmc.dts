@@ -85,12 +85,12 @@
 	leds {
 		compatible = "gpio-leds";
 		heartbeat {
-		label = "heartbeat";
+			label = "HB_LED";
 			gpios = <&gpio3 14 1>;
 		};
 
 		identify {
-			label = "identify";
+			label = "UID_LED";
 			gpios = <&gpio7 0 1>;
 		};
 	};
