@@ -113,6 +113,12 @@ startPowerCapMonitor(std::shared_ptr<sdbusplus::asio::connection> conn, PowerSto
         {
             auto value = std::get_if<bool>(&propertiesChanged.begin()->second);
             powerStore.powerCapEnable = *value;
+            /* Clean status if powerCap disable*/
+            if(!powerStore.powerCapEnable)
+            {
+                powerStore.actionTriggered = false;
+                powerStore.correctionStart = false;
+            }
         }
         else if (event == EXCEPTION_ACTION_PROP)
         {
@@ -182,6 +188,10 @@ void powerLimitCheck(Power currentPower)
                 savePowerThresholdEventSEL(false);
             }
             powerStore.actionTriggered = false;
+            if constexpr (DEBUG)
+            {
+                std::cerr << "actionTriggered deassert\n";
+            }
         }
     }
     else
@@ -194,6 +204,10 @@ void powerLimitCheck(Power currentPower)
             {
                 /* Power below the threshold, reset correctionStart*/
                 powerStore.correctionStart = false;
+                if constexpr (DEBUG)
+                {
+                    std::cerr << "correctionStart deassert\n";
+                }
             }
             else
             {
@@ -222,6 +236,10 @@ void powerLimitCheck(Power currentPower)
                     powerStore.correctionTimeout =
                         currentPower.time + powerStore.correctionTime;
                     powerStore.correctionStart = true;
+                    if constexpr (DEBUG)
+                    {
+                        std::cerr << "correctionStart assert\n";
+                    }
                 }
             }
         }
@@ -252,6 +270,10 @@ void powerLimitCheck(Power currentPower)
 
         /* save actionTriggered flag */
         powerStore.actionTriggered = true;
+        if constexpr (DEBUG)
+        {
+            std::cerr << "actionTriggered\n";
+        }
     }
 
     return;
@@ -286,7 +308,7 @@ void powerHandler(boost::asio::io_context &io, PowerStore &powerStore, double de
             }
 
             powerHandler(io, powerStore, delayTime);
-                return;
+            return;
         }
 
         if (powerStore.collectedPower.size() >= MAX_COLLECTION_POWER_SIZE)
@@ -312,7 +334,7 @@ void powerHandler(boost::asio::io_context &io, PowerStore &powerStore, double de
         }
 
         powerHandler(io, powerStore, delayTime);
-            return;
+        return;
     });
 }
 
