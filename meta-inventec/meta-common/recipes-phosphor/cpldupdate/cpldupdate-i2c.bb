@@ -24,7 +24,7 @@ LIC_FILES_CHKSUM = "file://cpldupdate-i2c.cpp;beginline=5;endline=16;md5=69348da
 
 
 SRC_URI = "file://cpldupdate-i2c.cpp \
-	   file://cpld_info.hpp \
+           file://config.json \
            file://Makefile \
           "
 
@@ -34,10 +34,13 @@ S = "${WORKDIR}"
 do_install() {
   install -d ${D}${bindir}
   install -m 755 cpldupdate-i2c ${D}${bindir}/cpldupdate-i2c
+  install -d 755 ${D}/usr/share/cpldupdate-i2c
+  install -m 755 ${WORKDIR}/config.json ${D}/usr/share/cpldupdate-i2c/config.json
 }
 
 LDFLAGS += "-lsystemd -lsdbusplus -lobmc-i2c"
-DEPENDS += "libobmc-i2c systemd sdbusplus"
+DEPENDS += "libobmc-i2c systemd sdbusplus nlohmann-json"
 RDEPENDS_${PN} += "libobmc-i2c libsystemd sdbusplus"
 
 FILES_${PN} = "${bindir}"
+FILES_${PN} += "${datadir}/cpldupdate-i2c/config.json"

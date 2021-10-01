@@ -30,10 +30,12 @@
 #include <sys/stat.h>
 #include <openbmc/obmc-i2c.h>
 #include <sdbusplus/server.hpp>
-#include "cpld_info.hpp"
 #include <variant>
 #include <tuple>
 #include <iostream>
+#include <fstream>
+#include <nlohmann/json.hpp>
+#include <string>
 
 #ifdef DEBUG
 #define CPLD_DEBUG(fmt, args...) printf(fmt, ##args);
@@ -49,7 +51,7 @@
 #define VERSION_ID_PATH_END (4)
 #define RETRY_NUM (1)
 #define CMD_SIZE (4)
-
+#define PROGRAM_DONE_RETRY_NUM (3)
 
 const int VERIFY_PERCENTAGE = 40;
 const int FLASH_PERCENTAGE = 40;
@@ -57,7 +59,9 @@ const int FLASH_PERCENTAGE = 40;
 using GetSubTreeType = std::vector<std::pair<
                        std::string,
                        std::vector<std::pair<std::string, std::vector<std::string>>>>>;
+using json = nlohmann::json;
 
+constexpr auto jsonConfigurationPath = "/usr/share/cpldupdate-i2c/config.json";
 auto OBJECT_MAPPER_SERVICE ="xyz.openbmc_project.ObjectMapper";
 auto OBJECT_MAPPER_OBJECT ="/xyz/openbmc_project/object_mapper";
 auto OBJECT_MAPPER_INTF= "xyz.openbmc_project.ObjectMapper";
@@ -83,12 +87,6 @@ enum {
     UFM_PAGE = 0x47,
 };
 
-enum {
-    DEF_CPLD_TYPE,
-    MB_CPLD_TYPE,
-    SCM_CPLD_TYPE,
-};
-
 const cpld_config_t xo3_cpld_config = {
     
     .reset_addr_cmd = {CFG_PAGE, 0x00, 0x00, 0x00},
@@ -106,6 +104,43 @@ const cpld_config_t xo3d_cpld_config = {
 
 //uint8_t xo3d_reset_addr_cmd[CMD_SIZE] = {CFG_PAGE, 0x00, 0x01, 0x00};
 //uint8_t xo3d_erase_flash_cmd[CMD_SIZE] = {0x0E, 0x00, 0x01, 0x00};
+
+static json
+parse_json(const std::string& path)
+{
+    std::ifstream jsonFile(path);
+    if (!jsonFile.is_open()){
+        throw("Fail to open json file");
+    }
+    auto data = json::parse(jsonFile, nullptr, false);
+    if (data.is_discarded()){
+        throw("Invalid json - parse failed");
+    }
+    return data;
+}
+static int
+validate_json(const json data){
+    if (data.size() == 0){
+        ERR_PRINT("Invalid Configuration: At least one cpld type required");
+	    return -1;
+    }
+    for(auto type : data){
+	    if (type.count("bus") != 1 ){
+            ERR_PRINT("Invalid Configuration: one bus per cpld");
+	        return -1;
+        }
+	    if (type.count("addr") != 1 ){
+            ERR_PRINT("Invalid Configuration: one addr per cpld");
+            return -1;
+        }
+	    if (type.count("type") != 1 ){
+            ERR_PRINT("Invalid Configuration: one type per cpld");
+	        return -1;
+        }
+    }
+    ERR_PRINT("validate json");
+    return 0;
+}
 
 static void
 print_usage(const char *name)
@@ -164,7 +199,7 @@ int i2c_rdwr_msg_transfer_retry(int file, __u8 addr, __u8 *tbuf,
         ret = i2c_rdwr_msg_transfer(file, addr, tbuf, tcount, rbuf, rcount);
         if(ret == 0) {
             break;
-        }
+       }
         usleep(20000);
     }
     if (count >= RETRY_NUM) {
@@ -181,7 +216,7 @@ read_device_id(i2c_info_t cpld)
     uint8_t device_id[4];
     int ret = -1;
 
-    ret = i2c_rdwr_msg_transfer(cpld.fd, cpld.addr << 1, device_id_cmd,
+    ret = i2c_rdwr_msg_transfer_retry(cpld.fd, cpld.addr << 1, device_id_cmd,
                                 sizeof(device_id_cmd), device_id, sizeof(device_id));
     if (ret != 0) {
         ERR_PRINT("read_device_id()");
@@ -206,9 +241,16 @@ read_status(i2c_info_t cpld)
         if (ret != 0) {
             ERR_PRINT("read_busy_flag()");
             return ret;
-	}
+	    }
+        /* Most significant byte is received first, LSB last
+         * check following bits in status register
+         * status[2] = xxFB xxCD
+         * bit D Done flag = 1 (done)
+	     * bit B busy flag = 0 (not busy)
+         * bit F fail flag = 0 (operation succed)
+         * */
 
-        if((status[2]&0x30) == 0) {
+        if((status[2] & 0x31) == 0x01) {
             break;
         }
         sleep(1);
@@ -233,7 +275,7 @@ read_busy_flag(i2c_info_t cpld)
     int ret = -1;
 
     for (count = 0; count < BUSY_RETRIES; count++) {
-        ret = i2c_rdwr_msg_transfer(cpld.fd, cpld.addr << 1, busy_flag_cmd,
+        ret = i2c_rdwr_msg_transfer_retry(cpld.fd, cpld.addr << 1, busy_flag_cmd,
                                     sizeof(busy_flag_cmd), flag, sizeof(flag));
         if (ret != 0) {
             ERR_PRINT("read_busy_flag()");
@@ -256,7 +298,7 @@ read_usercode(i2c_info_t cpld)
     int ret = -1;
     int i = 0;
 
-    ret = i2c_rdwr_msg_transfer(cpld.fd, cpld.addr << 1, read_usercode_cmd,
+    ret = i2c_rdwr_msg_transfer_retry(cpld.fd, cpld.addr << 1, read_usercode_cmd,
                                 sizeof(read_usercode_cmd), user_code, sizeof(user_code));
     if (ret != 0) {
         ERR_PRINT("read_usercode()");
@@ -270,21 +312,17 @@ read_usercode(i2c_info_t cpld)
     printf("\n");
     return 0;
 }
-static int 
-get_cpld_type(char *filePath)
+static std::string 
+get_cpld_type(char *filePath, json data)
 {
     std::string path(filePath);
-    int type = DEF_CPLD_TYPE;
-    
-    if (path.find("MB") != std::string::npos) {
-        type = MB_CPLD_TYPE;
-        printf("MB_CPLD_TYPE\n");
-    } else if (path.find("SCM") != std::string::npos) {
-        type = SCM_CPLD_TYPE;
-        printf("SCM_CPLD_TYPE\n");
-    }
-
-    return type;
+    for (json::iterator it = data.begin(); it != data.end(); ++it) {
+        if (path.find(it.key()) != std::string::npos) {
+            std::cout << "Get cpld: " << it.key() << "\n";
+            return it.key();
+        }
+	}		
+    return "";
 }    
 static int
 enable_program_mode(i2c_info_t cpld, uint8_t mode)
@@ -299,7 +337,7 @@ enable_program_mode(i2c_info_t cpld, uint8_t mode)
     } else if (mode == OFFLINE_MODE) {
         printf("Offline Mode\n");
     }
-    ret = i2c_rdwr_msg_transfer(cpld.fd, cpld.addr << 1, enable_program_cmd,
+    ret = i2c_rdwr_msg_transfer_retry(cpld.fd, cpld.addr << 1, enable_program_cmd,
                                 sizeof(enable_program_cmd), NULL, 0);
     if (ret != 0) {
         ERR_PRINT("enable_program_mode()");
@@ -317,7 +355,7 @@ erash_flash(i2c_info_t cpld, uint8_t *erase_flash_cmd)
     printf("Erase Flash CFG only");
     printf("\n");
 
-    ret = i2c_rdwr_msg_transfer(cpld.fd, cpld.addr << 1, erase_flash_cmd,
+    ret = i2c_rdwr_msg_transfer_retry(cpld.fd, cpld.addr << 1, erase_flash_cmd,
                                 CMD_SIZE, NULL, 0);
     if (ret != 0) {
         ERR_PRINT("erase_flash()");
@@ -439,7 +477,7 @@ refresh(i2c_info_t cpld)
     int ret = -1;
 
     printf("Refreshing CPLD...");
-    ret = i2c_rdwr_msg_transfer(cpld.fd, cpld.addr << 1, refresh_cmd,
+    ret = i2c_rdwr_msg_transfer_retry(cpld.fd, cpld.addr << 1, refresh_cmd,
                                 sizeof(refresh_cmd), NULL, 0);
     if (ret != 0) {
         ERR_PRINT("\nrefresh()");
@@ -458,7 +496,7 @@ disable_config(i2c_info_t cpld)
     int ret = -1;
 
     printf("disable config CPLD...");
-    ret = i2c_rdwr_msg_transfer(cpld.fd, cpld.addr << 1, disable_cmd,
+    ret = i2c_rdwr_msg_transfer_retry(cpld.fd, cpld.addr << 1, disable_cmd,
                                 sizeof(disable_cmd), NULL, 0);
     if (ret != 0) {
         ERR_PRINT("\nrefresh()");
@@ -482,7 +520,7 @@ pre_verify(i2c_info_t cpld, uint8_t *reset_addr_cmd,
     int byte_index = 0;
     int ret = -1;
     /* Reset Page Address */
-    ret = i2c_rdwr_msg_transfer(cpld.fd, cpld.addr << 1, reset_addr_cmd,
+    ret = i2c_rdwr_msg_transfer_retry(cpld.fd, cpld.addr << 1, reset_addr_cmd,
                                 CMD_SIZE, NULL, 0);
     if (ret != 0) {
         ERR_PRINT("verify_flash(): Reset Page Address");
@@ -496,7 +534,7 @@ pre_verify(i2c_info_t cpld, uint8_t *reset_addr_cmd,
     for (byte_index = 0; byte_index < 16 * 2; byte_index+=16) {
 
         /* Read Page Data */
-        ret = i2c_rdwr_msg_transfer(cpld.fd, cpld.addr << 1, read_page_cmd,
+        ret = i2c_rdwr_msg_transfer_retry(cpld.fd, cpld.addr << 1, read_page_cmd,
                                     sizeof(read_page_cmd), page_data, sizeof(page_data));
         if (ret != 0) {
             ERR_PRINT("verify_flash(): Read Page Data");
@@ -536,7 +574,7 @@ verify(i2c_info_t cpld, uint8_t *reset_addr_cmd,
     uint8_t percentage = 0;
     uint8_t page = 0;
     /* Reset Page Address */
-    ret = i2c_rdwr_msg_transfer(cpld.fd, cpld.addr << 1, reset_addr_cmd,
+    ret = i2c_rdwr_msg_transfer_retry(cpld.fd, cpld.addr << 1, reset_addr_cmd,
                                 CMD_SIZE, NULL, 0);
     if (ret != 0) {
         ERR_PRINT("verify_flash(): Reset Page Address");
@@ -569,7 +607,7 @@ verify(i2c_info_t cpld, uint8_t *reset_addr_cmd,
     for (byte_index = 0; byte_index < data_len; byte_index+=16) {
 
         /* Read Page Data */
-        ret = i2c_rdwr_msg_transfer(cpld.fd, cpld.addr << 1, read_page_cmd,
+        ret = i2c_rdwr_msg_transfer_retry(cpld.fd, cpld.addr << 1, read_page_cmd,
                                     sizeof(read_page_cmd), page_data, sizeof(page_data));
         if (ret != 0) {
             ERR_PRINT("verify_flash(): Read Page Data");
@@ -611,7 +649,7 @@ verify(i2c_info_t cpld, uint8_t *reset_addr_cmd,
         }
         usleep(200);
     }
-    printf("...Done!\n");
+    printf("\t\t\t\t...Done!\n");
     return 0;
 }
 
@@ -633,7 +671,7 @@ program_flash(i2c_info_t cpld, uint8_t *reset_addr_cmd,
     uint8_t percentage_start = 0;
     uint8_t page = 0;
 
-    ret = i2c_rdwr_msg_transfer(cpld.fd, cpld.addr << 1, reset_addr_cmd,
+    ret = i2c_rdwr_msg_transfer_retry(cpld.fd, cpld.addr << 1, reset_addr_cmd,
                                 CMD_SIZE, NULL, 0);
     if (ret != 0) {
         ERR_PRINT("program_flash(): Reset Page Address");
@@ -673,7 +711,7 @@ program_flash(i2c_info_t cpld, uint8_t *reset_addr_cmd,
         }
         CPLD_DEBUG("\n");
 
-        ret = i2c_rdwr_msg_transfer(cpld.fd, cpld.addr << 1, program_page_cmd,
+        ret = i2c_rdwr_msg_transfer_retry(cpld.fd, cpld.addr << 1, program_page_cmd,
                                     sizeof(program_page_cmd), NULL, 0);
         if (ret != 0) {
             ERR_PRINT("program_flash(): Program Page Data");
@@ -711,7 +749,7 @@ program_done(i2c_info_t cpld)
     int ret = -1;
 
     printf("Program Done\n");
-    ret = i2c_rdwr_msg_transfer(cpld.fd, cpld.addr << 1, program_done_cmd,
+    ret = i2c_rdwr_msg_transfer_retry(cpld.fd, cpld.addr << 1, program_done_cmd,
                                 sizeof(program_done_cmd), NULL, 0);
     if (ret != 0) {
         ERR_PRINT("program_done()");
@@ -719,6 +757,30 @@ program_done(i2c_info_t cpld)
     }
     if (read_busy_flag(cpld) != 0) {
         CPLD_DEBUG("Device busy is caused by program done.\n");
+        return -1;
+    }
+    return 0;
+}
+
+static int program_done_process(i2c_info_t cpld)
+{
+    int count = 0, ret = -1;
+	 
+    for (count = 0; count < PROGRAM_DONE_RETRY_NUM; count++) {
+        if((ret = program_done(cpld)) != 0) {
+            printf("program done failed\n");
+            continue;
+        } 
+        
+        if((ret = read_status(cpld)) != 0) {
+            printf("failed read status\n");
+        } else {
+            break;
+        }
+    }
+    
+    if (count >= PROGRAM_DONE_RETRY_NUM) {
+        printf("program_done retry fail\n");
         return -1;
     }
     return 0;
@@ -782,27 +844,38 @@ main(int argc, const char *argv[])
     image_path=(char*)malloc(size);
     memcpy(image_path, argv[1], size); 
     
-    int type = get_cpld_type(image_path);
-    if (type == SCM_CPLD_TYPE) { 
-        
-        cpld.bus = SCM_CPLD_I2C_BUS;
-        cpld.addr = SCM_CPLD_I2C_ADDR;
-        memcpy(&cpld_config, &xo3d_cpld_config, sizeof(cpld_config_t)); 
-    } else if (type == MB_CPLD_TYPE) {
+    try{
+	    //open, parse, and validate the json
+        auto json_data = parse_json(jsonConfigurationPath);
+	    if (validate_json(json_data) != 0){
+	        return 0;
+    	}
+        std::string type = get_cpld_type(image_path, json_data);
+	    if(type == ""){
+            std::cerr << "UNKNOWN_CPLD_TYPE\n";
+            return 0;
+	    }
 
-        cpld.bus = MB_CPLD_I2C_BUS;
-        cpld.addr = MB_CPLD_I2C_ADDR;
-        memcpy(&cpld_config, &xo3_cpld_config, sizeof(cpld_config_t)); 
-    } else {
-        printf("UNKNOWN_CPLD_TYPE\n");
-        return -1;
+	    cpld.bus = json_data[type]["bus"].get<unsigned long>();
+        char* tempToUnLong;
+        cpld.addr = strtoul((json_data[type]["addr"].get<std::string>()).c_str(), &tempToUnLong, 16);
+        if(json_data[type]["type"] == "MachXO3D"){
+            memcpy(&cpld_config, &xo3d_cpld_config, sizeof(cpld_config_t));
+        }else if(json_data[type]["type"] == "MachXO3"){
+            memcpy(&cpld_config, &xo3_cpld_config, sizeof(cpld_config_t)); 
+        }else{
+            std::cerr << "UNKNOWN type, only support for MachXO3D or MachXO3\n";
+            return 0;
+        }
+    }catch(std::string s){
+	    std::cerr << s << std::endl;
     }
     cpld.fd = i2c_open(cpld.bus, cpld.addr);
     if (cpld.fd < 0) {
         printf("cpld dev open fail\n");
         return cpld.fd;
     }
-    
+
     if (is_remote) {
        /*when file path fed in by systemd service, need to replace '-' with '/' 
        until the slash  after version-id: ex: -tmp-images-123456-image_name */
@@ -873,53 +946,36 @@ main(int argc, const char *argv[])
 
         if (program_flash(cpld, cpld_config.reset_addr_cmd, cfg_data, cfg_len, is_remote, service, object) != 0 ) {
             continue;
+        }else{
+            CPLD_DEBUG("program flash succeed\n");
         }
 
         if (verify(cpld, cpld_config.reset_addr_cmd, cfg_data, cfg_len, is_remote, service, object) != 0 ) {
             continue;
+        }else{
+            CPLD_DEBUG("verify succeed\n");
+        }
+
+        if((rc = program_done_process(cpld)) != 0) {
+            printf("Program_done_progress failed\n");
+            continue;
         } else {
+            printf("Program_done_progress with done bit check succeed\n");
             break;
         }
     }
     if (update_retry >= UPDATE_RETRIES) {
-
         printf("update retry fail\n");
         close(cpld.fd);
         free(cfg_data);
         if (0 != ufm_len) {
             free(ufm_data);
         }
-	    free(image_path);
-	    disable_config(cpld);
+        free(image_path);
+        disable_config(cpld);
         return -1;
     }
 
-    if((rc = program_done(cpld)) != 0) {
-        printf("failed program done\n");
-        close(cpld.fd);
-        free(cfg_data);
-        if (0 != ufm_len) {
-            free(ufm_data);
-        }
-        free(image_path);
-        return -1;
-    } else {
-        printf("program done succeed\n");
-    } 
-
-
-    if((rc = read_status(cpld)) != 0) {
-        printf("failed read status\n");
-        close(cpld.fd);
-        free(cfg_data);
-        if (0 != ufm_len) {
-            free(ufm_data);
-        }
-        free(image_path);
-        return -1;
-    } 
-    printf("read status succeed\n");
-    
     if(is_remote) {
         bus = sdbusplus::bus::new_default();
         method = bus.new_method_call(service.c_str(), object.c_str() ,PROP_INTF, "Set");
