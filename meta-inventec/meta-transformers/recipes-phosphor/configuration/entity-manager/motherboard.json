@@ -2206,6 +2206,22 @@
                 }
             ],
             "Type": "AverageSensor"
+        },
+        {
+            "Name": "total_power",
+            "SensorType": "power",
+            "SensorMember1": "PSU1_Output_Power",
+            "Max": 3000,
+            "Min": 0,
+            "SensorInfo": [
+                {
+                    "Label": "total_power",
+                    "SensorNum": "0x80",
+                    "EntityId": "0xa",
+                    "EntityInstance": "11"
+                }
+            ],
+            "Type": "AccumulateSensor"
         }
     ],
     "Name": "Transformers MotherBoard",
