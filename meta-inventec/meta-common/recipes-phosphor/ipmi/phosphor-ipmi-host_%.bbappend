@@ -25,6 +25,7 @@ SRC_URI_append = " file://0001-sensorhandler-fix-get-threshold-error.patch \
                    file://0021-Support-IPMIv1.5-SessionManagement-ipmid.patch \
                    file://0022-Add-error-checking-to-prevent-core-dump.patch \
                    file://0023-Bug378-Authtype-is-empty-and-can-not-enable.patch \
+                   file://0024-Add-special-case-for-system-interface-in-Get-Channel.patch \
 "
 
 

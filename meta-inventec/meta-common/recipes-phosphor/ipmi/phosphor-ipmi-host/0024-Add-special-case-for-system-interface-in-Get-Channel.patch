@@ -1,0 +1,45 @@
+From 5bf65e39b348f2d989fac8bc341a24228c9f6cf3 Mon Sep 17 00:00:00 2001
+From: "Lin.TommySC" <lin.tommysc@inventec.com>
+Date: Tue, 5 Oct 2021 08:14:42 +0000
+Subject: [PATCH] Add special case for system interface in Get Channel Info
+ command
+
+Symptom/Reason :
+    - Enhance Get Channel Info command
+
+Root Cause:
+    - Original implementation does not consider system interface case
+
+Solution/Change:
+    [phosphor-ipmi-host]
+        - Add special case for system interface
+
+Entry Test:
+    - Get channel info
+      ipmitool raw 0x06 0x42 0xf
+---
+ user_channel/channelcommands.cpp | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/user_channel/channelcommands.cpp b/user_channel/channelcommands.cpp
+index b774d3f..b216f51 100644
+--- a/user_channel/channelcommands.cpp
++++ b/user_channel/channelcommands.cpp
+@@ -280,7 +280,13 @@ RspType<uint4_t,  // chNum
+     uint6_t activeSessionCount = getChannelActiveSessions(chNum);
+     // IPMI Spec: The IPMI Enterprise Number is: 7154 (decimal)
+     constexpr uint24_t vendorId = 7154;
+-    constexpr uint16_t auxChInfo = 0;
++    uint16_t auxChInfo = 0;
++
++    // Tommy. Add special case for system interface.
++    if (chNum == 0x0f)
++    {
++        auxChInfo = 0xffff;
++    }
+ 
+     return responseSuccess(chNum, reserved1, mediumType, reserved2,
+                            protocolType, reserved3, activeSessionCount,
+-- 
+2.17.1
+
