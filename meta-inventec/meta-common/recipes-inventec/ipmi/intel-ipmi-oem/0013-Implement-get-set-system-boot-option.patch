@@ -1,4 +1,4 @@
-From 2fb2245604e8f05a1fb6e4d1003555117ffb1fa5 Mon Sep 17 00:00:00 2001
+From 2a4ed35231e8ef73dd71d01043d8bf266d07baa8 Mon Sep 17 00:00:00 2001
 From: cynthia <wu.cynthia@inventec.com>
 Date: Tue, 10 Aug 2021 11:00:55 +0800
 Subject: [PATCH] Implement get/set system boot option
@@ -123,7 +123,7 @@ index 0000000..880e03a
 +    };
 +}// namespace ipmi::chassis*/
 diff --git a/src/chassiscommands.cpp b/src/chassiscommands.cpp
-index 1ff29c2..7cae435 100644
+index 1ff29c2..402202e 100644
 --- a/src/chassiscommands.cpp
 +++ b/src/chassiscommands.cpp
 @@ -29,6 +29,8 @@
@@ -272,7 +272,7 @@ index 1ff29c2..7cae435 100644
 +            valid = std::get<bool>(variant);
 +            variant = getDbusProperty(*dbus, SettingService, SettingOneTimeObj,
 +                                     PersistantIntf, "Enabled");
-+            presistant = std::get<bool>(variant);
++            presistant = !( std::get<bool>(variant) );
 +            variant = getDbusProperty(*dbus, SettingService, SettingBootOptionObj,
 +                                     BootTypeIntf, "BootType");
 +            boottype = std::get<std::string>(variant);
@@ -523,7 +523,7 @@ index 1ff29c2..7cae435 100644
 +            setDbusProperty(*dbus, SettingService, SettingBootOptionObj,
 +                                     BootFlagIntf, "BootFlagValid", valid );  
 +            setDbusProperty(*dbus, SettingService, SettingOneTimeObj,
-+                                     PersistantIntf, "Enabled", presistant );  
++                                     PersistantIntf, "Enabled", !presistant );  
 +            setDbusProperty(*dbus, SettingService, SettingBootOptionObj,
 +                                     BootTypeIntf, "BootType", Type::convertTypesToString( typeIpmiToDbus.at(type) ) ); 
 +        }catch(sdbusplus::exception::SdBusError& e)
