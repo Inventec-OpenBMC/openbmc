@@ -19,6 +19,118 @@
                     "Name": "upper critical",
                     "Severity": 1,
                     "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_A0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_B0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_C0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_D0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_E0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_F0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_G0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_H0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_A1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_B1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_C1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_D1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_E1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_F1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_G1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_H1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
                 }
             ],
             "SensorInfo": [
@@ -35,6 +147,118 @@
                     "SensorNum": "0x01",
                     "EntityId": "3",
                     "EntityInstance": "1"
+                },
+                {
+                    "Label": "DIMM_A0_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x90",
+                    "EntityId": "8",
+                    "EntityInstance": "2"
+                },
+                {
+                    "Label": "DIMM_B0_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x91",
+                    "EntityId": "8",
+                    "EntityInstance": "3"
+                },
+                {
+                    "Label": "DIMM_C0_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x92",
+                    "EntityId": "8",
+                    "EntityInstance": "4"
+                },
+                {
+                    "Label": "DIMM_D0_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x93",
+                    "EntityId": "8",
+                    "EntityInstance": "5"
+                },
+                {
+                    "Label": "DIMM_E0_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x94",
+                    "EntityId": "8",
+                    "EntityInstance": "6"
+                },
+                {
+                    "Label": "DIMM_F0_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x95",
+                    "EntityId": "8",
+                    "EntityInstance": "7"
+                },
+                {
+                    "Label": "DIMM_G0_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x96",
+                    "EntityId": "8",
+                    "EntityInstance": "8"
+                },
+                {
+                    "Label": "DIMM_H0_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x97",
+                    "EntityId": "8",
+                    "EntityInstance": "9"
+                },
+                {
+                    "Label": "DIMM_A1_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x98",
+                    "EntityId": "8",
+                    "EntityInstance": "10"
+                },
+                {
+                    "Label": "DIMM_B1_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x99",
+                    "EntityId": "8",
+                    "EntityInstance": "11"
+                },
+                {
+                    "Label": "DIMM_C1_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x9A",
+                    "EntityId": "8",
+                    "EntityInstance": "12"
+                },
+                {
+                    "Label": "DIMM_D1_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x9B",
+                    "EntityId": "8",
+                    "EntityInstance": "13"
+                },
+                {
+                    "Label": "DIMM_E1_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x9C",
+                    "EntityId": "8",
+                    "EntityInstance": "14"
+                },
+                {
+                    "Label": "DIMM_F1_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x9D",
+                    "EntityId": "8",
+                    "EntityInstance": "15"
+                },
+                {
+                    "Label": "DIMM_G1_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x9E",
+                    "EntityId": "8",
+                    "EntityInstance": "16"
+                },
+                {
+                    "Label": "DIMM_H1_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x9F",
+                    "EntityId": "8",
+                    "EntityInstance": "17"
                 }
             ],
             "Type": "XeonCPU"
@@ -58,6 +282,118 @@
                     "Name": "upper critical",
                     "Severity": 1,
                     "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_A0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_B0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_C0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_D0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_E0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_F0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_G0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_H0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_A1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_B1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_C1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_D1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_E1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_F1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_G1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_H1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
                 }
             ],
             "SensorInfo": [
@@ -74,6 +410,118 @@
                     "SensorNum": "0x03",
                     "EntityId": "3",
                     "EntityInstance": "3"
+                },
+                {
+                    "Label": "DIMM_A0_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xA0",
+                    "EntityId": "8",
+                    "EntityInstance": "2"
+                },
+                {
+                    "Label": "DIMM_B0_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xA1",
+                    "EntityId": "8",
+                    "EntityInstance": "3"
+                },
+                {
+                    "Label": "DIMM_C0_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xA2",
+                    "EntityId": "8",
+                    "EntityInstance": "4"
+                },
+                {
+                    "Label": "DIMM_D0_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xA3",
+                    "EntityId": "8",
+                    "EntityInstance": "5"
+                },
+                {
+                    "Label": "DIMM_E0_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xA4",
+                    "EntityId": "8",
+                    "EntityInstance": "6"
+                },
+                {
+                    "Label": "DIMM_F0_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xA5",
+                    "EntityId": "8",
+                    "EntityInstance": "7"
+                },
+                {
+                    "Label": "DIMM_G0_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xA6",
+                    "EntityId": "8",
+                    "EntityInstance": "8"
+                },
+                {
+                    "Label": "DIMM_H0_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xA7",
+                    "EntityId": "8",
+                    "EntityInstance": "9"
+                },
+                {
+                    "Label": "DIMM_A1_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xA8",
+                    "EntityId": "8",
+                    "EntityInstance": "10"
+                },
+                {
+                    "Label": "DIMM_B1_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xA9",
+                    "EntityId": "8",
+                    "EntityInstance": "11"
+                },
+                {
+                    "Label": "DIMM_C1_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xAA",
+                    "EntityId": "8",
+                    "EntityInstance": "12"
+                },
+                {
+                    "Label": "DIMM_D1_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xAB",
+                    "EntityId": "8",
+                    "EntityInstance": "13"
+                },
+                {
+                    "Label": "DIMM_E1_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xAC",
+                    "EntityId": "8",
+                    "EntityInstance": "14"
+                },
+                {
+                    "Label": "DIMM_F1_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xAD",
+                    "EntityId": "8",
+                    "EntityInstance": "15"
+                },
+                {
+                    "Label": "DIMM_G1_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xAE",
+                    "EntityId": "8",
+                    "EntityInstance": "16"
+                },
+                {
+                    "Label": "DIMM_H1_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xAF",
+                    "EntityId": "8",
+                    "EntityInstance": "17"
                 }
             ],
             "Type": "XeonCPU"
@@ -104,6 +552,214 @@
             ],
             "Type": "XeonCPU"
         },
+	{
+            "Name": "DIMM_A0_CPU1",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_A0_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x90",
+                    "EntityId": "8",
+                    "EntityInstance": "2"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_B0_CPU1",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_B0_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x91",
+                    "EntityId": "8",
+                    "EntityInstance": "3"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_C0_CPU1",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_C0_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x92",
+                    "EntityId": "8",
+                    "EntityInstance": "4"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_D0_CPU1",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_D0_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x93",
+                    "EntityId": "8",
+                    "EntityInstance": "5"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_E0_CPU1",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_E0_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x94",
+                    "EntityId": "8",
+                    "EntityInstance": "6"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_F0_CPU1",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_F0_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x95",
+                    "EntityId": "8",
+                    "EntityInstance": "7"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_G0_CPU1",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_G0_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x96",
+                    "EntityId": "8",
+                    "EntityInstance": "8"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_H0_CPU1",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_H0_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x97",
+                    "EntityId": "8",
+                    "EntityInstance": "9"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_A1_CPU1",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_A1_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x98",
+                    "EntityId": "8",
+                    "EntityInstance": "10"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_B1_CPU1",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_B1_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x99",
+                    "EntityId": "8",
+                    "EntityInstance": "11"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_C1_CPU1",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_C1_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x9A",
+                    "EntityId": "8",
+                    "EntityInstance": "12"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_D1_CPU1",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_D1_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x9B",
+                    "EntityId": "8",
+                    "EntityInstance": "13"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_E1_CPU1",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_E1_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x9C",
+                    "EntityId": "8",
+                    "EntityInstance": "14"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_F1_CPU1",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_F1_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x9D",
+                    "EntityId": "8",
+                    "EntityInstance": "15"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_G1_CPU1",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_G1_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x9E",
+                    "EntityId": "8",
+                    "EntityInstance": "16"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_H1_CPU1",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_H1_CPU1",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x9F",
+                    "EntityId": "8",
+                    "EntityInstance": "17"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
         {
             "Name": "DTS_CPU2",
             "SensorInfo": [
@@ -130,7 +786,214 @@
             ],
             "Type": "XeonCPU"
         },
-
+	{
+            "Name": "DIMM_A0_CPU2",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_A0_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xA0",
+                    "EntityId": "8",
+                    "EntityInstance": "2"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_B0_CPU2",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_B0_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xA1",
+                    "EntityId": "8",
+                    "EntityInstance": "3"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_C0_CPU2",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_C0_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xA2",
+                    "EntityId": "8",
+                    "EntityInstance": "4"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_D0_CPU2",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_D0_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xA3",
+                    "EntityId": "8",
+                    "EntityInstance": "5"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_E0_CPU2",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_E0_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xA4",
+                    "EntityId": "8",
+                    "EntityInstance": "6"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_F0_CPU2",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_F0_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xA5",
+                    "EntityId": "8",
+                    "EntityInstance": "7"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_G0_CPU2",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_G0_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xA6",
+                    "EntityId": "8",
+                    "EntityInstance": "8"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_H0_CPU2",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_H0_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xA7",
+                    "EntityId": "8",
+                    "EntityInstance": "9"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_A1_CPU2",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_A1_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xA8",
+                    "EntityId": "8",
+                    "EntityInstance": "10"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_B1_CPU2",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_B1_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xA9",
+                    "EntityId": "8",
+                    "EntityInstance": "11"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_C1_CPU2",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_C1_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xAA",
+                    "EntityId": "8",
+                    "EntityInstance": "12"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_D1_CPU2",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_D1_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xAB",
+                    "EntityId": "8",
+                    "EntityInstance": "13"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_E1_CPU2",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_E1_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xAC",
+                    "EntityId": "8",
+                    "EntityInstance": "14"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_F1_CPU2",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_F1_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xAD",
+                    "EntityId": "8",
+                    "EntityInstance": "15"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_G1_CPU2",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_G1_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xAE",
+                    "EntityId": "8",
+                    "EntityInstance": "16"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+	{
+            "Name": "DIMM_H1_CPU2",
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_H1_CPU2",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xAF",
+                    "EntityId": "8",
+                    "EntityInstance": "17"
+                }
+            ],
+            "Type": "XeonCPU"
+        },
         {
             "Name": "CPU1_MEMTRIP_N",
             "ReadingType": "discrete",
