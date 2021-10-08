@@ -1,21 +1,24 @@
-From f810dfec1eef3dc5d643383af5f7de668e9a46c1 Mon Sep 17 00:00:00 2001
+From 129697e666c12383f74c1a61d0fb35dfa2ae4490 Mon Sep 17 00:00:00 2001
 From: "pj.chen" <chen.pj@inventec.com>
 Date: Mon, 12 Jul 2021 05:33:39 +0000
-Subject: [PATCH] [inventec][common][Fan] - Patch to support sensor number,
- entity number and entity instance
+Subject: [PATCH] - Patch to support sensor number, entity number and entity
+ instance
 
 - Support detect fan presence via GPIO or tach.
 - Support PWM sensor
 - Fix index for fan0 and pwm0
 - Support Present sensor
+- Ignore to set psu default value
+
+%% original patch: 0003-inventec-common-Fan-Patch-to-support-sensor-number-e.patch
 ---
  include/PwmSensor.hpp  |   3 +
  include/TachSensor.hpp |  55 +++++++-
  src/FanMain.cpp        | 209 ++++++++++++++++++++++-----
  src/PSUSensorMain.cpp  |  22 ++-
- src/PwmSensor.cpp      |  54 +++++++
+ src/PwmSensor.cpp      |  64 ++++++++-
  src/TachSensor.cpp     | 310 ++++++++++++++++++++++++++++++++++++++---
- 6 files changed, 593 insertions(+), 60 deletions(-)
+ 6 files changed, 602 insertions(+), 61 deletions(-)
 
 diff --git a/include/PwmSensor.hpp b/include/PwmSensor.hpp
 index d78b8e9..adce767 100644
@@ -489,7 +492,7 @@ index e6f4b45..a38ec4a 100644
              if (!findLabels.empty())
              {
 diff --git a/src/PwmSensor.cpp b/src/PwmSensor.cpp
-index f76ea50..9113b4e 100644
+index f76ea50..64f24b8 100644
 --- a/src/PwmSensor.cpp
 +++ b/src/PwmSensor.cpp
 @@ -30,6 +30,7 @@ static constexpr double targetIfaceMax = sysPwmMax;
@@ -500,7 +503,24 @@ index f76ea50..9113b4e 100644
                       const std::string& sensorConfiguration,
                       const std::string& sensorType) :
      sysPath(sysPath),
-@@ -157,10 +158,59 @@ PwmSensor::PwmSensor(const std::string& name, const std::string& sysPath,
+@@ -54,7 +55,15 @@ PwmSensor::PwmSensor(const std::string& name, const std::string& sysPath,
+     {
+         // default pwm to non 0
+         pwmValue = static_cast<uint32_t>(pwmMax * (defaultPwm / 100.0));
+-        setValue(pwmValue);
++        // Ignore to set default value
++        try
++        {
++            setValue(pwmValue);
++        }
++        catch(const std::exception& e)
++        {
++            std::cerr << e.what() << '\n';
++        }
+     }
+     double fValue = 100.0 * (static_cast<double>(pwmValue) / pwmMax);
+     sensorInterface->register_property(
+@@ -157,10 +166,59 @@ PwmSensor::PwmSensor(const std::string& name, const std::string& sysPath,
      if (sensorType == "PSU")
      {
          createInventoryAssoc(conn, association, sensorConfiguration);
@@ -560,7 +580,7 @@ index f76ea50..9113b4e 100644
      }
  }
  PwmSensor::~PwmSensor()
-@@ -168,6 +218,10 @@ PwmSensor::~PwmSensor()
+@@ -168,6 +226,10 @@ PwmSensor::~PwmSensor()
      objectServer.remove_interface(sensorInterface);
      objectServer.remove_interface(controlInterface);
      objectServer.remove_interface(association);
@@ -989,5 +1009,5 @@ index b3c955c..b5e2d3b 100644
  }
 +
 -- 
-2.17.1
+2.33.0
 
