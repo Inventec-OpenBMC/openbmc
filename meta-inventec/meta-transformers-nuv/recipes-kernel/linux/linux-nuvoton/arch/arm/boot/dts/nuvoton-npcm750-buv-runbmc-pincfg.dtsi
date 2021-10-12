@@ -88,6 +88,18 @@
 			bias-disable;
 			input-enable;
 		};
+
+		gpio225ol_pins: gpio225ol-pins {
+			pins = "GPO225/SPIXD0/STRAP12";
+			bias-disable;
+			output-low;
+		};
+
+		gpio227ol_pins: gpio227ol-pins {
+			pins = "GPIO227/nSPIXCS0";
+			bias-disable;
+			output-low;
+		};
 		gpio18o_pins: gpio18o-pins {
 			pins = "GPIO18/PSPI2D0/SMB4BSDA";
 			bias-disable;

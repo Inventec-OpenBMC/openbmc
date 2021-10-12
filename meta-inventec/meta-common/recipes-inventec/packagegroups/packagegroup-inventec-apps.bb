@@ -54,7 +54,7 @@ RDEPENDS_${PN}-system = " \
         phosphor-sel-logger \
         phosphor-gpio-monitor \
         phosphor-gpio-monitor-monitor \
-        vlan \
+	vlan \
 	tzdata \
         "
 

@@ -226,6 +226,7 @@
 
 &emc0 {
 	status = "okay";
+	use-ncsi;
 };
 
 &i2c0 {
@@ -677,6 +678,8 @@
 				&gpio124_pins
 				&gpio125_pins
 				&gpio126_pins
+				&gpio225ol_pins
+				&gpio227ol_pins
 				>;
 };
 &gpio0 {
