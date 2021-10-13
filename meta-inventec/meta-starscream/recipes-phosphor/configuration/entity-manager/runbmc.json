@@ -3,7 +3,7 @@
        {
             "Address": "0x49",
             "Bus": "6",
-            "Name": "THERMAL_U6",
+            "Name": "Temp_U6",
             "Thresholds": [
                 {
                     "Direction": "greater than",
@@ -32,17 +32,17 @@
             ],
             "SensorInfo": [
                 {
-                    "Label": "THERMAL_U6",
+                    "Label": "Temp_U6",
                     "SensorModel": "Threshold",
-                    "SensorNum": "0x68",
+                    "SensorNum": "0x14",
                     "EntityId": "0x07",
-                    "EntityInstance": "0"
+                    "EntityInstance": "3"
                 }
             ],
             "Type": "TMP75"
         }
     ],
-    "Name": "Transformers runbmc",
+    "Name": "runbmc",
     "Probe": "xyz.openbmc_project.FruDevice({'BUS': 8, 'ADDRESS' : 81})",
     "Type": "Board",
     "xyz.openbmc_project.Inventory.Decorator.Asset": {
@@ -58,6 +58,6 @@
     },
     "xyz.openbmc_project.Inventory.Decorator.Ipmi": {
         "EntityId": "0x07",
-        "EntityInstance": 1
+        "EntityInstance": 2
     }
 }
