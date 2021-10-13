@@ -5,7 +5,7 @@
             "name": "FAN1_TACH1",
             "type": "fan",
             "readPath": "/xyz/openbmc_project/sensors/fan_tach/FAN1_TACH1",
-            "writePath": "/sys/devices/platform/ahb/ahb:apb/f0103000.pwm-fan-controller/hwmon/**/pwm0",
+            "writePath": "/sys/devices/platform/ahb/ahb:apb/f0103000.pwm-fan-controller/hwmon/**/pwm1",
             "min": 0,
             "max": 255,
             "ignoreDbusMinMax": true
@@ -14,7 +14,7 @@
             "name": "FAN2_TACH1",
             "type": "fan",
             "readPath": "/xyz/openbmc_project/sensors/fan_tach/FAN2_TACH1",
-            "writePath": "/sys/devices/platform/ahb/ahb:apb/f0103000.pwm-fan-controller/hwmon/**/pwm1",
+            "writePath": "/sys/devices/platform/ahb/ahb:apb/f0103000.pwm-fan-controller/hwmon/**/pwm2",
             "min": 0,
             "max": 255,
             "ignoreDbusMinMax": true
@@ -23,7 +23,7 @@
             "name": "FAN3_TACH1",
             "type": "fan",
             "readPath": "/xyz/openbmc_project/sensors/fan_tach/FAN3_TACH1",
-            "writePath": "/sys/devices/platform/ahb/ahb:apb/f0103000.pwm-fan-controller/hwmon/**/pwm2",
+            "writePath": "/sys/devices/platform/ahb/ahb:apb/f0103000.pwm-fan-controller/hwmon/**/pwm3",
             "min": 0,
             "max": 255,
             "ignoreDbusMinMax": true
@@ -32,7 +32,7 @@
             "name": "FAN4_TACH1",
             "type": "fan",
             "readPath": "/xyz/openbmc_project/sensors/fan_tach/FAN4_TACH1",
-            "writePath": "/sys/devices/platform/ahb/ahb:apb/f0103000.pwm-fan-controller/hwmon/**/pwm3",
+            "writePath": "/sys/devices/platform/ahb/ahb:apb/f0103000.pwm-fan-controller/hwmon/**/pwm4",
             "min": 0,
             "max": 255,
             "ignoreDbusMinMax": true
@@ -41,7 +41,7 @@
             "name": "FAN5_TACH1",
             "type": "fan",
             "readPath": "/xyz/openbmc_project/sensors/fan_tach/FAN5_TACH1",
-            "writePath": "/sys/devices/platform/ahb/ahb:apb/f0103000.pwm-fan-controller/hwmon/**/pwm4",
+            "writePath": "/sys/devices/platform/ahb/ahb:apb/f0103000.pwm-fan-controller/hwmon/**/pwm5",
             "min": 0,
             "max": 255,
             "ignoreDbusMinMax": true
@@ -50,7 +50,7 @@
             "name": "FAN6_TACH1",
             "type": "fan",
             "readPath": "/xyz/openbmc_project/sensors/fan_tach/FAN6_TACH1",
-            "writePath": "/sys/devices/platform/ahb/ahb:apb/f0103000.pwm-fan-controller/hwmon/**/pwm5",
+            "writePath": "/sys/devices/platform/ahb/ahb:apb/f0103000.pwm-fan-controller/hwmon/**/pwm6",
             "min": 0,
             "max": 255,
             "ignoreDbusMinMax": true
@@ -59,7 +59,7 @@
             "name": "FAN7_TACH1",
             "type": "fan",
             "readPath": "/xyz/openbmc_project/sensors/fan_tach/FAN7_TACH1",
-            "writePath": "/sys/devices/platform/ahb/ahb:apb/f0103000.pwm-fan-controller/hwmon/**/pwm6",
+            "writePath": "/sys/devices/platform/ahb/ahb:apb/f0103000.pwm-fan-controller/hwmon/**/pwm7",
             "min": 0,
             "max": 255,
             "ignoreDbusMinMax": true
@@ -68,7 +68,7 @@
             "name": "FAN8_TACH1",
             "type": "fan",
             "readPath": "/xyz/openbmc_project/sensors/fan_tach/FAN8_TACH1",
-            "writePath": "/sys/devices/platform/ahb/ahb:apb/f0103000.pwm-fan-controller/hwmon/**/pwm7",
+            "writePath": "/sys/devices/platform/ahb/ahb:apb/f0103000.pwm-fan-controller/hwmon/**/pwm8",
             "min": 0,
             "max": 255,
             "ignoreDbusMinMax": true

@@ -1,6 +1,6 @@
 #!/bin/bash
 HWMON_MAX=15
-FAN_MAX=7
+FAN_MAX=8
 
 for num in $(seq 0 $HWMON_MAX) ; do
 
@@ -8,7 +8,7 @@ for num in $(seq 0 $HWMON_MAX) ; do
         if [ $name == "npcm7xx_pwm_fan" ]; then
             echo "fan driver found"
 			
-			for i in $(seq 0 $FAN_MAX) ; do
+			for i in $(seq 1 $FAN_MAX) ; do
 				echo 255 > /sys/class/hwmon/hwmon$num/pwm$i
 			done
            exit 0
