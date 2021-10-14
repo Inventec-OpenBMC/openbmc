@@ -1,0 +1,37 @@
+From 6faa608c786c8870d60e287410b3b3872f867493 Mon Sep 17 00:00:00 2001
+From: Ashwini Udupa <udupa.ashwini@inventec.com>
+Date: Wed, 6 Oct 2021 15:27:05 -0700
+Subject: [PATCH] Boot flag
+
+---
+ redfish-core/lib/systems.hpp | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/redfish-core/lib/systems.hpp b/redfish-core/lib/systems.hpp
+index 13cbcf3..3d23a92 100644
+--- a/redfish-core/lib/systems.hpp
++++ b/redfish-core/lib/systems.hpp
+@@ -697,6 +697,11 @@ inline std::string dbusToRfBootSource(const std::string& dbusSource)
+     {
+         return "Cd";
+     }
++    if (dbusSource ==
++        "xyz.openbmc_project.Control.Boot.Source.Sources.Diagnostic")
++    {
++        return "Diags";
++    }
+     if (dbusSource == "xyz.openbmc_project.Control.Boot.Source.Sources.Network")
+     {
+         return "Pxe";
+@@ -767,7 +772,7 @@ inline int assignBootParameters(const std::shared_ptr<bmcweb::AsyncResp>& aResp,
+     }
+     else if (rfSource == "Diags")
+     {
+-        bootMode = "xyz.openbmc_project.Control.Boot.Mode.Modes.Safe";
++        bootSource = "xyz.openbmc_project.Control.Boot.Source.Sources.Diagnostic";
+     }
+     else if (rfSource == "Cd")
+     {
+-- 
+2.7.4
+
