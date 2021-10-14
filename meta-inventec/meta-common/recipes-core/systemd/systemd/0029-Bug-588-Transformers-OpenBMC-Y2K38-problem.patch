@@ -1,0 +1,80 @@
+From 8e9652efad748979438f5dd5663a0c973fdcd2f3 Mon Sep 17 00:00:00 2001
+From: "Fred.Chang" <chang.fredys@inventec.com>
+Date: Thu, 14 Oct 2021 07:47:43 +0000
+Subject: [PATCH] Bug 588 - [Transformers][OpenBMC] Y2K38 problem
+
+Symptom/Reason :
+    - system crash after 2038-01-19 03:14:07
+
+Root Cause:
+    - time over 2038-01-19 03:14:07
+
+Solution/Change:
+    [systemd]
+        - Protect the usec_add function to avoid the result over MAX.
+    [libsystemd]
+        - Avoid Assertion occurs
+    [timedated]
+        - Avoid the setting time over 2038-01-19 03:14:00
+
+Entry Test:
+    # ipmitool raw 0x0a 0x49 0xff 0xff 0xff 0x7f
+    # date
+    Sat Jan  1 00:00:00 GMT 2000
+---
+ src/basic/time-util.h              | 3 ++-
+ src/libsystemd/sd-event/sd-event.c | 5 +++--
+ src/timedate/timedated.c           | 8 ++++++--
+ 3 files changed, 11 insertions(+), 5 deletions(-)
+
+diff --git a/src/basic/time-util.h b/src/basic/time-util.h
+index 89ee8b4a96..a88008a99e 100644
+--- a/src/basic/time-util.h
++++ b/src/basic/time-util.h
+@@ -163,7 +163,8 @@ static inline usec_t usec_add(usec_t a, usec_t b) {
+         c = a + b;
+         if (c < a || c < b) /* overflow check */
+                 return USEC_INFINITY;
+-
++        if(c / USEC_PER_SEC >= TIME_T_MAX)
++                return TIME_T_MAX - 7;
+         return c;
+ }
+ 
+diff --git a/src/libsystemd/sd-event/sd-event.c b/src/libsystemd/sd-event/sd-event.c
+index 789a8c7df4..6d4957c406 100644
+--- a/src/libsystemd/sd-event/sd-event.c
++++ b/src/libsystemd/sd-event/sd-event.c
+@@ -2666,8 +2666,9 @@ _public_ void *sd_event_source_set_userdata(sd_event_source *s, void *userdata)
+ static usec_t sleep_between(sd_event *e, usec_t a, usec_t b) {
+         usec_t c;
+         assert(e);
+-        assert(a <= b);
+-
++        //assert(a <= b);
++        if (a <= b)
++                return 0;
+         if (a <= 0)
+                 return 0;
+         if (a >= USEC_INFINITY)
+diff --git a/src/timedate/timedated.c b/src/timedate/timedated.c
+index 76fe04900d..7c6dead3c7 100644
+--- a/src/timedate/timedated.c
++++ b/src/timedate/timedated.c
+@@ -844,10 +844,14 @@ static int method_set_time(sd_bus_message *m, void *userdata, sd_bus_error *erro
+                     (utc < 0 && x > n))
+                         return sd_bus_error_set(error, SD_BUS_ERROR_INVALID_ARGS, "Time value overflow");
+ 
++                if(x / USEC_PER_SEC > TIME_T_MAX-7)
++                        x = (TIME_T_MAX - 7) * USEC_PER_SEC;
+                 timespec_store(&ts, x);
+-        } else
++        } else {
++                if(utc / USEC_PER_SEC > TIME_T_MAX-7)
++                        utc = (TIME_T_MAX - 7) * USEC_PER_SEC;
+                 timespec_store(&ts, (usec_t) utc);
+-
++        }
+         r = bus_verify_polkit_async(
+                         m,
+                         CAP_SYS_TIME,
