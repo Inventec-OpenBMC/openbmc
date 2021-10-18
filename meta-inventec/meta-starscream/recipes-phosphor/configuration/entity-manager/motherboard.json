@@ -1193,7 +1193,7 @@
         }
     ],
     "Name": "motherBoard",
-    "Probe": "xyz.openbmc_project.FruDevice({'BUS': 6, 'ADDRESS' : 80})",
+    "Probe": "xyz.openbmc_project.FruDevice({'BUS': 6, 'ADDRESS' : 81})",
     "Type": "Chassis",
     "xyz.openbmc_project.Inventory.Decorator.Asset": {
         "Manufacturer": "$BOARD_MANUFACTURER",
@@ -1204,7 +1204,7 @@
     },
     "xyz.openbmc_project.Inventory.Decorator.FruDevice":{
         "Bus":6,
-        "Address":80
+        "Address":81
     },
     "xyz.openbmc_project.Inventory.Decorator.Ipmi": {
         "EntityId": "0x07",
