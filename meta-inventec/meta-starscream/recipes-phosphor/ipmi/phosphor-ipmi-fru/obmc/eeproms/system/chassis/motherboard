@@ -1,2 +1,2 @@
-SYSFS_PATH=/sys/bus/i2c/devices/3-0050/eeprom
+SYSFS_PATH=/sys/bus/i2c/devices/6-0051/eeprom
 FRUID=0

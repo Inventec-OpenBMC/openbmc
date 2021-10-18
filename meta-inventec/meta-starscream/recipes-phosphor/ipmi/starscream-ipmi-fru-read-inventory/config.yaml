@@ -27,7 +27,7 @@
 1:
   /system/chassis/runbmc/runbmc:
     entityID: 7
-    entityInstance: 0
+    entityInstance: 1
     interfaces:
       xyz.openbmc_project.Inventory.Decorator.Asset:
         BuildDate:
@@ -53,7 +53,7 @@
 2:
   /system/chassis/scmbridge/scmbridge:
     entityID: 7
-    entityInstance: 0
+    entityInstance: 2
     interfaces:
       xyz.openbmc_project.Inventory.Decorator.Asset:
         BuildDate:

@@ -5,7 +5,7 @@
         Cached: 'true'
     xyz.openbmc_project.Inventory.Item:
         Present: 'true'
-        EepromPath: '"/sys/bus/i2c/devices/3-0050/eeprom"'
+        EepromPath: '"/sys/bus/i2c/devices/6-0051/eeprom"'
         EepromService: '"obmc-read-eeprom@system-chassis-motherboard.service"'
 
 /system/chassis/runbmc/runbmc:
@@ -25,5 +25,5 @@
         Cached: 'true'
     xyz.openbmc_project.Inventory.Item:
         Present: 'true'
-        EepromPath: '"/sys/bus/i2c/devices/8-0053/eeprom"'
+        EepromPath: '"/sys/bus/i2c/devices/12-0051/eeprom"'
         EepromService: '"obmc-read-eeprom@system-chassis-scmbridge.service"'
