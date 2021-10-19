@@ -76,14 +76,7 @@
                     <&adc_u74 8>, // P5V
                     <&adc_u74 9>, // P12V
                     <&adc_u74 10>, // P1_VDD18_S5
-                    <&adc_u74 11>, // P0_VDD18_S5
-                    // 6 sub-channel each for pac driver
-                    <&pac_u23 1>, // 0-1 P12_FAN0 power
-                    <&pac_u23 7>, // 1-1 P12_FAN1 power
-                    <&pac_u23 13>, // 2-1 P12_FAN2 power
-                    <&pac_u23 19>, // 3-1 P12_FAN3 power
-                    <&pac_u27 1>, // 0-1 P12_FAN4 power
-                    <&pac_u27 7>  // 1-1 P12_FAN5 power
+                    <&adc_u74 11> // P0_VDD18_S5
                     ;
         };
 
@@ -280,102 +273,12 @@
                         #address-cells = <1>;
                         #size-cells = <0>;
                         reg = <1>;
-
-                        // TCA9545A
-                        i2c-switch@71 {
-                                compatible = "nxp,pca9545";
-                                #address-cells = <1>;
-                                #size-cells = <0>;
-                                reg = <0x71>;
-
-                                i2c@0 {
-                                        #address-cells = <1>;
-                                        #size-cells = <0>;
-                                        reg = <0>;
-                                };
-
-                                i2c@1 {
-                                        #address-cells = <1>;
-                                        #size-cells = <0>;
-                                        reg = <1>;
-                                };
-
-                                i2c@2 {
-                                        #address-cells = <1>;
-                                        #size-cells = <0>;
-                                        reg = <2>;
-
-                                        // FRU riser
-                                        eeprom@50 {
-                                                compatible = "atmel,24c32";
-                                                reg = <0x50>;
-                                                pagesize = <32>;
-                                        };
-                                };
-
-                                i2c@3 {
-                                        #address-cells = <1>;
-                                        #size-cells = <0>;
-                                        reg = <3>;
-
-                                        /* chip emc1462 use emc1403 driver */
-                                        emc1403@4c {
-                                                compatible = "smsc,emc1403";
-                                                reg = <0x4c>;
-                                        };
-                                };
-                        };
                 };
 
                 riser2:i2c@2 {
                         #address-cells = <1>;
                         #size-cells = <0>;
                         reg = <2>;
-
-                        // TCA9545A
-                        i2c-switch@71 {
-                                compatible = "nxp,pca9545";
-                                #address-cells = <1>;
-                                #size-cells = <0>;
-                                reg = <0x71>;
-
-                                i2c@0 {
-                                        #address-cells = <1>;
-                                        #size-cells = <0>;
-                                        reg = <0>;
-                                };
-
-                                i2c@1 {
-                                        #address-cells = <1>;
-                                        #size-cells = <0>;
-                                        reg = <1>;
-                                };
-
-                                i2c@2 {
-                                        #address-cells = <1>;
-                                        #size-cells = <0>;
-                                        reg = <2>;
-
-                                        // FRU riser
-                                        eeprom@50 {
-                                                compatible = "atmel,24c32";
-                                                reg = <0x50>;
-                                                pagesize = <32>;
-                                        };
-                                };
-
-                                i2c@3 {
-                                        #address-cells = <1>;
-                                        #size-cells = <0>;
-                                        reg = <3>;
-
-                                        /* chip emc1462 use emc1403 driver */
-                                        emc1403@4c {
-                                                compatible = "smsc,emc1403";
-                                                reg = <0x4c>;
-                                        };
-                                };
-                        };
                 };
 
                 i2c@3 {
@@ -389,18 +292,18 @@
 &i2c6 {
         status = "okay";
 
+        // FRU Motherboard
+        eeprom@51 {
+                compatible = "atmel,24c64";
+                reg = <0x51>;
+                pagesize = <32>;
+        };
+
         // ADC_U74
         adc_u74:max1139@35 {
                 compatible = "maxim,max1139";
                 reg = <0x35>;
                 #io-channel-cells = <1>;
-        };
-
-        // FRU Motherboard
-        eeprom@50 {
-                compatible = "atmel,24c64";
-                reg = <0x50>;
-                pagesize = <32>;
         };
 
         psu@58 {
@@ -429,7 +332,37 @@
 
 &i2c7 {
         status = "okay";
+        // I2C EXPANDER U40
+        i2c-switch@70 {
+                compatible = "nxp,pca9545";
+                #address-cells = <1>;
+                #size-cells = <0>;
+                reg = <0x70>;
 
+                i2c@0 {
+                        #address-cells = <1>;
+                        #size-cells = <0>;
+                        reg = <0>;
+                };
+
+                i2c@1 {
+                        #address-cells = <1>;
+                        #size-cells = <0>;
+                        reg = <1>;
+                };
+
+                i2c@2 {
+                        #address-cells = <1>;
+                        #size-cells = <0>;
+                        reg = <2>;
+                };
+
+                i2c@3 {
+                        #address-cells = <1>;
+                        #size-cells = <0>;
+                        reg = <3>;
+                };
+	};
 };
 
 
@@ -456,56 +389,16 @@
                 reg = <0x2e>;
         };
 
-        pac_u23:pac1934@13 {
+        pac1934@13 {
                 compatible = "microchip,pac1934";
                 reg = <0x13>;
-                samp-rate = <64>;
-                status = "okay";
-                #io-channel-cells = <1>;
-
-                channel@0 {
-                        uohms-shunt-res = <40000>; /* shunt resistor 40 miliohm */
-                        rail-name = "P12_FAN0";
-                        channel_enabled;
-                };
-
-                channel@1 {
-                        uohms-shunt-res = <40000>; /* shunt resistor 40 miliohm  */
-                        rail-name = "P12_FAN1";
-                        channel_enabled;
-                };
-
-                channel@2 {
-                        uohms-shunt-res = <40000>; /* shunt resistor 40 miliohm  */
-                        rail-name = "P12_FAN2";
-                        channel_enabled;
-                };
-
-                channel@3 {
-                        uohms-shunt-res = <40000>; /* shunt resistor 40 miliohm  */
-                        rail-name = "P12_FAN3";
-                        channel_enabled;
-                };
+                shunt-resistors = <4000 4000 4000 4000>;
         };
 
-        pac_u27:pac1932@12 {
+        pac1932@12 {
                 compatible = "microchip,pac1932";
                 reg = <0x12>;
-                samp-rate = <64>;
-                status = "okay";
-                #io-channel-cells = <1>;
-
-                channel@0 {
-                        uohms-shunt-res = <40000>; /* shunt resistor 40 miliohm  */
-                        rail-name = "P12_FAN4";
-                        channel_enabled;
-                };
-
-                channel@1 {
-                        uohms-shunt-res = <40000>; /* shunt resistor 40 miliohm */
-                        rail-name = "P12_FAN5";
-                        channel_enabled;
-                };
+                shunt-resistors = <4000 4000>;
         };
 };
 
