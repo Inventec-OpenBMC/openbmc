@@ -1,12 +1,12 @@
-From d4f8868ffdb727b64640543f5f88d26718e40390 Mon Sep 17 00:00:00 2001
+From 8abf8a5a473ec4c86172159190849e08ef3435df Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Tue, 27 Oct 2020 18:55:35 -0400
 Subject: [PATCH] Initial starscream machine
 
 ---
  arch/arm/dts/Makefile                       |   3 +-
- arch/arm/mach-aspeed/ast2600/board_common.c | 285 ++++++++++++--------
- 2 files changed, 170 insertions(+), 118 deletions(-)
+ arch/arm/mach-aspeed/ast2600/board_common.c | 286 ++++++++++++--------
+ 2 files changed, 171 insertions(+), 118 deletions(-)
 
 diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
 index 786042cd83..e779bb4022 100755
@@ -23,7 +23,7 @@ index 786042cd83..e779bb4022 100755
  dtb-$(CONFIG_ARCH_STI) += stih410-b2260.dtb
  
 diff --git a/arch/arm/mach-aspeed/ast2600/board_common.c b/arch/arm/mach-aspeed/ast2600/board_common.c
-index 99a9e1273a..2fdf4558ca 100644
+index 99a9e1273a..63691f457d 100644
 --- a/arch/arm/mach-aspeed/ast2600/board_common.c
 +++ b/arch/arm/mach-aspeed/ast2600/board_common.c
 @@ -8,50 +8,86 @@
@@ -178,7 +178,7 @@ index 99a9e1273a..2fdf4558ca 100644
  {
  	struct udevice *dev;
  	struct ram_info ram;
-@@ -126,94 +166,105 @@ int arch_early_init_r(void)
+@@ -126,94 +166,106 @@ int arch_early_init_r(void)
  	return 0;
  }
  
@@ -229,10 +229,11 @@ index 99a9e1273a..2fdf4558ca 100644
 +    //set GPIO N2 output high GPIO P4-P6 output high P3 P7 output low
 +    reg = readl(GPIONP_DATA);
 +    reg |= (0x70000004);
++    reg &= (0xFFFFF9FF);
 +    writel(reg,GPIONP_DATA);
 +
 +    reg = readl(GPIONP_DIR);
-+    reg |= (0x70000004);
++    reg |= (0x70000604);
 +    writel(reg,GPIONP_DIR);
 +
 +    //set GPIO S2 S4 S7 output high S3 S6 input
