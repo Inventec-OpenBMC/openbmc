@@ -1,7 +1,8 @@
-From f31c2d9c5ef98c7215eb0feb3d3b2a4ae316497e Mon Sep 17 00:00:00 2001
+From 35ab2df04ac2f336b5e5fdb51e85fd5b2a0ee60a Mon Sep 17 00:00:00 2001
 From: cwsun <sun.cwsun@inventec.com>
 Date: Mon, 2 Aug 2021 13:38:38 +0800
-Subject: [PATCH] [Transformers][SW] Support IPMI v1.5 Session Activation
+Subject: [PATCH] Bug618 - [SW][Transformers][IPMI] Implement IPMI v1.5 Session
+ Activation (RMCP)
 
     Symptom/Reason :
         - The OpenBMC does not support IPMI v1.5 Session Activation / RMCP feature
@@ -44,25 +45,26 @@ Subject: [PATCH] [Transformers][SW] Support IPMI v1.5 Session Activation
              > 50 01 06 00 02 21 57 01 00 18 0b 06 12 10 01 91
 ---
  Makefile.am                       |   6 +
- authcode.cpp                      | 177 ++++++++++++++++++++++++++++++
- authcode.hpp                      |  37 +++++++
+ authcode.cpp                      | 177 +++++++++++++++++++++++++++
+ authcode.hpp                      |  37 ++++++
  comm_module.cpp                   |  14 +++
- command/active_session.cpp        |  73 ++++++++++++
- command/active_session.hpp        |  63 +++++++++++
+ command/active_session.cpp        |  73 +++++++++++
+ command/active_session.hpp        |  63 ++++++++++
  command/channel_auth.cpp          |  11 +-
  command/get_session_challenge.cpp |  61 ++++++++++
  command/get_session_challenge.hpp |  54 +++++++++
  command_table.cpp                 |   3 +-
+ configure.ac                      |  11 --
  message.hpp                       |   4 -
  message_handler.cpp               |  30 +++--
  message_handler.hpp               |   2 -
- message_parsers.cpp               | 145 ++++++++++++++++++++----
- message_parsers.hpp               |  17 ++-
+ message_parsers.cpp               | 194 +++++++++++++++++++++++++-----
+ message_parsers.hpp               |  26 +++-
  sd_event_loop.cpp                 |   7 +-
  session.hpp                       |   8 ++
- sessions_manager.cpp              |  79 +++++++++++++
+ sessions_manager.cpp              |  79 ++++++++++++
  sessions_manager.hpp              |   7 ++
- 19 files changed, 748 insertions(+), 50 deletions(-)
+ 20 files changed, 797 insertions(+), 70 deletions(-)
  create mode 100644 authcode.cpp
  create mode 100644 authcode.hpp
  create mode 100644 command/active_session.cpp
@@ -678,6 +680,28 @@ index 2c05fff..611afb2 100644
          {
              log<level::ERR>("IPMI session expired");
              std::vector<uint8_t> errResponse = {IPMI_CC_UNSPECIFIED_ERROR};
+diff --git a/configure.ac b/configure.ac
+index 8e8ad57..36b0df4 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -66,17 +66,6 @@ AS_IF([test "x$with_systemdsystemunitdir" != "xno"],
+       [AC_SUBST([systemdsystemunitdir], [$with_systemdsystemunitdir])])
+ AM_CONDITIONAL([HAVE_SYSTEMD], [test "x$with_systemdsystemunitdir" != "xno"])
+ 
+-AC_ARG_ENABLE([rmcp-ping],
+-        AS_HELP_STRING([--enable-rmcp-ping], [Enable RMCP Ping support])
+-    )
+-    AS_IF([test "x$enable_rmcp_ping" == "xyes"],
+-        AC_MSG_NOTICE([Enabling RMCP Ping])
+-        [
+-            cpp_flags="-DRMCP_PING"
+-        ]
+-        AC_SUBST([CPPFLAGS], [$cpp_flags])
+-)
+-
+ # Checks for header files.
+ AC_CHECK_HEADER(systemd/sd-bus.h, ,[AC_MSG_ERROR([Could not find systemd/sd-bus.h...systemd development package required])])
+ 
 diff --git a/message.hpp b/message.hpp
 index f01fcc9..8b11368 100644
 --- a/message.hpp
@@ -814,7 +838,7 @@ index 2eb4737..f31cdf9 100644
      /** @brief Write the packet to the socket
       *
 diff --git a/message_parsers.cpp b/message_parsers.cpp
-index 18f8389..3c6898c 100644
+index 18f8389..0d5b474 100644
 --- a/message_parsers.cpp
 +++ b/message_parsers.cpp
 @@ -1,11 +1,18 @@
@@ -886,7 +910,7 @@ index 18f8389..3c6898c 100644
              throw std::runtime_error("Invalid Session Header");
          }
      }
-@@ -93,37 +99,96 @@ std::vector<uint8_t> flatten(std::shared_ptr<Message> outMessage,
+@@ -93,37 +99,101 @@ std::vector<uint8_t> flatten(std::shared_ptr<Message> outMessage,
  namespace ipmi15parser
  {
  
@@ -894,11 +918,13 @@ index 18f8389..3c6898c 100644
 +
  std::shared_ptr<Message> unflatten(std::vector<uint8_t>& inPacket)
  {
+-    if (inPacket.size() < sizeof(SessionHeader_t))
 +    struct AuthCode_t authCode;
 +    std::shared_ptr<Session> session(nullptr);
-+    SessionHeader_t* header = nullptr;
 +
-     if (inPacket.size() < sizeof(SessionHeader_t))
++    // 4bytes_RMCP + (1+4+4+1)bytes_IPMIHeader
++    const uint32_t SESSION_HEADER_SIZE = 14;
++    if (inPacket.size() < SESSION_HEADER_SIZE)
      {
 +        log<level::ERR>("IPMI1.5 Session Header Missing");
          throw std::runtime_error("IPMI1.5 Session Header Missing");
@@ -912,7 +938,7 @@ index 18f8389..3c6898c 100644
 +    {
 +        //it has authCode
 +        uint8_t *start = inPacket.data();
-+        header = reinterpret_cast<SessionHeader_t*>(inPacket.data());
++        auto header = reinterpret_cast<SessionHeader2_t*>(inPacket.data());
 +
 +        memcpy(authCode.authCode,
 +               start + sizeof(message::parser::BasicHeader_t) + 8,
@@ -929,9 +955,13 @@ index 18f8389..3c6898c 100644
 +        }
  
 -    auto header = reinterpret_cast<SessionHeader_t*>(inPacket.data());
--
++        message->bmcSessionID = endian::from_ipmi(header->sessId);
++        message->sessionSeqNum = endian::from_ipmi(header->sessSeqNum);
++        message->rmcpMsgClass =
++            static_cast<ClassOfMsg>(header->base.rmcp.classOfMsg);
+ 
 +    }else{
-+        header = reinterpret_cast<SessionHeader_t*>(inPacket.data());
++        auto header = reinterpret_cast<SessionHeader_t*>(inPacket.data());
 +        payloadLen = header->payloadLength;
 +        if (header->sessId != 0x00)
 +        {
@@ -940,22 +970,26 @@ index 18f8389..3c6898c 100644
 +            memcpy(session->authCode, authCode.authCode, sizeof(authCode));
 +            session->authType = authType;
 +        }
++        message->bmcSessionID = endian::from_ipmi(header->sessId);
++        message->sessionSeqNum = endian::from_ipmi(header->sessSeqNum);
++        message->rmcpMsgClass =
++            static_cast<ClassOfMsg>(header->base.rmcp.classOfMsg);
 +    }
 +    
      message->payloadType = PayloadType::IPMI;
-     message->bmcSessionID = endian::from_ipmi(header->sessId);
-     message->sessionSeqNum = endian::from_ipmi(header->sessSeqNum);
+-    message->bmcSessionID = endian::from_ipmi(header->sessId);
+-    message->sessionSeqNum = endian::from_ipmi(header->sessSeqNum);
      message->isPacketEncrypted = false;
      message->isPacketAuthenticated = false;
 -    message->rmcpMsgClass =
 -        static_cast<ClassOfMsg>(header->base.rmcp.classOfMsg);
-+    message->rmcpMsgClass = static_cast<ClassOfMsg>(header->base.rmcp.classOfMsg);
  
 -    auto payloadLen = header->payloadLength;
  
      // Confirm the number of data bytes received correlates to
      // the packet length in the header
-     if (inPacket.size() < (sizeof(SessionHeader_t) + payloadLen))
+-    if (inPacket.size() < (sizeof(SessionHeader_t) + payloadLen))
++    if (inPacket.size() < (SESSION_HEADER_SIZE + payloadLen))
      {
 +        log<level::ERR>("Invalid data length");
          throw std::runtime_error("Invalid data length");
@@ -966,10 +1000,8 @@ index 18f8389..3c6898c 100644
 -                inPacket.data() + sizeof(SessionHeader_t) + payloadLen);
 +    if(authType != 0x00){
 +        (message->payload)
-+            .assign(inPacket.data() + sizeof(SessionHeader_t) +
-+                        ipmi15parser::AUTH_CODE_LENGTH,
-+                    inPacket.data() + sizeof(SessionHeader_t) +
-+                        ipmi15parser::AUTH_CODE_LENGTH+ payloadLen);
++            .assign(inPacket.data() + sizeof(SessionHeader2_t),
++                      inPacket.data() + sizeof(SessionHeader2_t) + payloadLen);
 +    }else{
 +        (message->payload)
 +            .assign(inPacket.data() + sizeof(SessionHeader_t),
@@ -979,7 +1011,7 @@ index 18f8389..3c6898c 100644
 +    if(authType != 0x00){
 +        std::string passwd = ipmi::ipmiUserGetPassword(session->userName);
 +        auto retv = ipmi15authcode::compare_authcode(
-+            authType, passwd, header->sessId, header->sessSeqNum,
++            authType, passwd, message->bmcSessionID, message->sessionSeqNum,
 +            message->payload.data(), message->payload.size(),
 +            authCode.authCode);
 +        if (retv != 0)
@@ -991,74 +1023,98 @@ index 18f8389..3c6898c 100644
  
      return message;
  }
-@@ -131,20 +196,52 @@ std::shared_ptr<Message> unflatten(std::vector<uint8_t>& inPacket)
+@@ -131,20 +201,78 @@ std::shared_ptr<Message> unflatten(std::vector<uint8_t>& inPacket)
  std::vector<uint8_t> flatten(std::shared_ptr<Message> outMessage,
                               std::shared_ptr<session::Session> session)
  {
 -    std::vector<uint8_t> packet(sizeof(SessionHeader_t));
--
-+    std::vector<uint8_t> packet(sizeof(SessionHeader_t)-1); // git rid of "payloadlength" byte 
-+    
-     // Insert Session Header into the Packet
-     auto header = reinterpret_cast<SessionHeader_t*>(packet.data());
-     header->base.rmcp.version = parser::RMCP_VERSION;
-     header->base.rmcp.reserved = 0x00;
-     header->base.rmcp.rmcpSeqNum = parser::RMCP_SEQ;
-     header->base.rmcp.classOfMsg = static_cast<uint8_t>(ClassOfMsg::IPMI);
++    std::vector<uint8_t> packet;
+ 
+-    // Insert Session Header into the Packet
+-    auto header = reinterpret_cast<SessionHeader_t*>(packet.data());
+-    header->base.rmcp.version = parser::RMCP_VERSION;
+-    header->base.rmcp.reserved = 0x00;
+-    header->base.rmcp.rmcpSeqNum = parser::RMCP_SEQ;
+-    header->base.rmcp.classOfMsg = static_cast<uint8_t>(ClassOfMsg::IPMI);
 -    header->base.format.formatType =
 -        static_cast<uint8_t>(parser::SessionHeader::IPMI15);
-+    header->base.format.formatType = static_cast<uint8_t>(parser::SessionHeader::IPMI15);
-     header->sessSeqNum = 0;
-     header->sessId = endian::to_ipmi(outMessage->rcSessionID);
-+    if( header->sessId != 0x00 )
+-    header->sessSeqNum = 0;
+-    header->sessId = endian::to_ipmi(outMessage->rcSessionID);
++    auto sessionid = endian::to_ipmi(outMessage->rcSessionID);
++
++   
++    if (sessionid == 0x00
++        || (session != nullptr && session->authType == 0x00 ) )
 +    {
++        // Insert Session Header into the Packet
++        packet.resize(sizeof(SessionHeader_t));
++        auto header = reinterpret_cast<SessionHeader_t*>(packet.data());
++        header->base.rmcp.version = parser::RMCP_VERSION;
++        header->base.rmcp.reserved = 0x00;
++        header->base.rmcp.rmcpSeqNum = parser::RMCP_SEQ;
++        header->base.rmcp.classOfMsg = static_cast<uint8_t>(ClassOfMsg::IPMI);
++        header->base.format.formatType =
++            static_cast<uint8_t>(parser::SessionHeader::IPMI15);
++        header->sessId = sessionid;
++	//fix bug557, outbound sequence number does not increase
++        if(sessionid == 0x00){
++            header->sessSeqNum = 0;
++        }else{
++            auto sequenceNum = session->sequenceNums.get(false);
++            header->sessSeqNum = endian::to_ipmi(sequenceNum);
++            session->sequenceNums.increment();
++        }
++        header->payloadLength =
++            static_cast<uint8_t>(outMessage->payload.size());
++    }else
++    {
++        packet.resize(sizeof(SessionHeader2_t));
++        auto header = reinterpret_cast<SessionHeader2_t*>(packet.data());
++        header->base.rmcp.version = parser::RMCP_VERSION;
++        header->base.rmcp.reserved = 0x00;
++        header->base.rmcp.rmcpSeqNum = parser::RMCP_SEQ;
++        header->base.rmcp.classOfMsg = static_cast<uint8_t>(ClassOfMsg::IPMI);
++        header->base.format.formatType =
++            static_cast<uint8_t>(parser::SessionHeader::IPMI15);
++        header->sessSeqNum = 0;
++        header->sessId = sessionid;
 +        // get IPMI outbound sequence numbers
 +        auto sequenceNum = session->sequenceNums.get(false);
 +        header->sessSeqNum = endian::to_ipmi(sequenceNum);
-+        if(session->authType != 0x00)
++        header->base.format.formatType =
++            static_cast<uint8_t>(session->authType);
++
++        std::string passwd = ipmi::ipmiUserGetPassword(session->userName);
++
++        auto retv = ipmi15authcode::generate_authcode(
++            session->authType, passwd, header->sessId, header->sessSeqNum,
++            outMessage->payload.data(), outMessage->payload.size(),
++            session->authCode);
++
++        if (retv > 0)
 +        {
-+            header->base.format.formatType = static_cast<uint8_t>(session->authType);
-+
-+            std::string passwd = ipmi::ipmiUserGetPassword(session->userName);
-+            
-+            auto retv = ipmi15authcode::generate_authcode(
-+                session->authType, passwd, header->sessId, header->sessSeqNum,
-+                outMessage->payload.data(), outMessage->payload.size(), session->authCode);
-+
-+            
-+            if (retv > 0)
-+            {
-+                log<level::ERR>("IPMI1.5 Response Authcode generation failed");
-+                throw std::runtime_error("IPMI1.5 Response Authcode generation failed");
-+            }
-+
-+            for(int i=0; i<16; i++)
-+            {
-+                packet.push_back(session->authCode[i]);
-+            }
++            log<level::ERR>("IPMI1.5 Response Authcode generation failed");
++            throw std::runtime_error(
++                "IPMI1.5 Response Authcode generation failed");
 +        }
-+        session->sequenceNums.increment();
-+    }else{
-+        header->sessSeqNum = 0x00;
-+    }
 +
-+    // The length of IPMI Message header for the IPMI Message payload
-+    packet.push_back(static_cast<uint8_t>(outMessage->payload.size()));
++        for (int i = 0; i < AUTH_CODE_LENGTH; i++)
++        {
++            header->authCode[i] = session->authCode[i];
++        }
++        // The length of IPMI Message header for the IPMI Message payload
++
++        header->payloadLength =
++            static_cast<uint8_t>(outMessage->payload.size()); //
  
 -    header->payloadLength = static_cast<uint8_t>(outMessage->payload.size());
++        session->sequenceNums.increment();
++
++    }
  
      // Insert the Payload into the Packet
      packet.insert(packet.end(), outMessage->payload.begin(),
-@@ -155,7 +252,7 @@ std::vector<uint8_t> flatten(std::shared_ptr<Message> outMessage,
-     auto trailer =
-         reinterpret_cast<SessionTrailer_t*>(packet.data() + packet.size());
-     trailer->legacyPad = 0x00;
--
-+    
-     return packet;
- }
- 
-@@ -169,6 +266,7 @@ std::shared_ptr<Message> unflatten(std::vector<uint8_t>& inPacket)
+@@ -169,6 +297,7 @@ std::shared_ptr<Message> unflatten(std::vector<uint8_t>& inPacket)
      // Check if the packet has atleast the Session Header
      if (inPacket.size() < sizeof(SessionHeader_t))
      {
@@ -1066,7 +1122,7 @@ index 18f8389..3c6898c 100644
          throw std::runtime_error("IPMI2.0 Session Header Missing");
      }
  
-@@ -192,6 +290,7 @@ std::shared_ptr<Message> unflatten(std::vector<uint8_t>& inPacket)
+@@ -192,6 +321,7 @@ std::shared_ptr<Message> unflatten(std::vector<uint8_t>& inPacket)
      {
          if (!(internal::verifyPacketIntegrity(inPacket, message, payloadLen)))
          {
@@ -1074,7 +1130,7 @@ index 18f8389..3c6898c 100644
              throw std::runtime_error("Packet Integrity check failed");
          }
      }
-@@ -387,7 +486,6 @@ std::vector<uint8_t> encryptPayload(std::shared_ptr<Message> message)
+@@ -387,7 +517,6 @@ std::vector<uint8_t> encryptPayload(std::shared_ptr<Message> message)
  
  } // namespace ipmi20parser
  
@@ -1082,7 +1138,7 @@ index 18f8389..3c6898c 100644
  namespace asfparser
  {
  std::shared_ptr<Message> unflatten(std::vector<uint8_t>& inPacket)
-@@ -434,6 +532,5 @@ std::vector<uint8_t> flatten(uint8_t asfMsgTag)
+@@ -434,6 +563,5 @@ std::vector<uint8_t> flatten(uint8_t asfMsgTag)
  }
  
  } // namespace asfparser
@@ -1090,7 +1146,7 @@ index 18f8389..3c6898c 100644
  
  } // namespace message
 diff --git a/message_parsers.hpp b/message_parsers.hpp
-index b26f9a3..86871a6 100644
+index b26f9a3..7fe4049 100644
 --- a/message_parsers.hpp
 +++ b/message_parsers.hpp
 @@ -18,8 +18,12 @@ constexpr size_t RMCP_VERSION = 6;
@@ -1119,10 +1175,19 @@ index b26f9a3..86871a6 100644
      IPMI20 = 0x06,
      INVALID = 0xFF,
  };
-@@ -112,6 +120,11 @@ struct SessionHeader_t
+@@ -112,6 +120,20 @@ struct SessionHeader_t
      uint8_t payloadLength;
  } __attribute__((packed));
  
++struct SessionHeader2_t
++{
++    struct parser::BasicHeader_t base;
++    uint32_t sessSeqNum;
++    uint32_t sessId;
++    uint8_t authCode[16];
++    uint8_t payloadLength;
++} __attribute__((packed));
++
 +struct AuthCode_t
 +{
 +    uint8_t authCode[16];
@@ -1131,7 +1196,7 @@ index b26f9a3..86871a6 100644
  struct SessionTrailer_t
  {
      uint8_t legacyPad;
-@@ -246,7 +259,6 @@ std::vector<uint8_t> encryptPayload(std::shared_ptr<Message> message);
+@@ -246,7 +268,6 @@ std::vector<uint8_t> encryptPayload(std::shared_ptr<Message> message);
  
  } // namespace ipmi20parser
  
@@ -1139,7 +1204,7 @@ index b26f9a3..86871a6 100644
  namespace asfparser
  {
  
-@@ -294,6 +306,5 @@ std::shared_ptr<Message> unflatten(std::vector<uint8_t>& inPacket);
+@@ -294,6 +315,5 @@ std::shared_ptr<Message> unflatten(std::vector<uint8_t>& inPacket);
  std::vector<uint8_t> flatten(uint8_t asfMsgTag);
  
  } // namespace asfparser
