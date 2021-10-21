@@ -4,22 +4,15 @@ PR = "r0"
 LICENSE = "Apache-2.0"
 LIC_FILES_CHKSUM = "file://${COREBASE}/meta/files/common-licenses/Apache-2.0;md5=89aea4e17d99a7cacdbeed46a0096b10"
 
-FILESEXTRAPATHS_prepend := "${THISDIR}:"
-SRC_URI = "file://${BPN}/CMakeLists.txt           \
-           file://${BPN}/include/commandutils.hpp \
-           file://${BPN}/include/oemcommands.hpp  \
-           file://${BPN}/LICENSE                  \
-           file://${BPN}/src/oemcommands.cpp      \
-           file://${BPN}/src/oemgenpasswd.cpp      \
-"
-
 S = "${WORKDIR}/${BPN}"
 
 DEPENDS = "boost phosphor-ipmi-host phosphor-logging systemd sdbusplus libpeci "
 DEPENDS += "nlohmann-json"
 
-inherit cmake pkgconfig obmc-phosphor-ipmiprovider-symlink
-
+inherit cmake pkgconfig externalsrc obmc-phosphor-ipmiprovider-symlink
+EXTERNALSRC_SYMLINKS = ""
+EXTERNALSRC = "${THISDIR}/${PN}"
+EXTERNALSRC_BUILD = "${B}"
 LIBRARY_NAMES = "libinvoemcmds.so"
 
 HOSTIPMI_PROVIDER_LIBRARY += "${LIBRARY_NAMES}"
@@ -37,8 +30,9 @@ CXXFLAGS_append = " -I ${STAGING_KERNEL_DIR}/include/uapi"
 CXXFLAGS_append = " -I ${STAGING_KERNEL_DIR}/include"
 do_configure[depends] += "virtual/kernel:do_shared_workdir"
 
-PACKAGECONFIG ??= "bios-oem"
 PACKAGECONFIG[bios-oem] = "-DWITH_BIOS_OEM_CMD=ON,-DWITH_BIOS_OEM_CMD=OFF,"
+
+PACKAGECONFIG ??= ""
 
 do_install_append(){
    install -d ${D}${includedir}/inv-ipmi-oem

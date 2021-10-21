@@ -47,6 +47,17 @@ static constexpr auto ETH_USB_PATH = "/xyz/openbmc_project/network/usb0";
 static constexpr auto ETH_INTF = "xyz.openbmc_project.Network.EthernetInterface";
 static constexpr auto REDFISH_UNIT = "bmcweb.service";
 
+#ifdef SUPPORT_BIOS_OEM_CMD
+#ifndef AST_VHUB_ADDR
+#define AST_VHUB_ADDR "1e6a0000"
+#endif
+#define AST_VHUB_ID AST_VHUB_ADDR".usb-vhub"
+static constexpr auto AST_VHUB_DRIVER = "/sys/devices/platform/ahb/"AST_VHUB_ID"/driver";
+static constexpr auto AST_VHUB_BUS_PATH = "/sys/bus/platform/drivers/aspeed_vhub/";
+static constexpr auto BIND = "bind";
+static constexpr auto UNBIND = "unbind";
+#endif
+
 namespace ipmi
 {
 static void registerOEMFunctions() __attribute__((constructor));
@@ -274,6 +285,54 @@ ipmi::RspType<message::Payload>
     reply = sd_bus_message_unref(reply);
     return ipmi::responseSuccess(std::move(ret));
 }
+
+ipmi::RspType<message::Payload>
+    ipmiBiosEnableVHub(uint8_t disable)
+{
+    std::string path = AST_VHUB_BUS_PATH;
+    bool enabled = std::filesystem::exists(AST_VHUB_DRIVER);
+    bool proceed = false;
+
+    if (disable)
+    {
+        proceed = enabled;
+        path.append(UNBIND);
+    }
+    else
+    {
+        proceed = !enabled;
+        path.append(BIND);
+    }
+
+    if (!std::filesystem::exists(path))
+    {
+        return ipmi::responseCommandNotAvailable();
+    }
+
+    if (proceed)
+    {
+        ofstream out(path);
+        out << AST_VHUB_ID;
+        out.close();
+    }
+
+    return ipmi::responseSuccess();
+}
+
+ipmi::RspType<message::Payload>
+    ipmiBiosGetVHubStatus(void)
+{
+    message::Payload ret;
+    uint8_t result = 0;
+
+    if (std::filesystem::exists(AST_VHUB_DRIVER))
+    {
+        result = 0x01;
+    }
+
+    ret.pack(result);
+    return ipmi::responseSuccess(std::move(ret));
+}
 #endif //SUPPORT_BIOS_OEM_CMD
 
 static void registerOEMFunctions(void)
@@ -287,8 +346,12 @@ static void registerOEMFunctions(void)
 
 #ifdef SUPPORT_BIOS_OEM_CMD
     // Inventec OEM command for BIOS
-    registerOemCmdHandler(inv::netFnBios, inv::cmdsNetFnBios::cmdGetBmcInfStatusForBios,
+    registerOemCmdHandler(inv::netFnBios, inv::cmdsNetFnBios::cmdGetBmcInfStatus,
                             Privilege::Admin, ipmiBiosGetBmcIntfStatus);
+    registerOemCmdHandler(inv::netFnBios, inv::cmdsNetFnBios::cmdEnableVHub,
+                            Privilege::Admin, ipmiBiosEnableVHub);
+    registerOemCmdHandler(inv::netFnBios, inv::cmdsNetFnBios::cmdGetVHubStatus,
+                            Privilege::Admin, ipmiBiosGetVHubStatus);
 #endif //SUPPORT_BIOS_OEM_CMD
 
     // Inventec OEM command

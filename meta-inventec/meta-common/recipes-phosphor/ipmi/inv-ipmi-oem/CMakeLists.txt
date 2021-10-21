@@ -16,7 +16,7 @@ set (
     "
 )
 
-option(WITH_BIOS_OEM_CMD "Enable Support BIOS OEM Cammand" ON)
+option(WITH_BIOS_OEM_CMD "Enable Support BIOS OEM Cammand" OFF)
 
 add_definitions (-DBOOST_ERROR_CODE_HEADER_ONLY)
 add_definitions (-DBOOST_SYSTEM_NO_DEPRECATED)

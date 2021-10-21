@@ -93,8 +93,9 @@ constexpr uint8_t BMC_INTF_ACTIVE = 0x2;
 #ifdef SUPPORT_BIOS_OEM_CMD
 namespace cmdsNetFnBios
 {
-    constexpr Cmd cmdGetBmcInfStatusForBios = 0x3d;
-
+    constexpr Cmd cmdGetBmcInfStatus = 0x3d;
+    constexpr Cmd cmdEnableVHub = 0xaa;
+    constexpr Cmd cmdGetVHubStatus = 0xab;
 } // namespace cmdsNetFnBios
 
 constexpr uint8_t BIOS_INTF_NONE = 0x0;
