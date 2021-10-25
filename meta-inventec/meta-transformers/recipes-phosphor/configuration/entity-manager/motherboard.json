@@ -1814,8 +1814,7 @@
                     "EntityId": "0x0A",
                     "EntityInstance": "0"
                  }
-             ],
-             "Type": "pmbus"
+             ]
         },
         {
             "Name": "PSU1_VOUT",
@@ -1825,8 +1824,7 @@
                     "EntityId": "0x0A",
                     "EntityInstance": "1"
                  }
-             ],
-             "Type": "pmbus"
+             ]
         },
         {
             "Name": "PSU1_Input_Power",
@@ -1836,8 +1834,7 @@
                     "EntityId": "0x0A",
                     "EntityInstance": "2"
                  }
-             ],
-             "Type": "pmbus"
+             ]
         },
         {
             "Name": "PSU1_Output_Power",
@@ -1847,8 +1844,7 @@
                     "EntityId": "0x0A",
                     "EntityInstance": "3"
                  }
-             ],
-             "Type": "pmbus"
+             ]
         },
         {
             "Name": "PSU1_IIN",
@@ -1858,8 +1854,7 @@
                     "EntityId": "0x0A",
                     "EntityInstance": "4"
                  }
-             ],
-             "Type": "pmbus"
+             ]
         },
         {
             "Name": "PSU1_IOUT",
@@ -1869,8 +1864,7 @@
                     "EntityId": "0x0A",
                     "EntityInstance": "5"
                  }
-             ],
-             "Type": "pmbus"
+             ]
         },
         {
             "Name": "PSU1_Fan1",
@@ -1880,8 +1874,7 @@
                     "EntityId": "0x0A",
                     "EntityInstance": "6"
                  }
-             ],
-             "Type": "pmbus"
+             ]
         },
         {
             "Name": "PSU1_Temp1",
@@ -1891,8 +1884,7 @@
                     "EntityId": "0x0A",
                     "EntityInstance": "7"
                  }
-             ],
-             "Type": "pmbus"
+             ]
         },
         {
             "Name": "PSU1_Temp2",
@@ -1902,8 +1894,7 @@
                     "EntityId": "0x0A",
                     "EntityInstance": "8"
                  }
-             ],
-             "Type": "pmbus"
+             ]
         },
         {
             "Name": "PSU1_Temp3",
@@ -1913,8 +1904,7 @@
                     "EntityId": "0x0A",
                     "EntityInstance": "9"
                  }
-             ],
-             "Type": "pmbus"
+             ]
         },
         {
             "Name": "Pwm_PSU1_Fan_1",
@@ -1924,8 +1914,7 @@
                     "EntityId": "0x0A",
                     "EntityInstance": "10"
                  }
-             ],
-             "Type": "pmbus"
+             ]
         },
         {
             "Address": "0x58",
