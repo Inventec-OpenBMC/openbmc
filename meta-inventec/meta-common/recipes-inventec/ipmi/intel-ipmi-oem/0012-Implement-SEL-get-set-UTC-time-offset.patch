@@ -1,4 +1,4 @@
-From aa308f3719daf796e69d7649ccc4d6e9b27c7e32 Mon Sep 17 00:00:00 2001
+From 35d928ca7710f1c0e8ecd6a15e9a008f8171a2a1 Mon Sep 17 00:00:00 2001
 From: cynthia <wu.cynthia@inventec.com>
 Date: Tue, 29 Jun 2021 00:42:54 +0800
 Subject: [PATCH] - Implement SEL get/set UTC time offset - Modify the way to
@@ -30,15 +30,15 @@ Entry Test:
 	4. ipmitool sel time set
 	ex: ipmitool sel time set "06/29/2021 01:00:00"
 ---
- include/storagecommands.hpp |  7 ++++
- src/storagecommands.cpp     | 84 ++++++++++++++++++++++++++++++++++---
- 2 files changed, 86 insertions(+), 5 deletions(-)
+ include/storagecommands.hpp | 10 +++++
+ src/storagecommands.cpp     | 82 ++++++++++++++++++++++++++++++++++---
+ 2 files changed, 87 insertions(+), 5 deletions(-)
 
 diff --git a/include/storagecommands.hpp b/include/storagecommands.hpp
-index 173f936..e66f6ff 100644
+index 173f936..df81dde 100644
 --- a/include/storagecommands.hpp
 +++ b/include/storagecommands.hpp
-@@ -21,6 +21,13 @@
+@@ -21,6 +21,16 @@
  
  static constexpr uint8_t ipmiSdrVersion = 0x51;
  
@@ -47,13 +47,16 @@ index 173f936..e66f6ff 100644
 +const static constexpr char* TimeObj = "/org/freedesktop/timedate1";
 +const static constexpr char* TimeIntf = "org.freedesktop.timedate1";
 +const static constexpr char* SetTimeZone = "SetTimezone";
-+const static constexpr char* SetTime = "SetTime";
++const static constexpr char* TimeManagerService = "xyz.openbmc_project.Time.Manager";
++const static constexpr char* TimeManagerObj = "/xyz/openbmc_project/time/bmc";
++const static constexpr char* TimeManagerIntf = "xyz.openbmc_project.Time.EpochTime";
++const static constexpr char* EplasedTime = "Elapsed";
 +
  namespace intel_oem::ipmi::sel
  {
  static constexpr uint8_t selOperationSupport = 0x02;
 diff --git a/src/storagecommands.cpp b/src/storagecommands.cpp
-index 9bcc353..8bde83a 100644
+index d8c192c..51c3d7f 100644
 --- a/src/storagecommands.cpp
 +++ b/src/storagecommands.cpp
 @@ -136,6 +136,7 @@ static std::vector<sdbusplus::bus::match::match> fruMatches;
@@ -64,7 +67,7 @@ index 9bcc353..8bde83a 100644
  
  ManagedObjectType frus;
  
-@@ -1314,6 +1315,29 @@ ipmi::RspType<uint8_t> ipmiStorageClearSEL(ipmi::Context::ptr ctx,
+@@ -1318,6 +1319,29 @@ ipmi::RspType<uint8_t> ipmiStorageClearSEL(ipmi::Context::ptr ctx,
      return ipmi::responseSuccess(ipmi::sel::eraseComplete);
  }
  
@@ -94,7 +97,7 @@ index 9bcc353..8bde83a 100644
  ipmi::RspType<uint32_t> ipmiStorageGetSELTime()
  {
      struct timespec selTime = {};
-@@ -1322,6 +1346,7 @@ ipmi::RspType<uint32_t> ipmiStorageGetSELTime()
+@@ -1326,6 +1350,7 @@ ipmi::RspType<uint32_t> ipmiStorageGetSELTime()
      {
          return ipmi::responseUnspecifiedError();
      }
@@ -102,7 +105,7 @@ index 9bcc353..8bde83a 100644
  
      return ipmi::responseSuccess(selTime.tv_sec);
  }
-@@ -1372,20 +1397,59 @@ ipmi::RspType<> ipmiStorageSetSELTime(std::vector<uint8_t> selTime)
+@@ -1376,20 +1401,57 @@ ipmi::RspType<> ipmiStorageSetSELTime(std::vector<uint8_t> selTime)
  
          gettimeofday(&stime, NULL);
          stime.tv_sec = setSelTime;
@@ -112,11 +115,9 @@ index 9bcc353..8bde83a 100644
 -        }
 +
 +
-+        long long int time_usec = (long long int)(stime.tv_sec)*1000000;  //get time in micro second
++        unsigned long long int time_usec = (unsigned long long int)(stime.tv_sec)*1000000;  //get time in micro second
 +
-+        auto method = dbus->new_method_call(TimeService, TimeObj, TimeIntf, SetTime);
-+        method.append( static_cast<int64_t>(time_usec), false, false);
-+        sdbusplus::message::message SetTimeResp = dbus->call(method);
++        setDbusProperty(*dbus, TimeManagerService, TimeManagerObj, TimeManagerIntf, EplasedTime, time_usec);
      }
      catch (const std::exception& e)
      {
@@ -167,7 +168,7 @@ index 9bcc353..8bde83a 100644
  std::vector<uint8_t> getType12SDRs(uint16_t index, uint16_t recordId)
  {
      std::vector<uint8_t> resp;
-@@ -1575,6 +1639,16 @@ void registerStorageFunctions()
+@@ -1579,6 +1641,16 @@ void registerStorageFunctions()
      ipmi::registerHandler(ipmi::prioOpenBmcBase, ipmi::netFnStorage,
                            ipmi::storage::cmdSetSelTime,
                            ipmi::Privilege::Operator, ipmiStorageSetSELTime);
@@ -185,5 +186,5 @@ index 9bcc353..8bde83a 100644
  } // namespace storage
  } // namespace ipmi
 -- 
-2.17.1
+2.33.0
 
