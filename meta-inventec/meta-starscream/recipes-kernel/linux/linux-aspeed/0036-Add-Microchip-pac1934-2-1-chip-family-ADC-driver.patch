@@ -1,4 +1,4 @@
-From 4b42e363d42c072acc1aec89ddc7ea4bc0721549 Mon Sep 17 00:00:00 2001
+From 61444bba25dda369021f727b683dcc0dcdc75308 Mon Sep 17 00:00:00 2001
 From: "pj.chen" <chen.pj@inventec.com>
 Date: Wed, 13 Oct 2021 06:20:15 +0000
 Subject: [PATCH] Add Microchip pac1934/2/1 chip family ADC driver
@@ -6,8 +6,8 @@ Subject: [PATCH] Add Microchip pac1934/2/1 chip family ADC driver
 ---
  drivers/hwmon/Kconfig   |  10 +
  drivers/hwmon/Makefile  |   1 +
- drivers/hwmon/pac193x.c | 599 ++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 610 insertions(+)
+ drivers/hwmon/pac193x.c | 635 ++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 646 insertions(+)
  create mode 100644 drivers/hwmon/pac193x.c
 
 diff --git a/drivers/hwmon/Kconfig b/drivers/hwmon/Kconfig
@@ -45,10 +45,10 @@ index 81b340f92d10..2b892e5fe368 100644
  obj-$(CONFIG_SENSORS_PCF8591)	+= pcf8591.o
 diff --git a/drivers/hwmon/pac193x.c b/drivers/hwmon/pac193x.c
 new file mode 100644
-index 000000000000..3ef3c1d7bc96
+index 000000000000..e5afedc43803
 --- /dev/null
 +++ b/drivers/hwmon/pac193x.c
-@@ -0,0 +1,599 @@
+@@ -0,0 +1,635 @@
 +/*
 + * Hwmon driver for the Microchip/SMSC PAC1934 Voltage/Current monitor
 + *
@@ -69,6 +69,10 @@ index 000000000000..3ef3c1d7bc96
 +#include <linux/i2c.h>
 +#include <linux/kernel.h>
 +#include <linux/module.h>
++#include <linux/jiffies.h>
++#include <linux/delay.h>
++#include <linux/timer.h>
++
 +
 +#define PAC193X_MID 0x5D
 +#define PAC1934_PID 0x5B
@@ -76,6 +80,13 @@ index 000000000000..3ef3c1d7bc96
 +#define PAC1931_PID 0x58
 +
 +#define PAC193X_MAX_NUM_CHANNELS 4
++
++/* 1000usec is the minimum wait time for normal conversions when sample
++ * rate doesn't change
++ */
++#define PAC193x_MIN_UPDATE_WAIT_TIME					1000
++
++
 +
 +#define PAC1934_REFRESH_REGISTER 0x00
 +
@@ -158,7 +169,7 @@ index 000000000000..3ef3c1d7bc96
 +/* Functions*/
 +/* Low-level I2c functions */
 +static int pac193x_i2c_read(struct i2c_client *client, u8 reg_addr,
-+							void *databuf, u8 len);
++							u8 *databuf, u8 len);
 +static int pac193x_i2c_write(struct i2c_client *client, u8 reg_addr,
 +							 int len, u8 *data);
 +static int pac193x_i2c_send_byte(struct i2c_client *client, u8 reg_addr);
@@ -171,7 +182,7 @@ index 000000000000..3ef3c1d7bc96
 +
 +/* Low-level I2c functions */
 +static int pac193x_i2c_read(struct i2c_client *client, u8 reg_addr,
-+							void *databuf, u8 len)
++							u8 *databuf, u8 len)
 +{
 +	int ret;
 +	struct i2c_msg msgs[2] = {
@@ -185,6 +196,7 @@ index 000000000000..3ef3c1d7bc96
 +				"failed reading data from register 0x%02X\n", reg_addr);
 +		return ret;
 +	}
++
 +	return 0;
 +}
 +
@@ -282,6 +294,28 @@ index 000000000000..3ef3c1d7bc96
 +	return ret;
 +}
 +
++static int pac193x_send_refresh(struct pac193x_data *data, u8 reg)
++{
++	/* this function only sends REFRESH or REFRESH_V */
++	struct i2c_client *i2c = data->i2c;
++	int ret;
++
++	/* now write a REFRESH or a REFRESH_V command */
++	ret = pac193x_i2c_send_byte(i2c, reg);
++	if (ret < 0) {
++		dev_err(&i2c->dev,
++			"%s - cannot send byte to PAC193x 0x%02X reg\n", __func__, reg);
++		return ret;
++	}
++
++	/* wait till the data is available */
++	usleep_range(PAC193x_MIN_UPDATE_WAIT_TIME, PAC193x_MIN_UPDATE_WAIT_TIME + 100);
++	return ret;
++}
++
++
++
++
 +/* Return the converted value from the given register in uV or mC */
 +static int pac1934_get_value(struct pac193x_data *data, u8 reg, int *result)
 +{
@@ -365,7 +399,9 @@ index 000000000000..3ef3c1d7bc96
 +	int ret;
 +
 +	/* Send a refresh command */
-+	i2c_smbus_write_byte_data(data->i2c, 0x00, 0x00);
++	ret = pac193x_send_refresh(data, PAC193X_REFRESH_REG);
++	if (unlikely(ret < 0))
++		return ret;
 +
 +	ret = pac1934_get_value(data, attr->index, &value);
 +	if (unlikely(ret < 0))
