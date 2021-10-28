@@ -1,0 +1,45 @@
+From 2ead0006930ab6c4759aafd8969897159248e59b Mon Sep 17 00:00:00 2001
+From: "Fred.Chang" <chang.fredys@inventec.com>
+Date: Thu, 28 Oct 2021 01:23:23 +0000
+Subject: [PATCH] Modify the Repository Update Support to non-modal
+
+Sympton/Reason:
+	This field shows unspecified.
+
+Root Cause:
+	This field shows unspecified.
+
+Solution/Change:
+	[intel-ipmi-oem]
+	   - add the bit mask to operationSupport
+
+Entry Test:
+	# ipmitool sdr info
+	SDR Version                         : 0x51
+	Record Count                        : 60
+	Free Space                          : unspecified
+	Most recent Addition                : NA
+	Most recent Erase                   : NA
+	SDR overflow                        : yes
+	SDR Repository Update Support       : non-modal
+	Delete SDR supported                : no
+	Partial Add SDR supported           : no
+	Reserve SDR repository supported    : yes
+	SDR Repository Alloc info supported : yes
+---
+ src/sensorcommands.cpp | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/sensorcommands.cpp b/src/sensorcommands.cpp
+index 1e18845..60ce24e 100644
+--- a/src/sensorcommands.cpp
++++ b/src/sensorcommands.cpp
+@@ -1604,6 +1604,8 @@ ipmi::RspType<uint8_t,  // sdr version
+         static_cast<uint8_t>(SdrRepositoryInfoOps::allocCommandSupported);
+     operationSupport |= static_cast<uint8_t>(
+         SdrRepositoryInfoOps::reserveSDRRepositoryCommandSupported);
++    operationSupport |= static_cast<uint8_t>(
++        SdrRepositoryInfoOps::modalLSB);
+     return ipmi::responseSuccess(ipmiSdrVersion, recordCount,
+                                  unspecifiedFreeSpace, sdrLastAdd,
+                                  sdrLastRemove, operationSupport);

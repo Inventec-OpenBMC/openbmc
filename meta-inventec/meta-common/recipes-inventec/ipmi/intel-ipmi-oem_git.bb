@@ -50,5 +50,6 @@ SRC_URI_append += " file://0001-Removed-Get-Device-ID-command.patch \
                     file://0014-The-main-implementation-of-WARM-RESET.patch  \
                     file://0015-Change-the-way-to-generate-fru-id.patch \
                     file://0016-Fix-set-sensor-threshold-command-fail-issue.patch \
+                    file://0017-Modify-the-Repository-Update-Support-to-non-modal.patch \
                   "
 
