@@ -2001,7 +2001,7 @@
                     "Label": "vout1",
                     "Name": "lower critical",
                     "Severity": 1,
-                    "Value": 15
+                    "Value": 10
                 },
                 {
                     "Direction": "less than",
