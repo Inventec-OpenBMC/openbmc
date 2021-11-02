@@ -1,4 +1,4 @@
-From 158f4808a181569a7a766452b2dad7b45bdcdf73 Mon Sep 17 00:00:00 2001
+From 6f944dd656eded60f58c7d60b7026fc4f5d54d69 Mon Sep 17 00:00:00 2001
 From: "Lin.TommySC" <lin.tommysc@inventec.com>
 Date: Tue, 13 Jul 2021 09:41:33 +0000
 Subject: [PATCH] Abandon static IP address when switched to another IP
@@ -28,10 +28,10 @@ Entry Test:
  1 file changed, 21 insertions(+), 4 deletions(-)
 
 diff --git a/ethernet_interface.cpp b/ethernet_interface.cpp
-index 4287fc7..5be6416 100644
+index 0a3e476..cc5cd01 100644
 --- a/ethernet_interface.cpp
 +++ b/ethernet_interface.cpp
-@@ -1072,6 +1072,19 @@ void EthernetInterface::writeConfigurationFile()
+@@ -1076,6 +1076,19 @@ void EthernetInterface::writeConfigurationFile()
      // Static IP addresses
      for (const auto& addr : addrs)
      {
@@ -51,7 +51,7 @@ index 4287fc7..5be6416 100644
          if (originIsManuallyAssigned(addr.second->origin()) &&
              !dhcpIsEnabled(addr.second->type()))
          {
-@@ -1087,14 +1100,16 @@ void EthernetInterface::writeConfigurationFile()
+@@ -1091,14 +1104,16 @@ void EthernetInterface::writeConfigurationFile()
      }
  
      auto gateway = EthernetInterfaceIntf::defaultGateway();
@@ -70,7 +70,7 @@ index 4287fc7..5be6416 100644
      {
          stream << "[Route]\n";
          stream << "Gateway=" << gateway6 << "\n";
-@@ -1103,13 +1118,15 @@ void EthernetInterface::writeConfigurationFile()
+@@ -1107,13 +1122,15 @@ void EthernetInterface::writeConfigurationFile()
      if (manager.getSystemConf())
      {
          const auto& gateway = manager.getSystemConf()->defaultGateway();

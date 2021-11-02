@@ -1,6 +1,6 @@
-From 3e257999c0049e2ad634172c3526aed53fac971d Mon Sep 17 00:00:00 2001
-From: "Lin.TommySC" <lin.tommysc@inventec.com>
-Date: Wed, 8 Sep 2021 02:01:59 +0000
+From 8ccb40732fe369d9f4b021644facbef5665c9b13 Mon Sep 17 00:00:00 2001
+From: link <link@inventec.com>
+Date: Thu, 4 Nov 2021 01:56:07 +0000
 Subject: [PATCH] Implement ChannelAccess d-bus interface
 
 Symptom/Reason :
@@ -28,7 +28,7 @@ Entry Test:
  2 files changed, 30 insertions(+), 1 deletion(-)
 
 diff --git a/ethernet_interface.cpp b/ethernet_interface.cpp
-index a4a43cd..4580b4f 100644
+index 4a90a51..ea13313 100644
 --- a/ethernet_interface.cpp
 +++ b/ethernet_interface.cpp
 @@ -45,6 +45,9 @@ constexpr auto PROPERTY_INTERFACE = "org.freedesktop.DBus.Properties";
@@ -39,9 +39,9 @@ index a4a43cd..4580b4f 100644
 +    "priv-reserved", "priv-callback", "priv-user",
 +    "priv-operator", "priv-admin",    "priv-oem"};
  
- struct EthernetIntfSocket
- {
-@@ -1299,5 +1302,21 @@ std::string EthernetInterface::defaultGateway6(std::string gateway)
+ constexpr char SYSTEMD_BUSNAME[] = "org.freedesktop.systemd1";
+ constexpr char SYSTEMD_PATH[] = "/org/freedesktop/systemd1";
+@@ -1311,5 +1314,21 @@ std::string EthernetInterface::defaultGateway6(std::string gateway)
      manager.writeToConfigurationFile();
      return gw;
  }

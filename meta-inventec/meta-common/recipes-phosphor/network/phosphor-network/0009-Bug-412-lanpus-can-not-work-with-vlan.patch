@@ -1,4 +1,4 @@
-From f24ab18abde8515340df4348f3258247baef550d Mon Sep 17 00:00:00 2001
+From d2a8b1e69eadee545ba11908c15b776cba6eaaca Mon Sep 17 00:00:00 2001
 From: cwsun <sun.cwsun@inventec.com>
 Date: Tue, 24 Aug 2021 12:33:38 +0800
 Subject: [PATCH] Bug 412 [Transformers][OpenBMC][IPMI] lanpus can not work
@@ -45,7 +45,6 @@ Subject: [PATCH] Bug 412 [Transformers][OpenBMC][IPMI] lanpus can not work
                 802.1q VLAN ID          : 2
                 802.1q VLAN Priority    : 0
                 RMCP+ Cipher Suites     : 17
-
 ---
  ethernet_interface.cpp   |   8 +++
  network_manager.cpp      | 122 +++++++++++++++++++++++++++++++++++++++
@@ -55,10 +54,10 @@ Subject: [PATCH] Bug 412 [Transformers][OpenBMC][IPMI] lanpus can not work
  5 files changed, 187 insertions(+)
 
 diff --git a/ethernet_interface.cpp b/ethernet_interface.cpp
-index 17d6bd0..a4a43cd 100644
+index dba3ad2..4a90a51 100644
 --- a/ethernet_interface.cpp
 +++ b/ethernet_interface.cpp
-@@ -522,6 +522,11 @@ void EthernetInterface::deleteVLANObject(const std::string& interface)
+@@ -526,6 +526,11 @@ void EthernetInterface::deleteVLANObject(const std::string& interface)
      vlanInterfaces.erase(it);
  
      manager.writeToConfigurationFile();
@@ -70,7 +69,7 @@ index 17d6bd0..a4a43cd 100644
  }
  
  std::string EthernetInterface::generateObjectPath(
-@@ -896,6 +901,9 @@ ObjectPath EthernetInterface::createVLAN(VlanId id)
+@@ -900,6 +905,9 @@ ObjectPath EthernetInterface::createVLAN(VlanId id)
      // write the new vlan device entry to the configuration(network) file.
      manager.writeToConfigurationFile();
  
@@ -345,3 +344,6 @@ index 431a4d8..f948587 100644
  namespace systemd
  {
  namespace config
+-- 
+2.17.1
+

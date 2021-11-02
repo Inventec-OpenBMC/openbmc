@@ -1,4 +1,4 @@
-From ab1577b5cc47437dfbd4168eee4fa88518773a4f Mon Sep 17 00:00:00 2001
+From 0b84beabdf7a76d1df31a6bde25ccf4b35b0a801 Mon Sep 17 00:00:00 2001
 From: "Lin.TommySC" <lin.tommysc@inventec.com>
 Date: Tue, 25 May 2021 06:04:48 +0000
 Subject: [PATCH] Implement LAN Config VLAN Priority
@@ -28,17 +28,17 @@ Entry Test:
     - Get VLAN priority
         ipmitool raw 0x0c 0x02 0x01 0x15 0x00 0x00
 ---
- ethernet_interface.cpp |  6 +++--
- util.hpp               | 65 ++++++++++++++++++++++++++++++++++++++++++++++++++
- vlan_interface.cpp     | 17 ++++++++++++-
- vlan_interface.hpp     | 10 +++++++-
+ ethernet_interface.cpp |  6 ++--
+ util.hpp               | 65 ++++++++++++++++++++++++++++++++++++++++++
+ vlan_interface.cpp     | 17 ++++++++++-
+ vlan_interface.hpp     | 10 ++++++-
  4 files changed, 94 insertions(+), 4 deletions(-)
 
 diff --git a/ethernet_interface.cpp b/ethernet_interface.cpp
-index 1938ac5..2d84b6c 100644
+index 6594f62..6ee9803 100644
 --- a/ethernet_interface.cpp
 +++ b/ethernet_interface.cpp
-@@ -815,9 +815,11 @@ void EthernetInterface::loadVLAN(VlanId id)
+@@ -819,9 +819,11 @@ void EthernetInterface::loadVLAN(VlanId id)
  
      DHCPConf dhcpEnabled =
          getDHCPValue(manager.getConfDir().string(), vlanInterfaceName);
@@ -51,7 +51,7 @@ index 1938ac5..2d84b6c 100644
  
      // Fetch the ip address from the system
      // and create the dbus object.
-@@ -839,7 +841,7 @@ ObjectPath EthernetInterface::createVLAN(VlanId id)
+@@ -843,7 +845,7 @@ ObjectPath EthernetInterface::createVLAN(VlanId id)
  
      auto vlanIntf = std::make_unique<phosphor::network::VlanInterface>(
          bus, path.c_str(), EthernetInterface::DHCPConf::none,
@@ -225,5 +225,5 @@ index c003056..ad12db3 100644
      EthernetInterface& parentInterface;
  
 -- 
-2.7.4
+2.17.1
 

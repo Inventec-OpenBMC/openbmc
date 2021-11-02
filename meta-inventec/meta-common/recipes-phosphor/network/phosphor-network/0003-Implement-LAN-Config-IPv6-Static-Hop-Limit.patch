@@ -1,4 +1,4 @@
-From 73b34e076758419ce05792c4a14802b049cb345e Mon Sep 17 00:00:00 2001
+From f61c05df9d84bd0d3e568335f388d00c734b2578 Mon Sep 17 00:00:00 2001
 From: "Lin.TommySC" <lin.tommysc@inventec.com>
 Date: Tue, 23 Mar 2021 09:53:02 +0000
 Subject: [PATCH] Implement LAN Config IPv6 Static Hop Limit
@@ -12,10 +12,10 @@ Subject: [PATCH] Implement LAN Config IPv6 Static Hop Limit
  5 files changed, 56 insertions(+)
 
 diff --git a/ethernet_interface.cpp b/ethernet_interface.cpp
-index ce424ff..1938ac5 100644
+index 71e6912..6594f62 100644
 --- a/ethernet_interface.cpp
 +++ b/ethernet_interface.cpp
-@@ -569,6 +569,18 @@ EthernetInterface::DHCPConf EthernetInterface::dhcpEnabled(DHCPConf value)
+@@ -573,6 +573,18 @@ EthernetInterface::DHCPConf EthernetInterface::dhcpEnabled(DHCPConf value)
      return value;
  }
  
@@ -34,7 +34,7 @@ index ce424ff..1938ac5 100644
  bool EthernetInterface::linkUp() const
  {
      EthernetIntfSocket eifSocket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
-@@ -976,6 +988,12 @@ void EthernetInterface::writeConfigurationFile()
+@@ -980,6 +992,12 @@ void EthernetInterface::writeConfigurationFile()
      stream << "DHCP="s +
                    mapDHCPToSystemd[EthernetInterfaceIntf::dhcpEnabled()] + "\n";
  
@@ -141,5 +141,5 @@ index 804d492..e9a66d2 100644
  {
  
 -- 
-2.7.4
+2.17.1
 

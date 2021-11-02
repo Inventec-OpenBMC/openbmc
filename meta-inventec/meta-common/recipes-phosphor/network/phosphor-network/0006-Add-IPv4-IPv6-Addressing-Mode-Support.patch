@@ -1,4 +1,4 @@
-From 334b75165163c641cf1190bd406f7ed210f88be4 Mon Sep 17 00:00:00 2001
+From 29f48caca8d123f774cff323078d9dd474ab74a3 Mon Sep 17 00:00:00 2001
 From: "Lin.TommySC" <lin.tommysc@inventec.com>
 Date: Fri, 18 Jun 2021 09:21:50 +0000
 Subject: [PATCH] Add IPv4 IPv6 Addressing Mode Support
@@ -23,21 +23,21 @@ Entry Test:
     - Get current IP addressing mode
         ipmitool raw 0x0c 0x02 0x01 0x33 0x00 0x00
 ---
- ethernet_interface.cpp   | 78 ++++++++++++++++++++++++++++++++++++++++++++++--
+ ethernet_interface.cpp   | 78 ++++++++++++++++++++++++++++++++++++++--
  ethernet_interface.hpp   |  4 +++
- network_manager.cpp      | 24 +++++++++++++++
- network_manager.hpp      |  9 ++++++
- network_manager_main.cpp | 11 +++++++
+ network_manager.cpp      | 24 +++++++++++++
+ network_manager.hpp      |  9 +++++
+ network_manager_main.cpp | 11 ++++++
  types.hpp                |  2 ++
- util.cpp                 | 18 +++++++++++
- util.hpp                 | 10 +++++--
+ util.cpp                 | 18 ++++++++++
+ util.hpp                 | 10 ++++--
  8 files changed, 151 insertions(+), 5 deletions(-)
 
 diff --git a/ethernet_interface.cpp b/ethernet_interface.cpp
-index bc6f12b..e16b55f 100644
+index 6ce91f2..0a3e476 100644
 --- a/ethernet_interface.cpp
 +++ b/ethernet_interface.cpp
-@@ -86,6 +86,7 @@ EthernetInterface::EthernetInterface(sdbusplus::bus::bus& bus,
+@@ -90,6 +90,7 @@ EthernetInterface::EthernetInterface(sdbusplus::bus::bus& bus,
      EthernetInterfaceIntf::dhcpEnabled(dhcpEnabled);
      EthernetInterfaceIntf::ipv6AcceptRA(getIPv6AcceptRAFromConf());
      EthernetInterfaceIntf::ipv6HopLimit(getIPv6HopValue(manager.getConfDir(), intfName));
@@ -45,7 +45,7 @@ index bc6f12b..e16b55f 100644
      route::Table routingTable;
      auto gatewayList = routingTable.getDefaultGateway();
      auto gateway6List = routingTable.getDefaultGateway6();
-@@ -582,6 +583,49 @@ uint8_t EthernetInterface::ipv6HopLimit(uint8_t value)
+@@ -586,6 +587,49 @@ uint8_t EthernetInterface::ipv6HopLimit(uint8_t value)
      return value;
  }
  
@@ -95,7 +95,7 @@ index bc6f12b..e16b55f 100644
  bool EthernetInterface::linkUp() const
  {
      EthernetIntfSocket eifSocket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
-@@ -917,6 +961,12 @@ void EthernetInterface::writeConfigurationFile()
+@@ -921,6 +965,12 @@ void EthernetInterface::writeConfigurationFile()
      using namespace std::string_literals;
      namespace fs = std::filesystem;
  
@@ -108,7 +108,7 @@ index bc6f12b..e16b55f 100644
      // if there is vlan interafce then write the configuration file
      // for vlan also.
  
-@@ -962,12 +1012,34 @@ void EthernetInterface::writeConfigurationFile()
+@@ -966,12 +1016,34 @@ void EthernetInterface::writeConfigurationFile()
      // write the network section
      stream << "[Network]\n";
  #ifdef LINK_LOCAL_AUTOCONFIGURATION
@@ -362,5 +362,5 @@ index 179a76b..cb0424a 100644
      }
  
 -- 
-2.7.4
+2.17.1
 

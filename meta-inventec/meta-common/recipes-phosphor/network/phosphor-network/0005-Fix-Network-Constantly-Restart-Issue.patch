@@ -1,4 +1,4 @@
-From a1d65e4bec1295d09ead01da4c3f73c02ba9f38d Mon Sep 17 00:00:00 2001
+From 475c4bffa7c48fe15a5c330f99a5d8b3e4033406 Mon Sep 17 00:00:00 2001
 From: "Lin.TommySC" <lin.tommysc@inventec.com>
 Date: Fri, 28 May 2021 03:20:01 +0000
 Subject: [PATCH] Fix Network Constantly Restart Issue
@@ -27,10 +27,10 @@ Entry Test:
  4 files changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/ethernet_interface.cpp b/ethernet_interface.cpp
-index 2d84b6c..bc6f12b 100644
+index 6ee9803..6ce91f2 100644
 --- a/ethernet_interface.cpp
 +++ b/ethernet_interface.cpp
-@@ -85,6 +85,7 @@ EthernetInterface::EthernetInterface(sdbusplus::bus::bus& bus,
+@@ -89,6 +89,7 @@ EthernetInterface::EthernetInterface(sdbusplus::bus::bus& bus,
      interfaceName(intfName);
      EthernetInterfaceIntf::dhcpEnabled(dhcpEnabled);
      EthernetInterfaceIntf::ipv6AcceptRA(getIPv6AcceptRAFromConf());
@@ -81,5 +81,5 @@ index 442a990..179a76b 100644
  }
  
 -- 
-2.7.4
+2.17.1
 

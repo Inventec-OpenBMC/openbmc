@@ -46,3 +46,5 @@ include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_executable (mac_util ${MAC_UTIL_SRC_FILES})
 
 install (TARGETS mac_util DESTINATION bin)
+
+install (PROGRAMS mac_util_config.sh DESTINATION bin)

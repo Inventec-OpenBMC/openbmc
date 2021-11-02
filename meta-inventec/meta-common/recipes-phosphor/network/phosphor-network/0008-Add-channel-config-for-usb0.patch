@@ -1,6 +1,6 @@
-From 4895ba5f24bbc076b06789d3620f583ffa5988f9 Mon Sep 17 00:00:00 2001
-From: "Lin.TommySC" <lin.tommysc@inventec.com>
-Date: Tue, 10 Aug 2021 09:06:48 +0000
+From 02d9a1eb75656bcb876949b539caae23fe98f785 Mon Sep 17 00:00:00 2001
+From: link <link@inventec.com>
+Date: Wed, 3 Nov 2021 09:48:20 +0000
 Subject: [PATCH] Add channel config for usb0
 
 Symptom/Reason :
@@ -23,7 +23,7 @@ Entry Test:
  1 file changed, 3 insertions(+), 2 deletions(-)
 
 diff --git a/ethernet_interface.cpp b/ethernet_interface.cpp
-index 5be6416..17d6bd0 100644
+index cc5cd01..dba3ad2 100644
 --- a/ethernet_interface.cpp
 +++ b/ethernet_interface.cpp
 @@ -44,6 +44,7 @@ constexpr auto RESOLVED_INTERFACE = "org.freedesktop.resolve1.Link";
@@ -32,9 +32,9 @@ index 5be6416..17d6bd0 100644
  constexpr auto METHOD_GET = "Get";
 +constexpr auto USB_INTF_NAME = "usb0";
  
- struct EthernetIntfSocket
- {
-@@ -224,7 +225,7 @@ void EthernetInterface::createIPAddressObjects()
+ constexpr char SYSTEMD_BUSNAME[] = "org.freedesktop.systemd1";
+ constexpr char SYSTEMD_PATH[] = "/org/freedesktop/systemd1";
+@@ -228,7 +229,7 @@ void EthernetInterface::createIPAddressObjects()
          {
              origin = IP::AddressOrigin::DHCP;
          }
@@ -43,7 +43,7 @@ index 5be6416..17d6bd0 100644
          {
              origin = IP::AddressOrigin::LinkLocal;
          }
-@@ -961,7 +962,7 @@ void EthernetInterface::writeConfigurationFile()
+@@ -965,7 +966,7 @@ void EthernetInterface::writeConfigurationFile()
      using namespace std::string_literals;
      namespace fs = std::filesystem;
  

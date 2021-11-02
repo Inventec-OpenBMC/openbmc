@@ -1,7 +1,7 @@
-From d630f8c1cf2233e48f77874e61b3637434cf6762 Mon Sep 17 00:00:00 2001
+From ac40362930d42c3104db2edd4fa123102437f04b Mon Sep 17 00:00:00 2001
 From: "Lin.TommySC" <lin.tommysc@inventec.com>
 Date: Wed, 14 Apr 2021 03:26:50 +0000
-Subject: [PATCH 1/6] Fix IP address of usb0 net interface
+Subject: [PATCH] Fix IP address of usb0 net interface
 
 Symptom/Reason :
     - Can't upgrade BMC image through ipminet interface
@@ -57,5 +57,5 @@ index 94c8eae..6f8775a 100644
                  "\n[Network]\nDHCP=true\n"
  #ifdef LINK_LOCAL_AUTOCONFIGURATION
 -- 
-2.7.4
+2.17.1
 

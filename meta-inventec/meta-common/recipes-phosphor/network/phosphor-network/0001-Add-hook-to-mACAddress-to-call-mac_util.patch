@@ -1,22 +1,45 @@
-From 0bc439e0ecbbdfe7a6bc468ddcdb0f113a1c9b53 Mon Sep 17 00:00:00 2001
+From e923959e24ceddb40ecd25933ff194c2591b4ec0 Mon Sep 17 00:00:00 2001
 From: "pj.chen" <chen.pj@inventec.com>
 Date: Thu, 21 Jan 2021 07:13:17 +0000
 Subject: [PATCH] Add hook to mACAddress to call mac_util
 
+%% original patch: 0001-Add-hook-to-mACAddress-to-call-mac_util.patch
 ---
- ethernet_interface.cpp | 2 ++
- 1 file changed, 2 insertions(+)
+ ethernet_interface.cpp | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
 
 diff --git a/ethernet_interface.cpp b/ethernet_interface.cpp
-index ce424ff..93d6227 100644
+index ce424ff..71e6912 100644
 --- a/ethernet_interface.cpp
 +++ b/ethernet_interface.cpp
-@@ -1106,6 +1106,8 @@ std::string EthernetInterface::macAddress(std::string value)
+@@ -45,6 +45,10 @@ constexpr auto PROPERTY_INTERFACE = "org.freedesktop.DBus.Properties";
+ constexpr auto RESOLVED_SERVICE_PATH = "/org/freedesktop/resolve1/link/";
+ constexpr auto METHOD_GET = "Get";
+ 
++constexpr char SYSTEMD_BUSNAME[] = "org.freedesktop.systemd1";
++constexpr char SYSTEMD_PATH[] = "/org/freedesktop/systemd1";
++constexpr char SYSTEMD_INTERFACE[] = "org.freedesktop.systemd1.Manager";
++
+ struct EthernetIntfSocket
+ {
+     EthernetIntfSocket(int domain, int type, int protocol)
+@@ -1106,6 +1110,19 @@ std::string EthernetInterface::macAddress(std::string value)
          execute("/sbin/ip", "ip", "link", "set", "dev", interface.c_str(),
                  "down");
          manager.writeToConfigurationFile();
 +        /* Inventec hook for mac setting */
-+        execute("/usr/bin/mac_util", "w",interface.c_str(), value.c_str());
++        try{
++            auto method = bus.new_method_call(SYSTEMD_BUSNAME, SYSTEMD_PATH,
++                                          SYSTEMD_INTERFACE, "StartUnit");
++            method.append("mac_util_config@" + value + "_"+ interface + ".service", "replace");
++            bus.call_noreply(method);
++        }catch (const sdbusplus::exception::SdBusError& ex){
++            log<level::ERR>("Failed to hook for mac setting",
++                        entry("UNIT=%s", "mac_util_config@.service"),
++                        entry("ERR=%s", ex.what()));
++            elog<InternalFailure>();
++        }
++
      }
  
  #ifdef HAVE_UBOOT_ENV
