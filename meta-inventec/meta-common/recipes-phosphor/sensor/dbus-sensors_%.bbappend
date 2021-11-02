@@ -15,6 +15,7 @@ SRC_URI += "file://0001-Subject-PATCH-Subject-PATCH-Sensor-Patch-to-support-.pat
             file://0013-inventec-common-AverageSensor-averagesensor-initial-.patch \
             file://0014-inventec-common-InvCfmSensor-Initial-Inventec-CFM-se.patch \
             file://0015-Bug-573-SW-Common-Accumulate-sensor-initial-commit.patch \
+            file://0016-modify-the-psu-sensors-reading-method.patch \
             "
 
 PACKAGECONFIG_append =" \	

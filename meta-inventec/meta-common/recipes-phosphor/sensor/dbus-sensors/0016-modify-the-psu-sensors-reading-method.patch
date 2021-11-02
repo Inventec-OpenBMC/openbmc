@@ -1,0 +1,167 @@
+From e6e52d6747d71a957315c072a305a26998606420 Mon Sep 17 00:00:00 2001
+From: ykchiu <Chiu.YK@inventec.com>
+Date: Tue, 2 Nov 2021 14:51:50 +0800
+Subject: [PATCH] [SW][Common][dbus-sensors] - modify the psu sensors reading
+ method
+
+Symptom/Reason:
+    When reading the PSU, it is found that the value is not continuously updated
+
+Root Cause:
+    When using 'async_read_until' to read the value, it used '\n' as the end character.
+    But in the pmbus driver, it will often read exceptions, cause the Sensor will get
+    stuck and won't update the value, so need to modify the reading method.
+    Mainly modified when reading the value, it will judge the length of the reading
+    buffer, so that can judge whether the reading is abnormal.
+
+Solution/Change:
+    [PSUSensor]
+    modify the reading method by 'async_read_until' to 'read'.
+
+Entry Test:
+
+ipmitool sdr elist
+PSU1_VIN         | 70h | ok  | 10.0 | 216.80 Volts
+PSU1_VOUT        | 71h | ok  | 10.1 | 12.10 Volts
+PSU1_Input_Power | 72h | ok  | 10.2 | 315.40 Watts
+PSU1_Out_Power   | 73h | ok  | 10.3 | 283.50 Watts
+PSU1_IIN         | 79h | ok  | 10.4 | 1.47 Amps
+PSU1_IOUT        | 7Ah | ok  | 10.5 | 23.92 Amps
+PSU1_Fan1        | 7Bh | ok  | 10.6 | 6254 RPM
+PSU1_Temp1       | 7Ch | lnc | 10.7 | 25.14 degrees C
+PSU1_Temp2       | 7Dh | ok  | 10.8 | 35.18 degrees C
+PSU1_Temp3       | 7Eh | ok  | 10.9 | 42.74 degrees C
+Pwm_PSU1_Fan_1   | 7Fh | ok  | 10.10 | 30.18 unspecifi
+
+This Log mainly means that when the reading is abnormal,
+an Error will be returned and the value will be continuously updated.
+
+Nov 02 00:30:10 transformers psusensor[23326]: Read /sys/class/hwmon/hwmon4/fan1_input scale 1 value 6240 Rsense 1
+Nov 02 00:30:20 transformers psusensor[23326]: System error: 11 line: 280
+Nov 02 00:30:30 transformers psusensor[23326]: Read /sys/class/hwmon/hwmon4/fan1_input scale 1 value 6240 Rsense 1
+---
+ include/PSUSensor.hpp |  1 -
+ src/PSUSensor.cpp     | 46 +++++++++++++++++++++----------------------
+ 2 files changed, 23 insertions(+), 24 deletions(-)
+
+diff --git a/include/PSUSensor.hpp b/include/PSUSensor.hpp
+index c060c53..e92c5ba 100644
+--- a/include/PSUSensor.hpp
++++ b/include/PSUSensor.hpp
+@@ -31,7 +31,6 @@ class PSUSensor : public Sensor, public std::enable_shared_from_this<PSUSensor>
+     sdbusplus::asio::object_server& objServer;
+     boost::asio::posix::stream_descriptor inputDev;
+     boost::asio::deadline_timer waitTimer;
+-    std::shared_ptr<boost::asio::streambuf> readBuf;
+     std::string path;
+     std::string pathRatedMax;
+     std::string pathRatedMin;
+diff --git a/src/PSUSensor.cpp b/src/PSUSensor.cpp
+index 5738f47..56c3312 100644
+--- a/src/PSUSensor.cpp
++++ b/src/PSUSensor.cpp
+@@ -65,7 +65,7 @@ PSUSensor::PSUSensor(const std::string& path, const std::string& objectType,
+                   << "\"\n";
+     }
+ 
+-    fd = open(path.c_str(), O_RDONLY);
++    fd = open(path.c_str(), O_RDONLY | O_NONBLOCK);
+     if (fd < 0)
+     {
+         std::cerr << "PSU sensor failed to open file\n";
+@@ -156,20 +156,15 @@ PSUSensor::~PSUSensor()
+ 
+ void PSUSensor::setupRead(void)
+ {
+-    std::shared_ptr<boost::asio::streambuf> buffer =
+-        std::make_shared<boost::asio::streambuf>();
+     std::weak_ptr<PSUSensor> weakRef = weak_from_this();
+-    boost::asio::async_read_until(
+-        inputDev, *buffer, '\n',
+-        [weakRef, buffer](const boost::system::error_code& ec,
+-                          std::size_t /*bytes_transfered*/) {
+-            std::shared_ptr<PSUSensor> self = weakRef.lock();
+-            if (self)
+-            {
+-                self->readBuf = buffer;
+-                self->handleResponse(ec);
+-            }
+-        });
++    inputDev.async_wait(boost::asio::posix::descriptor_base::wait_read,
++                    [weakRef](const boost::system::error_code& ec) {
++                        std::shared_ptr<PSUSensor> self = weakRef.lock();
++                        if (self)
++                        {
++                            self->handleResponse(ec);
++                        }
++                    });
+ }
+ 
+ void PSUSensor::updateMinMaxValues(void)
+@@ -185,6 +180,9 @@ void PSUSensor::updateMinMaxValues(void)
+     }
+ }
+ 
++// Create a buffer expected to be able to hold more characters than will be
++// present in the input file.
++static constexpr uint32_t psuBufLen = 128;
+ void PSUSensor::handleResponse(const boost::system::error_code& err)
+ {
+     if ((err == boost::system::errc::bad_file_descriptor) ||
+@@ -193,15 +191,17 @@ void PSUSensor::handleResponse(const boost::system::error_code& err)
+         std::cerr << "Bad file descriptor from\n";
+         return;
+     }
+-    std::istream responseStream(readBuf.get());
+-    if (!err)
++
++    std::string buffer;
++    buffer.resize(psuBufLen);
++    lseek(fd, 0, SEEK_SET);
++    int rdLen = read(fd, buffer.data(), psuBufLen);
++
++    if (rdLen > 0)
+     {
+-        std::string response;
+         try
+         {
+-            std::getline(responseStream, response);
+-            rawValue = std::stod(response);
+-            responseStream.clear();
++            rawValue = std::stod(buffer);
+             double nvalue = rawValue / sensorFactor;
+             nvalue = nvalue / rsenseValue;   // For HSC devic Rsense value
+ 
+@@ -221,13 +221,13 @@ void PSUSensor::handleResponse(const boost::system::error_code& err)
+         }
+         catch (const std::invalid_argument&)
+         {
+-            std::cerr << "Could not parse " << response << "\n";
++            std::cerr << "Could not parse  input from " << path << "\n";
+             incrementError();
+         }
+     }
+     else
+     {
+-        std::cerr << "System error " << err << "\n";
++        std::cerr << "System error: " << errno << " line: " << __LINE__ << "\n";
+         incrementError();
+     }
+ 
+@@ -236,12 +236,12 @@ void PSUSensor::handleResponse(const boost::system::error_code& err)
+ 
+     std::weak_ptr<PSUSensor> weakRef = weak_from_this();
+     waitTimer.async_wait([weakRef](const boost::system::error_code& ec) {
+-        std::shared_ptr<PSUSensor> self = weakRef.lock();
+         if (ec == boost::asio::error::operation_aborted)
+         {
+             std::cerr << "Failed to reschedule\n";
+             return;
+         }
++        std::shared_ptr<PSUSensor> self = weakRef.lock();
+         if (self)
+         {
+             self->setupRead();
+-- 
+2.33.0
+
