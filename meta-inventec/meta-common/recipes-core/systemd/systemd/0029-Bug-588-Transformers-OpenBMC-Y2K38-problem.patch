@@ -1,4 +1,4 @@
-From 8e9652efad748979438f5dd5663a0c973fdcd2f3 Mon Sep 17 00:00:00 2001
+From 55e5816c761a683a91b91e40a4ceff9f31bebd7f Mon Sep 17 00:00:00 2001
 From: "Fred.Chang" <chang.fredys@inventec.com>
 Date: Thu, 14 Oct 2021 07:47:43 +0000
 Subject: [PATCH] Bug 588 - [Transformers][OpenBMC] Y2K38 problem
@@ -21,6 +21,7 @@ Entry Test:
     # ipmitool raw 0x0a 0x49 0xff 0xff 0xff 0x7f
     # date
     Sat Jan  1 00:00:00 GMT 2000
+
 ---
  src/basic/time-util.h              | 3 ++-
  src/libsystemd/sd-event/sd-event.c | 5 +++--
@@ -42,7 +43,7 @@ index 89ee8b4a96..a88008a99e 100644
  }
  
 diff --git a/src/libsystemd/sd-event/sd-event.c b/src/libsystemd/sd-event/sd-event.c
-index 789a8c7df4..6d4957c406 100644
+index 789a8c7df4..e878962331 100644
 --- a/src/libsystemd/sd-event/sd-event.c
 +++ b/src/libsystemd/sd-event/sd-event.c
 @@ -2666,8 +2666,9 @@ _public_ void *sd_event_source_set_userdata(sd_event_source *s, void *userdata)
@@ -52,8 +53,8 @@ index 789a8c7df4..6d4957c406 100644
 -        assert(a <= b);
 -
 +        //assert(a <= b);
-+        if (a <= b)
-+                return 0;
++        if (a > b)
++                return a;
          if (a <= 0)
                  return 0;
          if (a >= USEC_INFINITY)
