@@ -1,14 +1,16 @@
-From b4b584ece9bcc2ec1224feb0fa0da9a22f493f9e Mon Sep 17 00:00:00 2001
+From 37a3625c497214f80ee05b5aeda46ce2c9f2b0f6 Mon Sep 17 00:00:00 2001
 From: anonymous <anonymous@inventec.com>
 Date: Fri, 21 Aug 2020 19:07:11 -0400
-Subject: [PATCH] [Sensor] Support I2C adc sensor adt7462
+Subject: [PATCH] Support I2C adc sensor
 
-- Support I2C adc sensor adt7462
+- Support I2C adc sensor
+
+%% original patch: 0004-Sensor-Support-I2C-adc-sensor.patch
 ---
  include/ADCSensor.hpp |  2 ++
  src/ADCSensor.cpp     | 22 ++++++++++++
- src/ADCSensorMain.cpp | 80 +++++++++++++++++++++++++++++--------------
- 3 files changed, 79 insertions(+), 25 deletions(-)
+ src/ADCSensorMain.cpp | 78 ++++++++++++++++++++++++++++++-------------
+ 3 files changed, 78 insertions(+), 24 deletions(-)
 
 diff --git a/include/ADCSensor.hpp b/include/ADCSensor.hpp
 index 9ba0060..9cb2a56 100644
@@ -78,16 +80,10 @@ index c858df7..f35f742 100644
  }
  
 diff --git a/src/ADCSensorMain.cpp b/src/ADCSensorMain.cpp
-index edc055a..da7d26b 100644
+index edc055a..303fa1d 100644
 --- a/src/ADCSensorMain.cpp
 +++ b/src/ADCSensorMain.cpp
-@@ -41,29 +41,11 @@ static constexpr float pollRateDefault = 0.5;
- namespace fs = std::filesystem;
- 
- static constexpr std::array<const char*, 1> sensorTypes = {
--    "xyz.openbmc_project.Configuration.ADC"};
-+    "xyz.openbmc_project.Configuration.ADT7462"};
- static std::regex inputRegex(R"(in(\d+)_input)");
+@@ -46,24 +46,6 @@ static std::regex inputRegex(R"(in(\d+)_input)");
  
  static boost::container::flat_map<size_t, bool> cpuPresence;
  
@@ -236,5 +232,5 @@ index edc055a..da7d26b 100644
          createSensors(io, objectServer, sensors, systemBus, nullptr);
      });
 -- 
-2.17.1
+2.33.0
 

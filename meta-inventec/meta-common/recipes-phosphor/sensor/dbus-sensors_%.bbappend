@@ -3,7 +3,7 @@ FILESEXTRAPATHS_append := "${THISDIR}/${PN}:"
 SRC_URI += "file://0001-Subject-PATCH-Subject-PATCH-Sensor-Patch-to-support-.patch \
             file://0002-inventec-common-sensors-Patch-to-support-sensor-numb.patch \
             file://0003-inventec-common-Fan-Patch-to-support-sensor-number-e.patch \
-            file://0004-Sensor-Support-I2C-adc-sensor-adt7462.patch \
+            file://0004-Support-I2C-adc-sensor.patch \
             file://0005-Sensor-Add-NM-and-BIOS-event-DBUS-interface-for-IPMI.patch \
             file://0006-Sensor-Add-WATCHDOG-sensor-DBUS-interface.patch \
             file://0007-Add-tmp468-support-and-Label-search-for-extra-threso.patch \
