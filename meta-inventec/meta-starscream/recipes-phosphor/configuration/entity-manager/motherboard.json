@@ -499,9 +499,9 @@
         },
         {
             "Connector": {
-                "Name": "FAN_CON1_PWM_1",
+                "Name": "FAN0_PWM",
                 "Pwm": 1,
-                "PwmName": "FAN_CON1_PWM_1",
+                "PwmName": "FAN0_PWM",
                 "Tachs": [
                     0
                 ]
@@ -510,7 +510,8 @@
             "Bus": "8",
             "Index": 1,
             "MaxReading": 15000,
-            "Name": "FAN_CON1_1_TACH",
+            "PowerState": "On",
+            "Name": "FAN0_RPM",
             "Presence": {
                 "Method": "tach",
                 "TachVal": 0,
@@ -531,7 +532,7 @@
             ],
             "SensorInfo": [
                 {
-                    "Label": "FAN_CON1_1_TACH",
+                    "Label": "FAN0_RPM",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x40",
                     "EntityId": "0x1D",
@@ -542,9 +543,9 @@
         },
         {
             "Connector": {
-                "Name": "FAN_CON1_PWM_2",
+                "Name": "FAN1_PWM",
                 "Pwm": 2,
-                "PwmName": "FAN_CON1_PWM_2",
+                "PwmName": "FAN1_PWM",
                 "Tachs": [
                     1
                 ]
@@ -553,7 +554,8 @@
             "Bus": "8",
             "Index": 2,
             "MaxReading": 15000,
-            "Name": "FAN_CON1_2_TACH",
+            "PowerState": "On",
+            "Name": "FAN1_RPM",
             "Presence": {
                 "Method": "tach",
                 "TachVal": 0,
@@ -574,7 +576,7 @@
             ],
             "SensorInfo": [
                 {
-                    "Label": "FAN_CON1_2_TACH",
+                    "Label": "FAN1_RPM",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x41",
                     "EntityId": "0x1D",
@@ -585,9 +587,9 @@
         },
         {
             "Connector": {
-                "Name": "FAN_CON1_PWM_3",
+                "Name": "FAN2_PWM",
                 "Pwm": 3,
-                "PwmName": "FAN_CON1_PWM_3",
+                "PwmName": "FAN2_PWM",
                 "Tachs": [
                     2
                 ]
@@ -596,7 +598,8 @@
             "Bus": "8",
             "Index": 3,
             "MaxReading": 15000,
-            "Name": "FAN_CON1_3_TACH",
+            "PowerState": "On",
+            "Name": "FAN2_RPM",
             "Presence": {
                 "Method": "tach",
                 "TachVal": 0,
@@ -617,7 +620,7 @@
             ],
             "SensorInfo": [
                 {
-                    "Label": "FAN_CON1_3_TACH",
+                    "Label": "FAN2_RPM",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x42",
                     "EntityId": "0x1D",
@@ -627,40 +630,10 @@
             "Type": "I2CFan"
         },
         {
-            "Connector": {
-                "Name": "FAN_CON1_PWM_4",
-                "Pwm": 4,
-                "PwmName": "FAN_CON1_PWM_4",
-                "Tachs": [
-                    3
-                ]
-            },
-            "Address": "0x20",
-            "Bus": "8",
-            "Index": 4,
-            "MaxReading": 15000,
-            "Name": "FAN_CON1_4_TACH",
-            "Presence": {
-                "Method": "tach",
-                "TachVal": 0,
-                "HysVal": 0
-            },
-            "Thresholds": [
-                {
-                    "Direction": "greater than",
-                    "Name": "upper critical",
-                    "Severity": 1,
-                    "Value": 43992
-                },                {
-                    "Direction": "less than",
-                    "Name": "lower critical",
-                    "Severity": 1,
-                    "Value": 1296
-                }
-            ],
+            "Name": "FAN0_PWM",
             "SensorInfo": [
                 {
-                    "Label": "FAN_CON1_4_TACH",
+                    "Label": "FAN0_PWM",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x43",
                     "EntityId": "0x1D",
@@ -670,40 +643,10 @@
             "Type": "I2CFan"
         },
         {
-            "Connector": {
-                "Name": "FAN_CON1_PWM_5",
-                "Pwm": 5,
-                "PwmName": "FAN_CON1_PWM_5",
-                "Tachs": [
-                    4
-                ]
-            },
-            "Address": "0x20",
-            "Bus": "8",
-            "Index": 5,
-            "MaxReading": 15000,
-            "Name": "FAN_CON1_5_TACH",
-            "Presence": {
-                "Method": "tach",
-                "TachVal": 0,
-                "HysVal": 0
-            },
-            "Thresholds": [
-                {
-                    "Direction": "greater than",
-                    "Name": "upper critical",
-                    "Severity": 1,
-                    "Value": 43992
-                },                {
-                    "Direction": "less than",
-                    "Name": "lower critical",
-                    "Severity": 1,
-                    "Value": 1296
-                }
-            ],
+            "Name": "FAN1_PWM",
             "SensorInfo": [
                 {
-                    "Label": "FAN_CON1_5_TACH",
+                    "Label": "FAN1_PWM",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x44",
                     "EntityId": "0x1D",
@@ -713,40 +656,10 @@
             "Type": "I2CFan"
         },
         {
-            "Connector": {
-                "Name": "FAN_CON1_PWM_6",
-                "Pwm": 6,
-                "PwmName": "FAN_CON1_PWM_6",
-                "Tachs": [
-                    5
-                ]
-            },
-            "Address": "0x20",
-            "Bus": "8",
-            "Index": 6,
-            "MaxReading": 15000,
-            "Name": "FAN_CON1_6_TACH",
-            "Presence": {
-                "Method": "tach",
-                "TachVal": 0,
-                "HysVal": 0
-            },
-            "Thresholds": [
-                {
-                    "Direction": "greater than",
-                    "Name": "upper critical",
-                    "Severity": 1,
-                    "Value": 43992
-                },                {
-                    "Direction": "less than",
-                    "Name": "lower critical",
-                    "Severity": 1,
-                    "Value": 1296
-                }
-            ],
+            "Name": "FAN2_PWM",
             "SensorInfo": [
                 {
-                    "Label": "FAN_CON1_6_TACH",
+                    "Label": "FAN2_PWM",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x45",
                     "EntityId": "0x1D",
@@ -756,10 +669,41 @@
             "Type": "I2CFan"
         },
         {
-            "Name": "FAN_CON1_PWM_1",
+            "Connector": {
+                "Name": "FAN3_PWM",
+                "Pwm": 1,
+                "PwmName": "FAN3_PWM",
+                "Tachs": [
+                    0
+                ]
+            },
+            "Address": "0x23",
+            "Bus": "8",
+            "Index": 1,
+            "MaxReading": 15000,
+            "PowerState": "On",
+            "Name": "FAN3_RPM",
+            "Presence": {
+                "Method": "tach",
+                "TachVal": 0,
+                "HysVal": 0
+            },
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 43992
+                },                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1296
+                }
+            ],
             "SensorInfo": [
                 {
-                    "Label": "FAN_CON1_PWM_1",
+                    "Label": "FAN3_RPM",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x46",
                     "EntityId": "0x1D",
@@ -769,10 +713,41 @@
             "Type": "I2CFan"
         },
         {
-            "Name": "FAN_CON1_PWM_2",
+            "Connector": {
+                "Name": "FAN4_PWM",
+                "Pwm": 2,
+                "PwmName": "FAN4_PWM",
+                "Tachs": [
+                    1
+                ]
+            },
+            "Address": "0x23",
+            "Bus": "8",
+            "Index": 2,
+            "MaxReading": 15000,
+            "PowerState": "Always",
+            "Name": "FAN4_RPM",
+            "Presence": {
+                "Method": "tach",
+                "TachVal": 0,
+                "HysVal": 0
+            },
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 43992
+                },                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1296
+                }
+            ],
             "SensorInfo": [
                 {
-                    "Label": "FAN_CON1_PWM_2",
+                    "Label": "FAN4_RPM",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x47",
                     "EntityId": "0x1D",
@@ -782,10 +757,41 @@
             "Type": "I2CFan"
         },
         {
-            "Name": "FAN_CON1_PWM_3",
+            "Connector": {
+                "Name": "FAN5_PWM",
+                "Pwm": 3,
+                "PwmName": "FAN5_PWM",
+                "Tachs": [
+                    2
+                ]
+            },
+            "Address": "0x23",
+            "Bus": "8",
+            "Index": 3,
+            "MaxReading": 15000,
+            "PowerState": "Always",
+            "Name": "FAN5_RPM",
+            "Presence": {
+                "Method": "tach",
+                "TachVal": 0,
+                "HysVal": 0
+            },
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 43992
+                },                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1296
+                }
+            ],
             "SensorInfo": [
                 {
-                    "Label": "FAN_CON1_PWM_3",
+                    "Label": "FAN5_RPM",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x48",
                     "EntityId": "0x1D",
@@ -795,10 +801,10 @@
             "Type": "I2CFan"
         },
         {
-            "Name": "FAN_CON1_PWM_4",
+            "Name": "FAN3_PWM",
             "SensorInfo": [
                 {
-                    "Label": "FAN_CON1_PWM_4",
+                    "Label": "FAN3_PWM",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x49",
                     "EntityId": "0x1D",
@@ -808,10 +814,10 @@
             "Type": "I2CFan"
         },
         {
-            "Name": "FAN_CON1_PWM_5",
+            "Name": "FAN4_PWM",
             "SensorInfo": [
                 {
-                    "Label": "FAN_CON1_PWM_5",
+                    "Label": "FAN4_PWM",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x4A",
                     "EntityId": "0x1D",
@@ -821,10 +827,10 @@
             "Type": "I2CFan"
         },
         {
-            "Name": "FAN_CON1_PWM_6",
+            "Name": "FAN5_PWM",
             "SensorInfo": [
                 {
-                    "Label": "FAN_CON1_PWM_6",
+                    "Label": "FAN5_PWM",
                     "SensorModel": "Threshold",
                     "SensorNum": "0x4B",
                     "EntityId": "0x1D",
@@ -834,340 +840,196 @@
             "Type": "I2CFan"
         },
         {
-            "Connector": {
-                "Name": "FAN_CON2_PWM_1",
-                "Pwm": 1,
-                "PwmName": "FAN_CON2_PWM_1",
-                "Tachs": [
-                    0
-                ]
-            },
-            "Address": "0x23",
+            "Address": "0x12",
+            "Bus": "8",
+            "Index": 0,
+            "Name": "FAN4_V",
+            "PowerState": "Always",
+            "ScaleFactor": 1000,
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 13.0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 11.0
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "FAN4_V",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x17",
+                    "EntityId": "0x07",
+                    "EntityInstance": "6"
+                }
+            ],
+            "Type": "ADC"
+        },
+        {
+            "Address": "0x12",
             "Bus": "8",
             "Index": 1,
-            "MaxReading": 15000,
-            "Name": "FAN_CON2_1_TACH",
-            "Presence": {
-                "Method": "tach",
-                "TachVal": 0,
-                "HysVal": 0
-            },
+            "Name": "FAN5_V",
+            "PowerState": "Always",
+            "ScaleFactor": 1000,
             "Thresholds": [
                 {
                     "Direction": "greater than",
                     "Name": "upper critical",
                     "Severity": 1,
-                    "Value": 43992
-                },                {
+                    "Value": 13.0
+                },
+                {
                     "Direction": "less than",
                     "Name": "lower critical",
                     "Severity": 1,
-                    "Value": 1296
+                    "Value": 11.0
                 }
             ],
             "SensorInfo": [
                 {
-                    "Label": "FAN_CON2_1_TACH",
+                    "Label": "FAN5_V",
                     "SensorModel": "Threshold",
-                    "SensorNum": "0x4C",
-                    "EntityId": "0x1D",
-                    "EntityInstance": "12"
+                    "SensorNum": "0x18",
+                    "EntityId": "0x07",
+                    "EntityInstance": "7"
                 }
             ],
-            "Type": "I2CFan"
+            "Type": "ADC"
         },
         {
-            "Connector": {
-                "Name": "FAN_CON2_PWM_2",
-                "Pwm": 2,
-                "PwmName": "FAN_CON2_PWM_2",
-                "Tachs": [
-                    1
-                ]
-            },
-            "Address": "0x23",
+            "Address": "0x13",
+            "Bus": "8",
+            "Index": 0,
+            "Name": "FAN0_V",
+            "PowerState": "Always",
+            "ScaleFactor": 1000,
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 13.0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 11.0
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "FAN0_V",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x19",
+                    "EntityId": "0x07",
+                    "EntityInstance": "8"
+                }
+            ],
+            "Type": "ADC"
+        },
+        {
+            "Address": "0x13",
+            "Bus": "8",
+            "Index": 1,
+            "Name": "FAN1_V",
+            "PowerState": "Always",
+            "ScaleFactor": 1000,
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 13.0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 11.0
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "FAN1_V",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x1A",
+                    "EntityId": "0x07",
+                    "EntityInstance": "9"
+                }
+            ],
+            "Type": "ADC"
+        },
+        {
+            "Address": "0x13",
             "Bus": "8",
             "Index": 2,
-            "MaxReading": 15000,
-            "Name": "FAN_CON2_2_TACH",
-            "Presence": {
-                "Method": "tach",
-                "TachVal": 0,
-                "HysVal": 0
-            },
+            "Name": "FAN2_V",
+            "PowerState": "Always",
+            "ScaleFactor": 1000,
             "Thresholds": [
                 {
                     "Direction": "greater than",
                     "Name": "upper critical",
                     "Severity": 1,
-                    "Value": 43992
-                },                {
+                    "Value": 13.0
+                },
+                {
                     "Direction": "less than",
                     "Name": "lower critical",
                     "Severity": 1,
-                    "Value": 1296
+                    "Value": 11.0
                 }
             ],
             "SensorInfo": [
                 {
-                    "Label": "FAN_CON2_2_TACH",
+                    "Label": "FAN2_V",
                     "SensorModel": "Threshold",
-                    "SensorNum": "0x4D",
-                    "EntityId": "0x1D",
-                    "EntityInstance": "13"
+                    "SensorNum": "0x1B",
+                    "EntityId": "0x07",
+                    "EntityInstance": "10"
                 }
             ],
-            "Type": "I2CFan"
+            "Type": "ADC"
         },
         {
-            "Connector": {
-                "Name": "FAN_CON2_PWM_3",
-                "Pwm": 3,
-                "PwmName": "FAN_CON2_PWM_3",
-                "Tachs": [
-                    2
-                ]
-            },
-            "Address": "0x23",
+            "Address": "0x13",
             "Bus": "8",
             "Index": 3,
-            "MaxReading": 15000,
-            "Name": "FAN_CON2_3_TACH",
-            "Presence": {
-                "Method": "tach",
-                "TachVal": 0,
-                "HysVal": 0
-            },
+            "Name": "FAN3_V",
+            "PowerState": "Always",
+            "ScaleFactor": 1000,
             "Thresholds": [
                 {
                     "Direction": "greater than",
                     "Name": "upper critical",
                     "Severity": 1,
-                    "Value": 43992
-                },                {
+                    "Value": 13.0
+                },
+                {
                     "Direction": "less than",
                     "Name": "lower critical",
                     "Severity": 1,
-                    "Value": 1296
+                    "Value": 11.0
                 }
             ],
             "SensorInfo": [
                 {
-                    "Label": "FAN_CON2_3_TACH",
+                    "Label": "FAN3_V",
                     "SensorModel": "Threshold",
-                    "SensorNum": "0x4E",
-                    "EntityId": "0x1D",
-                    "EntityInstance": "14"
+                    "SensorNum": "0x1C",
+                    "EntityId": "0x07",
+                    "EntityInstance": "11"
                 }
             ],
-            "Type": "I2CFan"
-        },
-        {
-            "Connector": {
-                "Name": "FAN_CON2_PWM_4",
-                "Pwm": 4,
-                "PwmName": "FAN_CON2_PWM_4",
-                "Tachs": [
-                    3
-                ]
-            },
-            "Address": "0x23",
-            "Bus": "8",
-            "Index": 4,
-            "MaxReading": 15000,
-            "Name": "FAN_CON2_4_TACH",
-            "Presence": {
-                "Method": "tach",
-                "TachVal": 0,
-                "HysVal": 0
-            },
-            "Thresholds": [
-                {
-                    "Direction": "greater than",
-                    "Name": "upper critical",
-                    "Severity": 1,
-                    "Value": 43992
-                },                {
-                    "Direction": "less than",
-                    "Name": "lower critical",
-                    "Severity": 1,
-                    "Value": 1296
-                }
-            ],
-            "SensorInfo": [
-                {
-                    "Label": "FAN_CON2_4_TACH",
-                    "SensorModel": "Threshold",
-                    "SensorNum": "0x4F",
-                    "EntityId": "0x1D",
-                    "EntityInstance": "15"
-                }
-            ],
-            "Type": "I2CFan"
-        },
-        {
-            "Connector": {
-                "Name": "FAN_CON2_PWM_5",
-                "Pwm": 5,
-                "PwmName": "FAN_CON2_PWM_5",
-                "Tachs": [
-                    4
-                ]
-            },
-            "Address": "0x23",
-            "Bus": "8",
-            "Index": 5,
-            "MaxReading": 15000,
-            "Name": "FAN_CON2_5_TACH",
-            "Presence": {
-                "Method": "tach",
-                "TachVal": 0,
-                "HysVal": 0
-            },
-            "Thresholds": [
-                {
-                    "Direction": "greater than",
-                    "Name": "upper critical",
-                    "Severity": 1,
-                    "Value": 43992
-                },                {
-                    "Direction": "less than",
-                    "Name": "lower critical",
-                    "Severity": 1,
-                    "Value": 1296
-                }
-            ],
-            "SensorInfo": [
-                {
-                    "Label": "FAN_CON2_5_TACH",
-                    "SensorModel": "Threshold",
-                    "SensorNum": "0x50",
-                    "EntityId": "0x1D",
-                    "EntityInstance": "16"
-                }
-            ],
-            "Type": "I2CFan"
-        },
-        {
-            "Connector": {
-                "Name": "FAN_CON2_PWM_6",
-                "Pwm": 6,
-                "PwmName": "FAN_CON2_PWM_6",
-                "Tachs": [
-                    5
-                ]
-            },
-            "Address": "0x23",
-            "Bus": "8",
-            "Index": 6,
-            "MaxReading": 15000,
-            "Name": "FAN_CON2_6_TACH",
-            "Presence": {
-                "Method": "tach",
-                "TachVal": 0,
-                "HysVal": 0
-            },
-            "Thresholds": [
-                {
-                    "Direction": "greater than",
-                    "Name": "upper critical",
-                    "Severity": 1,
-                    "Value": 43992
-                },                {
-                    "Direction": "less than",
-                    "Name": "lower critical",
-                    "Severity": 1,
-                    "Value": 1296
-                }
-            ],
-            "SensorInfo": [
-                {
-                    "Label": "FAN_CON2_6_TACH",
-                    "SensorModel": "Threshold",
-                    "SensorNum": "0x51",
-                    "EntityId": "0x1D",
-                    "EntityInstance": "17"
-                }
-            ],
-            "Type": "I2CFan"
-        },
-        {
-            "Name": "FAN_CON2_PWM_1",
-            "SensorInfo": [
-                {
-                    "Label": "FAN_CON2_PWM_1",
-                    "SensorModel": "Threshold",
-                    "SensorNum": "0x52",
-                    "EntityId": "0x1D",
-                    "EntityInstance": "18"
-                }
-            ],
-            "Type": "I2CFan"
-        },
-        {
-            "Name": "FAN_CON2_PWM_2",
-            "SensorInfo": [
-                {
-                    "Label": "FAN_CON2_PWM_2",
-                    "SensorModel": "Threshold",
-                    "SensorNum": "0x53",
-                    "EntityId": "0x1D",
-                    "EntityInstance": "19"
-                }
-            ],
-            "Type": "I2CFan"
-        },
-        {
-            "Name": "FAN_CON2_PWM_3",
-            "SensorInfo": [
-                {
-                    "Label": "FAN_CON2_PWM_3",
-                    "SensorModel": "Threshold",
-                    "SensorNum": "0x54",
-                    "EntityId": "0x1D",
-                    "EntityInstance": "20"
-                }
-            ],
-            "Type": "I2CFan"
-        },
-        {
-            "Name": "FAN_CON2_PWM_4",
-            "SensorInfo": [
-                {
-                    "Label": "FAN_CON2_PWM_4",
-                    "SensorModel": "Threshold",
-                    "SensorNum": "0x55",
-                    "EntityId": "0x1D",
-                    "EntityInstance": "21"
-                }
-            ],
-            "Type": "I2CFan"
-        },
-        {
-            "Name": "FAN_CON2_PWM_5",
-            "SensorInfo": [
-                {
-                    "Label": "FAN_CON2_PWM_5",
-                    "SensorModel": "Threshold",
-                    "SensorNum": "0x56",
-                    "EntityId": "0x1D",
-                    "EntityInstance": "22"
-                }
-            ],
-            "Type": "I2CFan"
-        },
-        {
-            "Name": "FAN_CON2_PWM_6",
-            "SensorInfo": [
-                {
-                    "Label": "FAN_CON2_PWM_6",
-                    "SensorModel": "Threshold",
-                    "SensorNum": "0x57",
-                    "EntityId": "0x1D",
-                    "EntityInstance": "23"
-                }
-            ],
-            "Type": "I2CFan"
+            "Type": "ADC"
         }
     ],
     "Name": "motherBoard",
