@@ -18,6 +18,13 @@ do_prepare_bootloaders() {
 
     bingo ${IGPS_DIR}/mergedBootBlockAndUboot.xml \
             -o ${DEPLOY_DIR_IMAGE}/${UBOOT_BINARY}.${MERGED_SUFFIX}
+
+    mv ${UBOOT_BINARY}.${MERGED_SUFFIX} uboot-tmp.bin
+    filesize=$(stat -c %s "uboot-tmp.bin")
+    checksum=`md5sum uboot-tmp.bin | awk '{ print $1 }'`
+    echo "INVENTEC_UBOOT_SIZE_${filesize}_CHECKSUM_${checksum}" > uboot-checksum
+    cat uboot-tmp.bin uboot-checksum >> ${UBOOT_BINARY}.${MERGED_SUFFIX}
+
     cd "$olddir"
 }
 
