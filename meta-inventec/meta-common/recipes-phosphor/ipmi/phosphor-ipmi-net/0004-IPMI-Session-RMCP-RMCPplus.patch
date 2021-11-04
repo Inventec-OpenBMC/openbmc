@@ -1,72 +1,34 @@
-From 76b7e4024478a7b2087a8a8c6a06c40bd6cf7e2b Mon Sep 17 00:00:00 2001
+From a401450f19ac2b81aa8aa117a625fcb095943337 Mon Sep 17 00:00:00 2001
 From: cwsun <sun.cwsun@inventec.com>
 Date: Mon, 2 Aug 2021 13:38:38 +0800
-Subject: [PATCH] Bug628 - [SW][Transformers][IPMI] Implement IPMIv1.5 Session
- Management
+Subject: [PATCH] Bug 492 [Transformers][OpenBMC] Per message authentication
+ mismatch with the previous version
 
     Symptom/Reason :
-        - The OpenBMC does not support IPMI v1.5 RMCP type Session Management
+        - The per message authentication is disable
 
     Root Cause:
-        - The OpenBMC does not support IPMI v1.5 RMCP type Session Management
+        - the netipmid config the the per-messages authentication disable to false
 
     Solution/Change:
-        [phosphor-dbus-interfaces]
-            - add rmcpType into SessionInfo.interface.yaml
-              -- the rmcpType will indicate if the session is RMCP or RMCP+ type.
-
-        [phosphor-ipmi-host]
-            - support RMCP type session of "Get Session Info" command
-              -- ipmiAppGetSessionInfo()
-              -- getSessionDetails()
-              -- remove garbage code
-
         [phosphor-ipmi-net]
-            - When user assign into the system via netipmid and register a session.
-              The registered session will be record its type of RMCP or RMCP+ and be kept
-              in the dbus system.
+            - Change the per message authentication to true
 
     Entry Test:
-        - Open RMCP(-Ilan) and RMCP+(-Ilanplus) sessions with IPMI shell
-          -- ipmitool -I lan -H myqemu -U root -P 0penBmc -p 2623 shell
-          -- ipmitool -I lanplus -H myqemu -U root -P 0penBmc -p 2623 -C17 shell
-          -- ipmitool -I lanplus -H myqemu -U root -P 0penBmc -p 2623 -C17 shell
-          -- ipmitool -I lan -H myqemu -U root -P 0penBmc -p 2623
+        - ipmitool -I lanplus -C17  -H 172.17.0.2 -p 2623 -U root -P 0penBmc shell
 
-        - then view the session info
-          session info all
-          >
-            session handle                : 13
-            slot count                    : 15
-            active sessions               : 4
-            user id                       : 2
-            privilege level               : ADMINISTRATOR
-            session type                  : IPMIv1.5
-            channel number                : 0x01
+        ipmitool> channel authcap 1 4
 
-            session handle                : 3
-            slot count                    : 15
-            active sessions               : 4
-            user id                       : 2
-            privilege level               : ADMINISTRATOR
-            session type                  : IPMIv1.5
-            channel number                : 0x01
-
-            session handle                : 1
-            slot count                    : 15
-            active sessions               : 4
-            user id                       : 2
-            privilege level               : ADMINISTRATOR
-            session type                  : IPMIv2/RMCP+
-            channel number                : 0x01
-
-            session handle                : 14
-            slot count                    : 15
-            active sessions               : 4
-            user id                       : 2
-            privilege level               : ADMINISTRATOR
-            session type                  : IPMIv2/RMCP+
-            channel number                : 0x01
+        Channel number             : 1
+        IPMI v1.5  auth types      : MD5 PASSWORD
+        KG status                  : default (all zeroes)
+        Per message authentication : enabled
+        User level authentication  : enabled
+        Non-null user names exist  : yes
+        Null user names exist      : no
+        Anonymous login enabled    : no
+        Channel supports IPMI v1.5 : yes
+        Channel supports IPMI v2.0 : yes
 ---
  Makefile.am                       |   6 +
  authcode.cpp                      | 177 +++++++++++++++++++++++++++
@@ -527,7 +489,7 @@ index 0000000..8d07d77
 +
 +} // namespace command
 diff --git a/command/channel_auth.cpp b/command/channel_auth.cpp
-index f719452..451fb27 100644
+index f719452..9a389e5 100644
 --- a/command/channel_auth.cpp
 +++ b/command/channel_auth.cpp
 @@ -44,26 +44,27 @@ std::vector<uint8_t>
@@ -545,7 +507,7 @@ index f719452..451fb27 100644
      response->reserved3 = 0;
      response->KGStatus = 0;       // KG is set to default
 -    response->perMessageAuth = 0; // Per-message Authentication is enabled
-+    response->perMessageAuth = 1; // Per-message Authentication disabled
++    response->perMessageAuth = 0; // Per-message Authentication enable, bug492
      response->userAuth = 0;       // User Level Authentication is enabled
      uint8_t maxChUsers = 0;
      uint8_t enabledUsers = 0;
