@@ -1,48 +1,72 @@
-From 35ab2df04ac2f336b5e5fdb51e85fd5b2a0ee60a Mon Sep 17 00:00:00 2001
+From 76b7e4024478a7b2087a8a8c6a06c40bd6cf7e2b Mon Sep 17 00:00:00 2001
 From: cwsun <sun.cwsun@inventec.com>
 Date: Mon, 2 Aug 2021 13:38:38 +0800
-Subject: [PATCH] Bug618 - [SW][Transformers][IPMI] Implement IPMI v1.5 Session
- Activation (RMCP)
+Subject: [PATCH] Bug628 - [SW][Transformers][IPMI] Implement IPMIv1.5 Session
+ Management
 
     Symptom/Reason :
-        - The OpenBMC does not support IPMI v1.5 Session Activation / RMCP feature
+        - The OpenBMC does not support IPMI v1.5 RMCP type Session Management
 
     Root Cause:
-        - The OpenBMC does not support IPMI v1.5 Session Activation / RMCP feature
+        - The OpenBMC does not support IPMI v1.5 RMCP type Session Management
 
     Solution/Change:
+        [phosphor-dbus-interfaces]
+            - add rmcpType into SessionInfo.interface.yaml
+              -- the rmcpType will indicate if the session is RMCP or RMCP+ type.
+
+        [phosphor-ipmi-host]
+            - support RMCP type session of "Get Session Info" command
+              -- ipmiAppGetSessionInfo()
+              -- getSessionDetails()
+              -- remove garbage code
+
         [phosphor-ipmi-net]
-            - modify command "Get Channel Authentication Capabilities" (APP/0x38)
-              -- return IPMI v1.5 support
-              -- return authentication type
-                  -- MD5
-                  -- PASSWD
-
-            - add command "Get Session Challenge" (APP/0x39)
-              -- generate a temporary SESSION object
-              -- store the SESSION object into dbus system
-              -- The session Object will used to activate the session
-              -- generate a challenge string data to client
-
-            - add command "Activate Session Command"
-              -- implement the authcode generator
-                  -- MD5
-                  -- PASSWD
-              -- generator initial inboud sequence to client
-              -- keep track the outbound sequence and inbout sequence
-
-            - rewrite the IPMI packet flatten / unflatten
-              -- to check if the authcode is valid
-              -- to pack / unpack the IPMI v1.5 Request / Response data
+            - When user assign into the system via netipmid and register a session.
+              The registered session will be record its type of RMCP or RMCP+ and be kept
+              in the dbus system.
 
     Entry Test:
-        - Open RMCP(-Ilan) and RMCP+(lanplus) sessions with IPMI shell
-          -- ipmitool -I lan -H myqemu -U root -P openbmc123 -p 2623
-             > 01 80 00 00 02 9f a9 19 00 5b 00 00 00 00 00 7c
+        - Open RMCP(-Ilan) and RMCP+(-Ilanplus) sessions with IPMI shell
+          -- ipmitool -I lan -H myqemu -U root -P 0penBmc -p 2623 shell
+          -- ipmitool -I lanplus -H myqemu -U root -P 0penBmc -p 2623 -C17 shell
+          -- ipmitool -I lanplus -H myqemu -U root -P 0penBmc -p 2623 -C17 shell
+          -- ipmitool -I lan -H myqemu -U root -P 0penBmc -p 2623
 
-        - ipmitool by -I lan and by sendmessage command
-          -- ipmitool -I lan -H 10.6.141.170 -p 623 -U root -P 0penBmc -b 6 -t 0x2c raw 0x06 0x01
-             > 50 01 06 00 02 21 57 01 00 18 0b 06 12 10 01 91
+        - then view the session info
+          session info all
+          >
+            session handle                : 13
+            slot count                    : 15
+            active sessions               : 4
+            user id                       : 2
+            privilege level               : ADMINISTRATOR
+            session type                  : IPMIv1.5
+            channel number                : 0x01
+
+            session handle                : 3
+            slot count                    : 15
+            active sessions               : 4
+            user id                       : 2
+            privilege level               : ADMINISTRATOR
+            session type                  : IPMIv1.5
+            channel number                : 0x01
+
+            session handle                : 1
+            slot count                    : 15
+            active sessions               : 4
+            user id                       : 2
+            privilege level               : ADMINISTRATOR
+            session type                  : IPMIv2/RMCP+
+            channel number                : 0x01
+
+            session handle                : 14
+            slot count                    : 15
+            active sessions               : 4
+            user id                       : 2
+            privilege level               : ADMINISTRATOR
+            session type                  : IPMIv2/RMCP+
+            channel number                : 0x01
 ---
  Makefile.am                       |   6 +
  authcode.cpp                      | 177 +++++++++++++++++++++++++++
@@ -62,9 +86,9 @@ Subject: [PATCH] Bug618 - [SW][Transformers][IPMI] Implement IPMI v1.5 Session
  message_parsers.hpp               |  26 +++-
  sd_event_loop.cpp                 |   7 +-
  session.hpp                       |   8 ++
- sessions_manager.cpp              |  79 ++++++++++++
+ sessions_manager.cpp              |  80 ++++++++++++
  sessions_manager.hpp              |   7 ++
- 20 files changed, 797 insertions(+), 70 deletions(-)
+ 20 files changed, 798 insertions(+), 70 deletions(-)
  create mode 100644 authcode.cpp
  create mode 100644 authcode.hpp
  create mode 100644 command/active_session.cpp
@@ -1256,7 +1280,7 @@ index 4d4bf19..6a02d7a 100644
      std::shared_ptr<udpsocket::Channel> channelPtr;
  
 diff --git a/sessions_manager.cpp b/sessions_manager.cpp
-index 32e9b6f..6ec81db 100644
+index 32e9b6f..88579dd 100644
 --- a/sessions_manager.cpp
 +++ b/sessions_manager.cpp
 @@ -7,11 +7,13 @@
@@ -1346,17 +1370,25 @@ index 32e9b6f..6ec81db 100644
 +        session->sessionHandle(sessionHandle);
 +        session->channelNum(getInterfaceIndex());
 +        session->userID(ipmi::ipmiUserGetUserId(userName));
++        session->rmcpType(0);
 +        return session;
 +    }
 +
 +    log<level::INFO>("No free RMCP sessions left");
-+
 +    throw std::runtime_error("No free sessions left");
 +}
 +
  std::shared_ptr<Session>
      Manager::startSession(SessionID remoteConsoleSessID, Privilege priv,
                            cipher::rakp_auth::Algorithms authAlgo,
+@@ -167,6 +246,7 @@ std::shared_ptr<Session>
+ 
+         sessionsMap.emplace(bmcSessionID, session);
+         session->sessionHandle(sessionHandle);
++        session->rmcpType(1);
+ 
+         return session;
+     }
 diff --git a/sessions_manager.hpp b/sessions_manager.hpp
 index 51b157d..6805c6b 100644
 --- a/sessions_manager.hpp
