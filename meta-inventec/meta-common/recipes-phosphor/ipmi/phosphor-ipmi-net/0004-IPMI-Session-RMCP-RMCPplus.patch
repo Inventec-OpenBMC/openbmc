@@ -1,56 +1,31 @@
-From 8377ac3672a3bf4b06865d673f0a13db37f9f7b9 Mon Sep 17 00:00:00 2001
+From 32cae8a737a0232ad0f07271f3e51461289b1963 Mon Sep 17 00:00:00 2001
 From: cwsun <sun.cwsun@inventec.com>
 Date: Mon, 2 Aug 2021 13:38:38 +0800
-Subject: [PATCH] Bug 557 [SW][Transformers][OpenBMC][IPMI] Activate Session
- with Initial Outbound Sequence Number does not increase
+Subject: [PATCH] Bug 582 - [Transformers][OpenBMC][IPMI] Get Session Challenge
+ via unsupported auth type still passed
 
     Symptom/Reason :
-        - The Initial Outbound sequence number will not incease after Activate Session command after
-            session established.
+        - The IPMI command Get Session Challenge using invaled authentication type still return
+        challenge string
 
     Root Cause:
-        - The IPMI v1.5 message parser should increase the outbound sequence number after a new
-            session initialization command is called after session established.
+        - The Get Session Challenge should check if the authentication type be valid.
 
     Solution/Change:
         [phosphor-ipmi-net]
-            -  increase the outbound session sequence number
+            - modify the GetSessionChallenge() to fix the bug
+                -- return error 0xCD (Illegal command) to indicate the authentication type error
 
     Entry Test:
-        - by using tcpdump to monitor the transaction
-        - ipmitool -I lanplus -C17 -H 172.17.0.2 -p 2623 -U root -P 0penBmc shell -vv
-        - in shell
-            - mc info
-            - then call the activate session
-                -- raw 0x06 0x3a 0x02 0x04 0x72 0x2f 0x70 0x4c 0x3b 0x2f 0x91 0x63 0x67 0x68 0xa9 0xdb 0x12 0x74 0x20 0x88 0x01 0x02 0x03 0x04
-<< IPMI Response Session Header
-<<   Authtype   : MD5
-<<   Sequence   : 0x04030201
-<<   Session ID : 0x348ab6f6
-<< IPMI Response Message Header
-<<   Rq Addr    : 81
-<<   NetFn      : 07
-<<   Rq LUN     : 0
-<<   Rs Addr    : 20
-<<   Rq Seq     : 09
-<<   Rs Lun     : 0
-<<   Command    : 3a
-<<   Compl Code : 0x00
+        - using invalid authentication type(0x01 MD2) return 0xCD error code
+            -- ipmitool -I lanplus -C 17 -N 3 -p 2623 -U root -P 0penBmc -H 172.17.0.2  raw 0x06 0x39 0x01 0x72 0x6f 0x6f 0x74 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
 
-            - mc info
-<< IPMI Response Session Header
-<<   Authtype   : MD5
-<<   Sequence   : 0x04030202 <-- increased by 1
-<<   Session ID : 0x348ab6f6
-<< IPMI Response Message Header
-<<   Rq Addr    : 81
-<<   NetFn      : 07
-<<   Rq LUN     : 0
-<<   Rs Addr    : 20
-<<   Rq Seq     : 0a
-<<   Rs Lun     : 0
-<<   Command    : 01
-<<   Compl Code : 0x00
+            >> Unable to send RAW command (channel=0x0 netfn=0x6 lun=0x0 cmd=0x39 rsp=0xcd): Command illegal for specified sensor or record type
+
+        - using supported authentication type(0x02 MD5) return 0x00 with challenge string
+            -- ipmitool -I lanplus -C 17 -N 3 -p 2623 -U root -P 0penBmc -H 172.17.0.2  raw 0x06 0x39 0x02 0x72 0x6f 0x6f 0x74 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+
+            >> 1e c3 d9 0d cc 70 04 a1 52 bb da ca 1d 28 e9 b3 af e6 db 82
 ---
  Makefile.am                       |   6 +
  authcode.cpp                      | 177 +++++++++++++++++++++++++++
@@ -59,7 +34,7 @@ Subject: [PATCH] Bug 557 [SW][Transformers][OpenBMC][IPMI] Activate Session
  command/active_session.cpp        |  73 +++++++++++
  command/active_session.hpp        |  63 ++++++++++
  command/channel_auth.cpp          |  11 +-
- command/get_session_challenge.cpp |  61 +++++++++
+ command/get_session_challenge.cpp |  77 ++++++++++++
  command/get_session_challenge.hpp |  54 ++++++++
  command_table.cpp                 |   3 +-
  configure.ac                      |  11 --
@@ -72,7 +47,7 @@ Subject: [PATCH] Bug 557 [SW][Transformers][OpenBMC][IPMI] Activate Session
  session.hpp                       |   8 ++
  sessions_manager.cpp              |  80 ++++++++++++
  sessions_manager.hpp              |   7 ++
- 20 files changed, 801 insertions(+), 70 deletions(-)
+ 20 files changed, 817 insertions(+), 70 deletions(-)
  create mode 100644 authcode.cpp
  create mode 100644 authcode.hpp
  create mode 100644 command/active_session.cpp
@@ -549,10 +524,10 @@ index f719452..9a389e5 100644
      response->oemID[1] = 0;
 diff --git a/command/get_session_challenge.cpp b/command/get_session_challenge.cpp
 new file mode 100644
-index 0000000..28a862e
+index 0000000..95f3cc6
 --- /dev/null
 +++ b/command/get_session_challenge.cpp
-@@ -0,0 +1,61 @@
+@@ -0,0 +1,77 @@
 +#include "get_session_challenge.hpp"
 +
 +#include "comm_module.hpp"
@@ -562,6 +537,7 @@ index 0000000..28a862e
 +
 +#include <iostream>
 +#include <phosphor-logging/log.hpp>
++#include <authcode.hpp>
 +
 +namespace command
 +{
@@ -576,6 +552,21 @@ index 0000000..28a862e
 +    {
 +        std::vector<uint8_t> errorPayload{IPMI_CC_REQ_DATA_LEN_INVALID};
 +        return errorPayload;
++    }
++
++    switch(static_cast<ipmi15authcode::AuthCodeType>(request->authenticationTypeForChallenge))
++    {
++        case ipmi15authcode::AuthCodeType::AUTHTYPE_MD5:
++        case ipmi15authcode::AuthCodeType::AUTHTYPE_PASSWORD:
++        {
++            break;
++        }
++        
++        default:
++        {
++            std::vector<uint8_t> errorPayload{IPMI_CC_ILLEGAL_COMMAND};
++            return errorPayload;
++        }
 +    }
 +
 +
