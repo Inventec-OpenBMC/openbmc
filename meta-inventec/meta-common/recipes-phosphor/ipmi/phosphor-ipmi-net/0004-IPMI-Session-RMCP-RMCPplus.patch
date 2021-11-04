@@ -1,34 +1,56 @@
-From a401450f19ac2b81aa8aa117a625fcb095943337 Mon Sep 17 00:00:00 2001
+From 8377ac3672a3bf4b06865d673f0a13db37f9f7b9 Mon Sep 17 00:00:00 2001
 From: cwsun <sun.cwsun@inventec.com>
 Date: Mon, 2 Aug 2021 13:38:38 +0800
-Subject: [PATCH] Bug 492 [Transformers][OpenBMC] Per message authentication
- mismatch with the previous version
+Subject: [PATCH] Bug 557 [SW][Transformers][OpenBMC][IPMI] Activate Session
+ with Initial Outbound Sequence Number does not increase
 
     Symptom/Reason :
-        - The per message authentication is disable
+        - The Initial Outbound sequence number will not incease after Activate Session command after
+            session established.
 
     Root Cause:
-        - the netipmid config the the per-messages authentication disable to false
+        - The IPMI v1.5 message parser should increase the outbound sequence number after a new
+            session initialization command is called after session established.
 
     Solution/Change:
         [phosphor-ipmi-net]
-            - Change the per message authentication to true
+            -  increase the outbound session sequence number
 
     Entry Test:
-        - ipmitool -I lanplus -C17  -H 172.17.0.2 -p 2623 -U root -P 0penBmc shell
+        - by using tcpdump to monitor the transaction
+        - ipmitool -I lanplus -C17 -H 172.17.0.2 -p 2623 -U root -P 0penBmc shell -vv
+        - in shell
+            - mc info
+            - then call the activate session
+                -- raw 0x06 0x3a 0x02 0x04 0x72 0x2f 0x70 0x4c 0x3b 0x2f 0x91 0x63 0x67 0x68 0xa9 0xdb 0x12 0x74 0x20 0x88 0x01 0x02 0x03 0x04
+<< IPMI Response Session Header
+<<   Authtype   : MD5
+<<   Sequence   : 0x04030201
+<<   Session ID : 0x348ab6f6
+<< IPMI Response Message Header
+<<   Rq Addr    : 81
+<<   NetFn      : 07
+<<   Rq LUN     : 0
+<<   Rs Addr    : 20
+<<   Rq Seq     : 09
+<<   Rs Lun     : 0
+<<   Command    : 3a
+<<   Compl Code : 0x00
 
-        ipmitool> channel authcap 1 4
-
-        Channel number             : 1
-        IPMI v1.5  auth types      : MD5 PASSWORD
-        KG status                  : default (all zeroes)
-        Per message authentication : enabled
-        User level authentication  : enabled
-        Non-null user names exist  : yes
-        Null user names exist      : no
-        Anonymous login enabled    : no
-        Channel supports IPMI v1.5 : yes
-        Channel supports IPMI v2.0 : yes
+            - mc info
+<< IPMI Response Session Header
+<<   Authtype   : MD5
+<<   Sequence   : 0x04030202 <-- increased by 1
+<<   Session ID : 0x348ab6f6
+<< IPMI Response Message Header
+<<   Rq Addr    : 81
+<<   NetFn      : 07
+<<   Rq LUN     : 0
+<<   Rs Addr    : 20
+<<   Rq Seq     : 0a
+<<   Rs Lun     : 0
+<<   Command    : 01
+<<   Compl Code : 0x00
 ---
  Makefile.am                       |   6 +
  authcode.cpp                      | 177 +++++++++++++++++++++++++++
@@ -37,20 +59,20 @@ Subject: [PATCH] Bug 492 [Transformers][OpenBMC] Per message authentication
  command/active_session.cpp        |  73 +++++++++++
  command/active_session.hpp        |  63 ++++++++++
  command/channel_auth.cpp          |  11 +-
- command/get_session_challenge.cpp |  61 ++++++++++
- command/get_session_challenge.hpp |  54 +++++++++
+ command/get_session_challenge.cpp |  61 +++++++++
+ command/get_session_challenge.hpp |  54 ++++++++
  command_table.cpp                 |   3 +-
  configure.ac                      |  11 --
  message.hpp                       |   4 -
  message_handler.cpp               |  30 +++--
  message_handler.hpp               |   2 -
- message_parsers.cpp               | 194 +++++++++++++++++++++++++-----
+ message_parsers.cpp               | 197 +++++++++++++++++++++++++-----
  message_parsers.hpp               |  26 +++-
  sd_event_loop.cpp                 |   7 +-
  session.hpp                       |   8 ++
  sessions_manager.cpp              |  80 ++++++++++++
  sessions_manager.hpp              |   7 ++
- 20 files changed, 798 insertions(+), 70 deletions(-)
+ 20 files changed, 801 insertions(+), 70 deletions(-)
  create mode 100644 authcode.cpp
  create mode 100644 authcode.hpp
  create mode 100644 command/active_session.cpp
@@ -824,7 +846,7 @@ index 2eb4737..f31cdf9 100644
      /** @brief Write the packet to the socket
       *
 diff --git a/message_parsers.cpp b/message_parsers.cpp
-index 18f8389..0d5b474 100644
+index 18f8389..3b34a10 100644
 --- a/message_parsers.cpp
 +++ b/message_parsers.cpp
 @@ -1,11 +1,18 @@
@@ -896,11 +918,13 @@ index 18f8389..0d5b474 100644
              throw std::runtime_error("Invalid Session Header");
          }
      }
-@@ -93,37 +99,101 @@ std::vector<uint8_t> flatten(std::shared_ptr<Message> outMessage,
+@@ -93,37 +99,104 @@ std::vector<uint8_t> flatten(std::shared_ptr<Message> outMessage,
  namespace ipmi15parser
  {
  
 +uint8_t const AUTH_CODE_LENGTH = 16;
++uint8_t const SEQUENCENUM_LENGTH = 4;
++uint8_t const SESSIONID_LENGTH = 4;
 +
  std::shared_ptr<Message> unflatten(std::vector<uint8_t>& inPacket)
  {
@@ -927,11 +951,12 @@ index 18f8389..0d5b474 100644
 +        auto header = reinterpret_cast<SessionHeader2_t*>(inPacket.data());
 +
 +        memcpy(authCode.authCode,
-+               start + sizeof(message::parser::BasicHeader_t) + 8,
-+               ipmi15parser::AUTH_CODE_LENGTH);
-+        
-+        payloadLen = *(start+sizeof(message::parser::BasicHeader_t)+8+ipmi15parser::AUTH_CODE_LENGTH);
-+        header->payloadLength = payloadLen;
++                start + sizeof(message::parser::BasicHeader_t) + 
++                    SEQUENCENUM_LENGTH + SESSIONID_LENGTH,
++                AUTH_CODE_LENGTH);
++
++        payloadLen = header->payloadLength;
++ 
 +        if (header->sessId != 0x00)
 +        {
 +            session = std::get<session::Manager&>(singletonPool)
@@ -1009,7 +1034,7 @@ index 18f8389..0d5b474 100644
  
      return message;
  }
-@@ -131,20 +201,78 @@ std::shared_ptr<Message> unflatten(std::vector<uint8_t>& inPacket)
+@@ -131,20 +204,78 @@ std::shared_ptr<Message> unflatten(std::vector<uint8_t>& inPacket)
  std::vector<uint8_t> flatten(std::shared_ptr<Message> outMessage,
                               std::shared_ptr<session::Session> session)
  {
@@ -1100,7 +1125,7 @@ index 18f8389..0d5b474 100644
  
      // Insert the Payload into the Packet
      packet.insert(packet.end(), outMessage->payload.begin(),
-@@ -169,6 +297,7 @@ std::shared_ptr<Message> unflatten(std::vector<uint8_t>& inPacket)
+@@ -169,6 +300,7 @@ std::shared_ptr<Message> unflatten(std::vector<uint8_t>& inPacket)
      // Check if the packet has atleast the Session Header
      if (inPacket.size() < sizeof(SessionHeader_t))
      {
@@ -1108,7 +1133,7 @@ index 18f8389..0d5b474 100644
          throw std::runtime_error("IPMI2.0 Session Header Missing");
      }
  
-@@ -192,6 +321,7 @@ std::shared_ptr<Message> unflatten(std::vector<uint8_t>& inPacket)
+@@ -192,6 +324,7 @@ std::shared_ptr<Message> unflatten(std::vector<uint8_t>& inPacket)
      {
          if (!(internal::verifyPacketIntegrity(inPacket, message, payloadLen)))
          {
@@ -1116,7 +1141,7 @@ index 18f8389..0d5b474 100644
              throw std::runtime_error("Packet Integrity check failed");
          }
      }
-@@ -387,7 +517,6 @@ std::vector<uint8_t> encryptPayload(std::shared_ptr<Message> message)
+@@ -387,7 +520,6 @@ std::vector<uint8_t> encryptPayload(std::shared_ptr<Message> message)
  
  } // namespace ipmi20parser
  
@@ -1124,7 +1149,7 @@ index 18f8389..0d5b474 100644
  namespace asfparser
  {
  std::shared_ptr<Message> unflatten(std::vector<uint8_t>& inPacket)
-@@ -434,6 +563,5 @@ std::vector<uint8_t> flatten(uint8_t asfMsgTag)
+@@ -434,6 +566,5 @@ std::vector<uint8_t> flatten(uint8_t asfMsgTag)
  }
  
  } // namespace asfparser
