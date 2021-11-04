@@ -9,6 +9,7 @@ SRC_URI_append = " file://transformers-ast2600.cfg \
                    file://0003-Read-MAC0-address-from-EEPROM.patch \
                    file://0004-Support-max31790-device-driver.patch \
                    file://0005-Initial-transformers-machine.patch \
+                   file://0006-Bug-629-SW-Transformers-OpenBMC-Support-mc-selftest-.patch \
                  "
 
 do_copyfile () {

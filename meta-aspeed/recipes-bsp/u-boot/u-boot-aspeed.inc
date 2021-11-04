@@ -251,6 +251,11 @@ do_deploy () {
         install -d ${DEPLOYDIR}
         install -m 644 ${B}/${UBOOT_BINARY} ${DEPLOYDIR}/${UBOOT_IMAGE}
         cd ${DEPLOYDIR}
+        mv ${UBOOT_IMAGE} uboot-tmp.bin
+        filesize=$(stat -c %s "uboot-tmp.bin")
+        checksum=`md5sum uboot-tmp.bin | awk '{ print $1 }'`
+        echo "INVENTEC_UBOOT_SIZE_${filesize}_CHECKSUM_${checksum}" > uboot-checksum
+        cat uboot-tmp.bin uboot-checksum >> ${UBOOT_IMAGE}
         rm -f ${UBOOT_BINARY} ${UBOOT_SYMLINK}
         ln -sf ${UBOOT_IMAGE} ${UBOOT_SYMLINK}
         ln -sf ${UBOOT_IMAGE} ${UBOOT_BINARY}
