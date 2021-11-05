@@ -13,4 +13,5 @@ SRC_URI_append = " \
     file://0010-Add-MACAddress-property-in-Client-interface.patch \
     file://0011-Add-and-modify-new-interface-related-to-system-boot-.patch \
     file://0012-Support-IPMIv1.5-SessionManagement-dbusyaml.patch \
+    file://0013-Add-new-interface-related-to-bmc-global-enables-sett.patch \
 "

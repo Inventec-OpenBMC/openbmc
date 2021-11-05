@@ -4,6 +4,7 @@ SRC_URI_append += " file://0001-Modified-sel-file-location-path-and-add-RecordID
                     file://0002-PATCH-Add-SIGHUP-handler-to-check-clear_sel-to-resta.patch \
                     file://0003-Fix-IPMI-logging-service-fail-to-start-issue.patch \
                     file://0004-Bug-651-SW-Common-SEL-SEL-entry-number-repeat-when-i.patch \
+		    file://0005-Support-BMC-Global-Enables-Commands-to-control-SEL.patch \
                   "
 
 # Enable threshold monitoring to log event
