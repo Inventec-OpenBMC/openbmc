@@ -9,33 +9,7 @@ echo Release reset SGPIO !!
 I2C_OFFSET=0
 CURRENT_I2C=27
 
-RISER2_MUX_I2C=21
-RISER2_MUX_I2C_CH0=$(($CURRENT_I2C+1))
-RISER2_MUX_I2C_CH1=$(($CURRENT_I2C+2))
-RISER2_MUX_I2C_CH2=$(($CURRENT_I2C+3))
-RISER2_MUX_I2C_CH3=$(($CURRENT_I2C+4))
-echo pca9546 0x71 > /sys/bus/i2c/devices/i2c-$RISER2_MUX_I2C/new_device
-
-if [ -d "/sys/bus/i2c/devices/i2c-$RISER2_MUX_I2C_CH0" ]
-then
-    RISER2_PRESENT="true"
-    # PAC1934 U1
-    echo pac1934 0x12 > /sys/bus/i2c/devices/i2c-$RISER2_MUX_I2C/new_device
-    shunt_path=$(ls /sys/bus/i2c/devices/i2c-$RISER2_MUX_I2C/$RISER2_MUX_I2C-0012/hwmon/hwmon*/shunt_value)
-    # shunt is 0.004 ohm
-    echo 0 4000 > $shunt_path
-    echo 1 4000 > $shunt_path
-    echo 2 4000 > $shunt_path
-    echo 3 4000 > $shunt_path
-
-    echo 24c32 0x50 > /sys/bus/i2c/devices/i2c-$RISER2_MUX_I2C_CH2/new_device
-    echo emc1403 0x5c > /sys/bus/i2c/devices/i2c-$RISER2_MUX_I2C_CH3/new_device
-    CURRENT_I2C=$(($CURRENT_I2C+4))
-else
-    RISER2_PRESENT="false"
-fi
-
-RISER1_MUX_I2C=22
+RISER1_MUX_I2C=21
 RISER1_MUX_I2C_CH0=$(($CURRENT_I2C+1))
 RISER1_MUX_I2C_CH1=$(($CURRENT_I2C+2))
 RISER1_MUX_I2C_CH2=$(($CURRENT_I2C+3))
@@ -45,7 +19,6 @@ echo pca9546 0x71 > /sys/bus/i2c/devices/i2c-$RISER1_MUX_I2C/new_device
 if [ -d "/sys/bus/i2c/devices/i2c-$RISER1_MUX_I2C_CH0" ]
 then
     RISER1_PRESENT="true"
-
     # PAC1934 U1
     echo pac1934 0x12 > /sys/bus/i2c/devices/i2c-$RISER1_MUX_I2C/new_device
     shunt_path=$(ls /sys/bus/i2c/devices/i2c-$RISER1_MUX_I2C/$RISER1_MUX_I2C-0012/hwmon/hwmon*/shunt_value)
@@ -56,10 +29,37 @@ then
     echo 3 4000 > $shunt_path
 
     echo 24c32 0x50 > /sys/bus/i2c/devices/i2c-$RISER1_MUX_I2C_CH2/new_device
-    echo emc1403 0x5c > /sys/bus/i2c/devices/i2c-$RISER1_MUX_I2C_CH3/new_device
+    echo emc1403 0x3c > /sys/bus/i2c/devices/i2c-$RISER1_MUX_I2C_CH3/new_device
     CURRENT_I2C=$(($CURRENT_I2C+4))
 else
     RISER1_PRESENT="false"
+fi
+
+RISER2_MUX_I2C=22
+RISER2_MUX_I2C_CH0=$(($CURRENT_I2C+1))
+RISER2_MUX_I2C_CH1=$(($CURRENT_I2C+2))
+RISER2_MUX_I2C_CH2=$(($CURRENT_I2C+3))
+RISER2_MUX_I2C_CH3=$(($CURRENT_I2C+4))
+echo pca9546 0x71 > /sys/bus/i2c/devices/i2c-$RISER2_MUX_I2C/new_device
+
+if [ -d "/sys/bus/i2c/devices/i2c-$RISER2_MUX_I2C_CH0" ]
+then
+    RISER2_PRESENT="true"
+
+    # PAC1934 U1
+    echo pac1934 0x12 > /sys/bus/i2c/devices/i2c-$RISER2_MUX_I2C/new_device
+    shunt_path=$(ls /sys/bus/i2c/devices/i2c-$RISER2_MUX_I2C/$RISER2_MUX_I2C-0012/hwmon/hwmon*/shunt_value)
+    # shunt is 0.004 ohm
+    echo 0 4000 > $shunt_path
+    echo 1 4000 > $shunt_path
+    echo 2 4000 > $shunt_path
+    echo 3 4000 > $shunt_path
+
+    echo 24c32 0x50 > /sys/bus/i2c/devices/i2c-$RISER2_MUX_I2C_CH2/new_device
+    echo emc1403 0x3c > /sys/bus/i2c/devices/i2c-$RISER2_MUX_I2C_CH3/new_device
+    CURRENT_I2C=$(($CURRENT_I2C+4))
+else
+    RISER2_PRESENT="false"
 fi
 
 
