@@ -336,6 +336,11 @@
                 reg = <0x49>;
         };
 
+        // Right ear board Temp_U1
+        emc1412@7c {
+                compatible = "emc1403";
+                reg = <0x7c>;
+        };
 };
 
 &i2c7 {
