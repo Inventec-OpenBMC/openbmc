@@ -39,7 +39,7 @@ SRC_URI_append = " file://starscream.cfg \
                    file://0030-Sync-sgpio-driver-with-aspeed-linux.patch \
                    file://0031-Add-Aspeed-VHUB-dirver-support-on-Transformers.patch \
                    file://0032-force-spi-to-run-at-single-mode.patch \
-                   file://0033-Modify-RGMII-TX-Clock-delay-and-TX-driving-strength.patch \
+                   file://0033-Starscream-Modify-RGMII-TX-driving-strength.patch \
                    file://0034-Fix-bug-virtural-UART-device-node-cannot-be-created.patch \
                    file://0035-HWMON-driver-for-SMSC-EMC2301-2302-2303-2305-chips.patch \
                    file://0036-Add-Microchip-pac1934-2-1-chip-family-ADC-driver.patch \
