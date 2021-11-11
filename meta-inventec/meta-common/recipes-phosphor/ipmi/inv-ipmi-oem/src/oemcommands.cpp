@@ -323,11 +323,11 @@ ipmi::RspType<message::Payload>
     ipmiBiosGetVHubStatus(void)
 {
     message::Payload ret;
-    uint8_t result = 0;
+    uint8_t result = 0x01;
 
     if (std::filesystem::exists(AST_VHUB_DRIVER))
     {
-        result = 0x01;
+        result = 0x0;
     }
 
     ret.pack(result);
