@@ -12,3 +12,4 @@
 /var/lib/phosphor-settings-manager
 /var/lib/phosphor-state-manager
 /var/lib/sel_log
+/var/lib/ipmi/kgkey_config.json
