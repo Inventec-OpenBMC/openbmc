@@ -6,7 +6,7 @@ SRC_URI_append = " \
     file://transformers-host-set-boot-failsafe@.service \
     file://transformers-check-host-state.service \
     file://transformers-set-boot-failsafe.sh \
-    file://transformers-set-failsafe.sh \
+    file://transformers-states-control.sh \
     file://transformers-check-host-state.sh \
     file://transformers-host-ready.target \
     "
@@ -30,7 +30,8 @@ FILES_${PN}_append = " \
 do_install_append() {
     install -d ${D}${bindir}
 
-    install -m 0755 ${WORKDIR}/transformers-set-failsafe.sh ${D}${bindir}/.
+
+    install -m 0755 ${WORKDIR}/transformers-states-control.sh ${D}${bindir}/.
     install -m 0755 ${WORKDIR}/transformers-set-boot-failsafe.sh ${D}${bindir}/.
     install -m 0755 ${WORKDIR}/transformers-check-host-state.sh ${D}${bindir}/.
 
