@@ -1,4 +1,4 @@
-From 32cae8a737a0232ad0f07271f3e51461289b1963 Mon Sep 17 00:00:00 2001
+From 44dc5037c6a928e5a68868dad44427af28e4a6d2 Mon Sep 17 00:00:00 2001
 From: cwsun <sun.cwsun@inventec.com>
 Date: Mon, 2 Aug 2021 13:38:38 +0800
 Subject: [PATCH] Bug 582 - [Transformers][OpenBMC][IPMI] Get Session Challenge
@@ -14,18 +14,19 @@ Subject: [PATCH] Bug 582 - [Transformers][OpenBMC][IPMI] Get Session Challenge
     Solution/Change:
         [phosphor-ipmi-net]
             - modify the GetSessionChallenge() to fix the bug
-                -- return error 0xCD (Illegal command) to indicate the authentication type error
+                -- return error 0xCC to indicate the authentication type error
 
     Entry Test:
-        - using invalid authentication type(0x01 MD2) return 0xCD error code
+        - using invalid authentication type(0x01 MD2) return 0xCC error code
             -- ipmitool -I lanplus -C 17 -N 3 -p 2623 -U root -P 0penBmc -H 172.17.0.2  raw 0x06 0x39 0x01 0x72 0x6f 0x6f 0x74 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
 
-            >> Unable to send RAW command (channel=0x0 netfn=0x6 lun=0x0 cmd=0x39 rsp=0xcd): Command illegal for specified sensor or record type
+            >> Unable to send RAW command (channel=0x0 netfn=0x6 lun=0x0 cmd=0x39 rsp=0xcc): Invalid data field in request
 
         - using supported authentication type(0x02 MD5) return 0x00 with challenge string
             -- ipmitool -I lanplus -C 17 -N 3 -p 2623 -U root -P 0penBmc -H 172.17.0.2  raw 0x06 0x39 0x02 0x72 0x6f 0x6f 0x74 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
 
             >> 1e c3 d9 0d cc 70 04 a1 52 bb da ca 1d 28 e9 b3 af e6 db 82
+
 ---
  Makefile.am                       |   6 +
  authcode.cpp                      | 177 +++++++++++++++++++++++++++
@@ -524,7 +525,7 @@ index f719452..9a389e5 100644
      response->oemID[1] = 0;
 diff --git a/command/get_session_challenge.cpp b/command/get_session_challenge.cpp
 new file mode 100644
-index 0000000..95f3cc6
+index 0000000..b53f8c0
 --- /dev/null
 +++ b/command/get_session_challenge.cpp
 @@ -0,0 +1,77 @@
@@ -564,7 +565,7 @@ index 0000000..95f3cc6
 +        
 +        default:
 +        {
-+            std::vector<uint8_t> errorPayload{IPMI_CC_ILLEGAL_COMMAND};
++            std::vector<uint8_t> errorPayload{IPMI_CC_INVALID_FIELD_REQUEST};
 +            return errorPayload;
 +        }
 +    }
