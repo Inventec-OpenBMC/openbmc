@@ -11,3 +11,5 @@
               Default: 'false'
           Privilege:
               Default: 2
+          RetryIntervalMS:
+              Default: 10              
