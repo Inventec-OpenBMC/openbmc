@@ -218,6 +218,15 @@
                "FALLING":"gpio-event-handler@PCH_HOT_N_ASSERTED.service",
                "RISING": "gpio-event-handler@PCH_HOT_N_DEASSERTED.service"
        }
+   },
+   {
+       "Name": "BIOS_POST_CMPLT_N",
+       "LineName": "BIOS_POST_CMPLT_N",
+       "EventMon": "BOTH",
+       "Continue": true,
+       "Target": {
+               "RISING": "smbios-mdr-reload.service"
+       }
    }
 ]
 

@@ -1,0 +1,10 @@
+[Unit]
+Description=Reload smbios-mdr to renew smbios table after BIOS_POST_CMPLT_N rising.
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+ExecStart=/usr/sbin/smbios-mdr-reload.sh
+
+[Install]
+WantedBy=multi-user.target
