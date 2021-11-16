@@ -1,4 +1,4 @@
-From a61e16b2370a033898f9832e13cdc3fad6ed6d9d Mon Sep 17 00:00:00 2001
+From 95f650d636c10b9880f2a4d39c5bf230538e5c13 Mon Sep 17 00:00:00 2001
 From: "Fred.Chang" <chang.fredys@inventec.com>
 Date: Wed, 1 Sep 2021 07:01:41 +0000
 Subject: [PATCH] support mmap smbios table from video shared memory
@@ -45,11 +45,12 @@ Entry Test:
 				|-/xyz/openbmc_project/inventory/system/chassis/motherboard/dimm7
 				|-/xyz/openbmc_project/inventory/system/chassis/motherboard/dimm8
 				`-/xyz/openbmc_project/inventory/system/chassis/motherboard/dimm9
+
 ---
  include/mdrv2.hpp        |  7 ++++
- include/smbios_mdrv2.hpp |  0
- src/mdrv2.cpp            | 71 +++++++++++++++++++++++++++++++++++++++-
- 3 files changed, 77 insertions(+), 1 deletion(-)
+ include/smbios_mdrv2.hpp | 58 ++++++++++++++++++++++++++++++-
+ src/mdrv2.cpp            | 74 ++++++++++++++++++++++++++++++++++++++--
+ 3 files changed, 136 insertions(+), 3 deletions(-)
  mode change 100644 => 100755 include/mdrv2.hpp
  mode change 100644 => 100755 include/smbios_mdrv2.hpp
  mode change 100644 => 100755 src/mdrv2.cpp
@@ -84,10 +85,94 @@ index 8f03579..e5e0f69
 diff --git a/include/smbios_mdrv2.hpp b/include/smbios_mdrv2.hpp
 old mode 100644
 new mode 100755
+index a307332..8f5a696
+--- a/include/smbios_mdrv2.hpp
++++ b/include/smbios_mdrv2.hpp
+@@ -20,6 +20,9 @@
+ 
+ #include <array>
+ 
++#define SMBIOS_MAGIC_WORD_V2 0x5F4D535F
++#define SMBIOS_MAGIC_WORD_V3 0x334D535F
++
+ static constexpr const char* mdrType2File = "/var/lib/smbios/smbios2";
+ static constexpr const char* smbiosPath = "/var/lib/smbios";
+ 
+@@ -150,6 +153,36 @@ typedef enum
+     memoryDeviceType = 17,
+ } SmbiosType;
+ 
++struct smbios_entry_point {
++    char anchor[4];
++    uint8_t ep_checksum;
++    uint8_t ep_length;
++    uint8_t major_version;
++    uint8_t minor_version;
++    uint16_t max_size_entry;
++    uint8_t ep_rev;
++    uint8_t reserved[5];
++    char int_anchor[5];
++    uint8_t int_checksum;
++    uint16_t st_length;
++    uint32_t st_address;
++    uint16_t number_of_entrys;
++    uint8_t bcd_rev;
++} __attribute__ ((packed));
++
++struct smbios_entry_point_v3 {
++    char anchor[5];
++    uint8_t ep_checksum;
++    uint8_t ep_length;
++    uint8_t major_version;
++    uint8_t minor_version;
++    uint8_t doc_rev;
++    uint8_t ep_rev;
++    uint8_t reserved;
++    uint32_t st_length;
++    uint64_t st_address;
++} __attribute__ ((packed));
++
+ static constexpr uint8_t separateLen = 2;
+ 
+ static inline uint8_t* smbiosNextPtr(uint8_t* smbiosDataIn)
+@@ -182,9 +215,32 @@ static inline uint8_t* getSMBIOSTypePtr(uint8_t* smbiosDataIn, uint8_t typeId,
+         return nullptr;
+     }
+     char* smbiosData = reinterpret_cast<char*>(smbiosDataIn);
++    uint32_t len = 0;
++    uint32_t mark = *(reinterpret_cast<uint32_t*>(smbiosData));
++    if(mark == SMBIOS_MAGIC_WORD_V2 || mark == SMBIOS_MAGIC_WORD_V3) {
++        if(mark == SMBIOS_MAGIC_WORD_V2) {
++            struct smbios_entry_point* header = reinterpret_cast<struct smbios_entry_point*>(smbiosDataIn);
++            len = header->ep_length;
++        }
++        if(mark == SMBIOS_MAGIC_WORD_V3) {
++            struct smbios_entry_point_v3* header = reinterpret_cast<struct smbios_entry_point_v3*>(smbiosDataIn);
++            len = header->ep_length;
++        }
++        smbiosData += len;
++        while ((*smbiosData == '\0') && (*(smbiosData + 1) == '\0'))
++        {
++            smbiosData++;
++            len++;
++            if (len >= mdrSMBIOSSize) // To avoid endless loop
++            {
++                return nullptr;
++            }
++        }
++    }
++
+     while ((*smbiosData != '\0') || (*(smbiosData + 1) != '\0'))
+     {
+-        uint32_t len = *(smbiosData + 1);
++        len = *(smbiosData + 1);
+         if (*smbiosData != typeId)
+         {
+ 
 diff --git a/src/mdrv2.cpp b/src/mdrv2.cpp
 old mode 100644
 new mode 100755
-index 00fbdcc..2ce4b51
+index 00fbdcc..65743e8
 --- a/src/mdrv2.cpp
 +++ b/src/mdrv2.cpp
 @@ -17,6 +17,7 @@
@@ -116,7 +201,17 @@ index 00fbdcc..2ce4b51
      }
      smbiosFile.clear();
      smbiosFile.seekg(0, std::ios_base::end);
-@@ -243,6 +246,66 @@ bool MDR_V2::readDataFromFlash(MDRSMBIOSHeader* mdrHdr, uint8_t* data)
+@@ -220,7 +223,8 @@ bool MDR_V2::readDataFromFlash(MDRSMBIOSHeader* mdrHdr, uint8_t* data)
+     {
+         phosphor::logging::log<phosphor::logging::level::ERR>(
+             "MDR V2 file size is smaller than mdr header");
+-        return false;
++        //return false;
++        return readDataFromMem(mdrHdr, data);
+     }
+     smbiosFile.read(reinterpret_cast<char*>(mdrHdr), sizeof(MDRSMBIOSHeader));
+     if (mdrHdr->dataSize > smbiosTableStorageSize)
+@@ -243,6 +247,66 @@ bool MDR_V2::readDataFromFlash(MDRSMBIOSHeader* mdrHdr, uint8_t* data)
      return true;
  }
  
@@ -183,12 +278,12 @@ index 00fbdcc..2ce4b51
  bool MDR_V2::sendDirectoryInformation(uint8_t dirVersion, uint8_t dirIndex,
                                        uint8_t returnedEntries,
                                        uint8_t remainingEntries,
-@@ -500,6 +563,12 @@ bool MDR_V2::agentSynchronizeData()
+@@ -500,6 +564,12 @@ bool MDR_V2::agentSynchronizeData()
      }
      else
      {
 +        uint32_t mark = *(reinterpret_cast<uint32_t*>(smbiosDir.dir[smbiosDirIndex].dataStorage));
-+        if(mark != 0x5F4D535F && mark != 0x334D535F) {
++        if(mark != SMBIOS_MAGIC_WORD_V2 && mark != SMBIOS_MAGIC_WORD_V3) {
 +            phosphor::logging::log<phosphor::logging::level::ERR>(
 +                "agent data sync failed - smbios format error: not start from \"_SM_\" or \"_SM3_\".");
 +            return false;
