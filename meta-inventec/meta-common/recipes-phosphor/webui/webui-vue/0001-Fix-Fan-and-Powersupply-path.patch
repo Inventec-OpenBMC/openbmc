@@ -1,0 +1,92 @@
+From 16b06b759de37e1477882ed85f3c55805a203710 Mon Sep 17 00:00:00 2001
+From: Tommy Lin <lin.tommysc@inventec.com>
+Date: Thu, 18 Nov 2021 05:39:46 +0000
+Subject: [PATCH] Fix Fan and Powersupply path
+
+Symptom/Reason:
+    - Fans and power supply information is blank in webui
+
+Root Cause:
+    - Inquiry path is hard coded
+
+Solution/Change:
+    [webui-vue]
+        - Compose inquiry path according to Chassis ID
+
+Entry Test:
+    - Login WebUI
+    - Goto [Health] -> [Hardware status]
+---
+ src/store/modules/Health/FanStore.js         | 21 ++++++++++++++++++--
+ src/store/modules/Health/PowerSupplyStore.js | 21 ++++++++++++++++++--
+ 2 files changed, 38 insertions(+), 4 deletions(-)
+
+diff --git a/src/store/modules/Health/FanStore.js b/src/store/modules/Health/FanStore.js
+index b4a4189..1e57962 100644
+--- a/src/store/modules/Health/FanStore.js
++++ b/src/store/modules/Health/FanStore.js
+@@ -23,9 +23,26 @@ const FanStore = {
+     },
+   },
+   actions: {
+-    async getFanInfo({ commit }) {
++    async getFanInfo({ dispatch }) {
++      const collection = await dispatch('getChassisCollection');
++      if (!collection) return;
++      const promises = collection.reduce((acc, id) => {
++        acc.push(dispatch('getFanInfoById', id));
++        return acc;
++      }, []);
++      return await api.all(promises);
++    },
++    async getChassisCollection() {
++      return await api
++        .get('/redfish/v1/Chassis')
++        .then(({ data: { Members } }) =>
++          Members.map((member) => member['@odata.id'])
++        )
++        .catch((error) => console.log(error));
++    },
++    async getFanInfoById({ commit }, id) {
+       return await api
+-        .get('/redfish/v1/Chassis/chassis/Thermal')
++        .get(`${id}/Thermal`)
+         .then(({ data: { Fans = [] } }) => commit('setFanInfo', Fans))
+         .catch((error) => console.log(error));
+     },
+diff --git a/src/store/modules/Health/PowerSupplyStore.js b/src/store/modules/Health/PowerSupplyStore.js
+index 565715f..9adafb2 100644
+--- a/src/store/modules/Health/PowerSupplyStore.js
++++ b/src/store/modules/Health/PowerSupplyStore.js
+@@ -38,9 +38,26 @@ const PowerSupplyStore = {
+     },
+   },
+   actions: {
+-    async getPowerSupply({ commit }) {
++    async getPowerSupply({ dispatch }) {
++      const collection = await dispatch('getChassisCollection');
++      if (!collection) return;
++      const promises = collection.reduce((acc, id) => {
++        acc.push(dispatch('getPowerInfoById', id));
++        return acc;
++      }, []);
++      return await api.all(promises);
++    },
++    async getChassisCollection() {
++      return await api
++        .get('/redfish/v1/Chassis')
++        .then(({ data: { Members } }) =>
++          Members.map((member) => member['@odata.id'])
++        )
++        .catch((error) => console.log(error));
++    },
++    async getPowerInfoById({ commit }, id) {
+       return await api
+-        .get('/redfish/v1/Chassis/chassis/Power')
++        .get(`${id}/Power`)
+         .then(({ data: { PowerSupplies } }) =>
+           commit('setPowerSupply', PowerSupplies)
+         )
+-- 
+2.17.1
+
