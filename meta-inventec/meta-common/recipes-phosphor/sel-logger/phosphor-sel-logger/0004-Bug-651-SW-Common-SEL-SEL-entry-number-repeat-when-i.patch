@@ -1,0 +1,115 @@
+From 3fd026d6e4ac2378c577b830c14d594f71248ad6 Mon Sep 17 00:00:00 2001
+From: "pj.chen" <chen.pj@inventec.com>
+Date: Fri, 19 Nov 2021 09:00:51 +0000
+Subject: [PATCH] Bug 651 - [SW][Common][SEL] - SEL entry number repeat when
+ init
+
+Symptom/Reason:
+    When the SEL log file does not exist (initial or cleared),
+    the SEL entry created during this time would have the same entry number "1".
+
+Root Cause:
+    It needs time to copy the entry to the SEL logfile from sd_journal_send()
+
+Solution/Change:
+    Add check when ID is 1.
+
+Entry Test:
+
+before -
+2021-11-19T07:58:26.858302+00:00 1,2,00FFFF,20,/xyz/openbmc_project/sensors/discrete/processor/CPU1_MEMTRIP_N,1
+2021-11-19T07:58:26.886651+00:00 1,2,00FFFF,20,/xyz/openbmc_project/sensors/discrete/processor/PROC1_MEMHOT_OUT_N,1
+2021-11-19T07:58:26.968825+00:00 1,2,00FFFF,20,/xyz/openbmc_project/sensors/discrete/processor/CPU1_PROCHOT_N,1
+2021-11-19T07:58:26.987053+00:00 1,2,00FFFF,20,/xyz/openbmc_project/sensors/discrete/processor/PROC1MEM_VRHOT_N,1
+2021-11-19T07:58:27.010052+00:00 1,2,00FFFF,20,/xyz/openbmc_project/sensors/discrete/processor/PROC0MEM_VRHOT_N,1
+2021-11-19T07:58:27.087362+00:00 2,2,00FFFF,20,/xyz/openbmc_project/sensors/discrete/processor/CPU1_THERMTRIP_N,1
+
+after-
+2021-11-19T07:58:26.858302+00:00 1,2,00FFFF,20,/xyz/openbmc_project/sensors/discrete/processor/CPU1_MEMTRIP_N,1
+2021-11-19T07:58:26.886651+00:00 1,2,00FFFF,20,/xyz/openbmc_project/sensors/discrete/processor/PROC1_MEMHOT_OUT_N,1
+2021-11-19T07:58:26.968825+00:00 1,2,00FFFF,20,/xyz/openbmc_project/sensors/discrete/processor/CPU1_PROCHOT_N,1
+2021-11-19T07:58:26.987053+00:00 1,2,00FFFF,20,/xyz/openbmc_project/sensors/discrete/processor/PROC1MEM_VRHOT_N,1
+2021-11-19T07:58:27.010052+00:00 1,2,00FFFF,20,/xyz/openbmc_project/sensors/discrete/processor/PROC0MEM_VRHOT_N,1
+2021-11-19T07:58:27.087362+00:00 2,2,00FFFF,20,/xyz/openbmc_project/sensors/discrete/processor/CPU1_THERMTRIP_N,1
+---
+ include/sel_logger.hpp |  4 ++++
+ src/sel_logger.cpp     | 27 +++++++++++++++++++++++++++
+ 2 files changed, 31 insertions(+)
+
+diff --git a/include/sel_logger.hpp b/include/sel_logger.hpp
+index 1f48810..4b877ea 100644
+--- a/include/sel_logger.hpp
++++ b/include/sel_logger.hpp
+@@ -39,6 +39,10 @@ static const std::filesystem::path selLogDir = "/var/lib/sel_log";
+ static const std::string selLogFilename = "ipmi_sel";
+ static const std::string selClearLogFile = "/var/lib/sel_log/clear_sel";
+ 
++/* Bug 651 - [SW][Common][SEL] - SEL entry number repeat when init */
++static constexpr int waitSelLogFileCreateRetry = 10;
++static constexpr int waitSelLogFileCreateDelay = 1; /* 1 sec*/
++
+ template <typename... T>
+ static uint16_t
+     selAddSystemRecord(const std::string& message, const std::string& path,
+diff --git a/src/sel_logger.cpp b/src/sel_logger.cpp
+index 5ff4d8c..1956111 100644
+--- a/src/sel_logger.cpp
++++ b/src/sel_logger.cpp
+@@ -154,6 +154,7 @@ static unsigned int getNewRecordId(void)
+     }
+ 
+     recordIndex = recordId;
++
+     return recordId;
+ }
+ #endif
+@@ -169,6 +170,23 @@ static void toHexStr(const std::vector<uint8_t>& data, std::string& hexStr)
+     hexStr = stream.str();
+ }
+ 
++/* Bug 651 - [SW][Common][SEL] - SEL entry number repeat when init */
++static void waitForSelLogFileCreated(void)
++{
++    std::vector<std::filesystem::path> selLogFiles;
++    int i = 0;
++    while(i < waitSelLogFileCreateRetry)
++    {
++        if (getSELLogFiles(selLogFiles))
++        {
++            break;
++        }
++        sleep(waitSelLogFileCreateDelay);
++        i++;
++    }
++}
++
++
+ template <typename... T>
+ static uint16_t
+     selAddSystemRecord(const std::string& message, const std::string& path,
+@@ -199,6 +217,11 @@ static uint16_t
+                     "IPMI_SEL_SENSOR_PATH=%s", path.c_str(),
+                     "IPMI_SEL_EVENT_DIR=%x", assert, "IPMI_SEL_DATA=%s",
+                     selDataStr.c_str(), std::forward<T>(metadata)..., NULL);
++    if ( recordId == 1)
++    {
++        waitForSelLogFileCreated();
++    }
++
+     return recordId;
+ #endif
+ }
+@@ -228,6 +251,10 @@ static uint16_t selAddOemRecord(const std::string& message,
+                     "MESSAGE_ID=%s", selMessageId, "IPMI_SEL_RECORD_ID=%d",
+                     recordId, "IPMI_SEL_RECORD_TYPE=%x", recordType,
+                     "IPMI_SEL_DATA=%s", selDataStr.c_str(), NULL);
++    if ( recordId == 1)
++    {
++        waitForSelLogFileCreated();
++    }
+     return recordId;
+ #endif
+ }
+-- 
+2.17.1
+
