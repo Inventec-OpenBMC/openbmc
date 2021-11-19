@@ -735,3 +735,20 @@
 	"","","","","","","","",
 	"","","","","","","","";
 };
+
+&sgpio2 {
+	status = "okay";
+	bus-frequency = <1000000>;
+	nin_gpios = <40>;
+	nout_gpios = <40>;
+	gpio-line-names = "","","","","","","","",
+	"","","","","","","","",
+	"","","","","","","","",
+	"","","","","","","","",
+	"","","","","","","","",
+	"CPU1_MEMTRIP_N","CPU_ERROR0_N","CPU_ERROR1_N","CPU_ERROR2_N","MIPI_PRSNT_BMC","PCH_HOT_N","","",
+	"PROC1MEM_VRHOT_N","PROC0_MEMHOT_OUT_N","PROC1_MEMHOT_OUT_N","CPU0_PROCHOT_N","CPU1_PROCHOT_N","CPU0_THERMTRIP_N","CPU1_THERMTRIP_N","CPU0_MEMTRIP_N",
+	"CPU_PWR_FAIL","DIMM_MODULE_POWER_FAIL","","PCH_PWR_FAIL","","PROC0_VRHOT_N","PROC1_VRHOT_N","PROC0MEM_VRHOT_N",
+	"","","NMI_SW","INTRUDER","","","","MEM_CONTROLLER_PWR_FAIL",
+	"","","","","","","","";
+};
