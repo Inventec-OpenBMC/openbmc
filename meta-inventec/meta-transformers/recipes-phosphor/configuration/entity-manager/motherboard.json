@@ -1350,6 +1350,21 @@
             "Type": "EventSensor"
         },
 	{
+            "Name": "BIOS_POST_CMPLT_N",
+            "ReadingType": "discrete",
+            "SensorType": "processor",
+            "SensorInfo": [
+                {
+                    "Label": "BIOS_POST_CMPLT_N",
+                    "SensorModel": "Event",
+                    "SensorNum": "0x1B",
+                    "EntityId": "0x03",
+                    "EntityInstance": "0"
+                }
+            ],
+            "Type": "EventSensor"
+        },
+	{
             "Name": "PROC1MEM_VRHOT_N",
             "ReadingType": "discrete",
             "SensorType": "processor",
