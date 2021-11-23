@@ -225,7 +225,7 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-               "RISING": "smbios-mdr-reload.service"
+               "FALLING": "smbios-mdr-reload.service"
        }
    }
 ]
