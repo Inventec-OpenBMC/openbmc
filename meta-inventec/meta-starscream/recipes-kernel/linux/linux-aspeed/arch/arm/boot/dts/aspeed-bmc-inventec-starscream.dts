@@ -185,8 +185,8 @@
                 m25p,fast-read;
                 label = "bios";
                 spi-max-frequency = <33000000>;
-                spi-tx-bus-width = <1>;
-                spi-rx-bus-width = <1>;
+                spi-tx-bus-width = <2>;
+                spi-rx-bus-width = <2>;
         };
 };
 
