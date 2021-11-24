@@ -1,0 +1,168 @@
+From 022d4a7e4258243c92761d97070735e41ee8e4c0 Mon Sep 17 00:00:00 2001
+From: "sun.cwsun" <sun.cwsun@inventec.com>
+Date: Wed, 24 Nov 2021 09:54:48 +0800
+Subject: [PATCH] Bug623 - [SW][Transformers][OpenBMC][IPMI] Implement get
+ chassis status command
+
+    Symptom/Reason :
+        - Implement the IPMI get chassis status command
+
+    Root Cause:
+        - None
+
+    Solution/Change:
+        [intel-ipmi-oem]
+            - support attribute
+                -- Current Power State
+                    --- Power is on
+                    --- Power overload
+                    --- power fault
+                    --- power control fault
+
+                -- Last Power event
+                    --- Power down caused by Power overload
+                    --- Power down caused by power fault
+                    --- Power is on casued by ipmi command
+
+                -- Misc chassis State
+                    --- Colling/fan detected
+                    --- Chassis identify state
+                    --- Chassis identify supported
+        [phosphor-dbus-interface]
+            - register attributes
+                -- LastPowerEvent
+                -- PowerControlReturnCode
+
+        [phosphor-ipmi-host]
+            - record the power control return code by ipmi command chassis control
+
+        [x86-power-control]
+            - register the LastPowerEvent and powerControlReturnCode to dbus system
+
+        [inventec-dcmi-power]
+            - monitor the power fault and power overload and do
+                chassis power off if power fault or power overload.
+
+    Entry Test:
+        - ipmitool chassis status
+        - ipmitool raw 0x00 0x01
+            -- to get current chassis status
+---
+ chassishandler.cpp | 47 +++++++++++++++++++++++++++++++++++++++++++++-
+ chassishandler.hpp |  2 +-
+ 2 files changed, 47 insertions(+), 2 deletions(-)
+
+diff --git a/chassishandler.cpp b/chassishandler.cpp
+index 551683d..e82a703 100644
+--- a/chassishandler.cpp
++++ b/chassishandler.cpp
+@@ -1077,6 +1077,7 @@ static bool setButtonEnabled(ipmi::Context::ptr& ctx,
+ //----------------------------------------------------------------------
+ // Get Chassis Status commands
+ //----------------------------------------------------------------------
++
+ ipmi::RspType<bool,    // Power is on
+               bool,    // Power overload
+               bool,    // Interlock
+@@ -1366,6 +1367,38 @@ void indicate_no_softoff_needed()
+     std::ofstream(path.c_str());
+ }
+ 
++void setLastPowerEvent(sdbusplus::bus::bus& bus, uint32_t value)
++{
++    try
++    {
++        const std::string objPath = "/xyz/openbmc_project/state/chassis0";
++        const std::string intf = "xyz.openbmc_project.State.Chassis";
++        auto service = ipmi::getService(bus, intf, objPath);
++        ipmi::setDbusProperty(bus, service, objPath, intf, "LastPowerEvent",
++                              value);
++    }
++    catch (sdbusplus::exception::SdBusError& e)
++    {
++        fprintf(stderr, "%s exception:%s \n", __func__, e.what());
++    }
++}
++
++void setPowerControlReturnCode(sdbusplus::bus::bus& bus, int value)
++{
++    try
++    {
++        const std::string objPath = "/xyz/openbmc_project/state/chassis0";
++        const std::string intf = "xyz.openbmc_project.State.Chassis";
++        auto service = ipmi::getService(bus, intf, objPath);
++        ipmi::setDbusProperty(bus, service, objPath, intf,
++                              "PowerControlReturnCode", value);
++    }
++    catch (sdbusplus::exception::SdBusError& e)
++    {
++        fprintf(stderr, "%s exception:%s \n", __func__, e.what());
++    }
++}
++
+ /** @brief Implementation of chassis control command
+  *
+  *  @param - chassisControl command byte
+@@ -1375,10 +1408,14 @@ void indicate_no_softoff_needed()
+ ipmi::RspType<> ipmiChassisControl(uint8_t chassisControl)
+ {
+     int rc = 0;
++    auto bus = getSdBus();
++    fprintf(stderr, "%s chassisControl=%d\n", __func__, chassisControl);
+     switch (chassisControl)
+     {
+         case CMD_POWER_ON:
+             rc = initiate_state_transition(State::Host::Transition::On);
++            setLastPowerEvent(*bus, 1 << 4);
++            fprintf(stderr, "%s CMD_POWER_ON rc=%d \n", __func__, rc);
+             break;
+         case CMD_POWER_OFF:
+             // This path would be hit in 2 conditions.
+@@ -1426,8 +1463,9 @@ ipmi::RspType<> ipmiChassisControl(uint8_t chassisControl)
+             // power reboot request (i.e. a reboot request that is not
+             // originating via a soft power off SMS request)
+             indicate_no_softoff_needed();
+-
+             rc = initiate_state_transition(State::Host::Transition::Reboot);
++            setLastPowerEvent(*bus, 1 << 4);
++            fprintf(stderr, "%s CMD_HARD_RESET or CMD_POWER_CYCLE rc=%d\n", __func__, rc);
+             break;
+ 
+         case CMD_SOFT_OFF_VIA_OVER_TEMP:
+@@ -1447,6 +1485,7 @@ ipmi::RspType<> ipmiChassisControl(uint8_t chassisControl)
+         }
+     }
+ 
++    setPowerControlReturnCode(*bus, rc);
+     return ((rc < 0) ? ipmi::responseUnspecifiedError()
+                      : ipmi::responseSuccess());
+ }
+@@ -2169,6 +2208,9 @@ ipmi::RspType<> ipmiSetFrontPanelButtonEnables(
+ 
+ void register_netfn_chassis_functions()
+ {
++
++    fprintf(stderr, "%s start \n", __func__);
++
+     createIdentifyTimer();
+ 
+     // Get Chassis Capabilities
+@@ -2229,4 +2271,7 @@ void register_netfn_chassis_functions()
+                           ipmi::chassis::cmdSetPowerRestorePolicy,
+                           ipmi::Privilege::Operator,
+                           ipmiChassisSetPowerRestorePolicy);
++
++    fprintf(stderr, "%s done \n", __func__);
++
+ }
+diff --git a/chassishandler.hpp b/chassishandler.hpp
+index 4d7d450..80c9f19 100644
+--- a/chassishandler.hpp
++++ b/chassishandler.hpp
+@@ -66,4 +66,4 @@ enum class ChassisIDState : uint8_t
+     temporaryOn = 0x1,
+     indefiniteOn = 0x2,
+     reserved = 0x3
+-};
++};
+\ No newline at end of file

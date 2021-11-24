@@ -8,6 +8,7 @@ SRC_URI += "file://0001-Add-RequestedPowerIntervalMs-property.patch \
             file://host-power-on.service \
             file://host-power-off.target \
             file://host-power-on.target \
+	    file://0003-Implement-get-chassis-status-command-poweroverload-controlcode-powerfaultpowerdown.patch \
            "
 
 SYSTEMD_SERVICE_${PN} += "host-power-off.service \

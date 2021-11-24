@@ -4,7 +4,8 @@ DESCRIPTION = "Intel OEM IPMI commands"
 LICENSE = "Apache-2.0"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=a6a4edad4aed50f39a66d098d74b265b"
 
-SRC_URI = "git://github.com/openbmc/intel-ipmi-oem"
+SRC_URI = "git://github.com/openbmc/intel-ipmi-oem" 
+
 SRCREV = "fb9f1aa1ea3c944fbba17b51ab26264af1c67a25"
 
 S = "${WORKDIR}/git"
@@ -54,5 +55,6 @@ SRC_URI_append += " file://0001-Removed-Get-Device-ID-command.patch \
                     file://0018-Bug-629-SW-Transformers-OpenBMC-Support-mc-selftest-.patch \
 		    file://0019-Implement-Get-system-GUID-function.patch \
 		    file://0020-Implement-Get-Set-global-enables-and-modify-related-.patch \
+		    file://0021-Implement-get-chassis-status-command.patch \
                   "
 

@@ -1,0 +1,82 @@
+From da81eaa40e02c832763ffa9be1226eaa0b516b63 Mon Sep 17 00:00:00 2001
+From: "sun.cwsun" <sun.cwsun@inventec.com>
+Date: Wed, 24 Nov 2021 09:36:46 +0800
+Subject: [PATCH] Bug623 - [SW][Transformers][OpenBMC][IPMI] Implement get
+ chassis status command
+
+    Symptom/Reason :
+        - Implement the IPMI get chassis status command
+
+    Root Cause:
+        - None
+
+    Solution/Change:
+        [intel-ipmi-oem]
+            - support attribute
+                -- Current Power State
+                    --- Power is on
+                    --- Power overload
+                    --- power fault
+                    --- power control fault
+
+                -- Last Power event
+                    --- Power down caused by Power overload
+                    --- Power down caused by power fault
+                    --- Power is on casued by ipmi command
+
+                -- Misc chassis State
+                    --- Colling/fan detected
+                    --- Chassis identify state
+                    --- Chassis identify supported
+        [phosphor-dbus-interface]
+            - register attributes
+                -- LastPowerEvent
+                -- PowerControlReturnCode
+
+        [phosphor-ipmi-host]
+            - record the power control return code by ipmi command chassis control
+
+        [x86-power-control]
+            - register the LastPowerEvent and powerControlReturnCode to dbus system
+
+        [inventec-dcmi-power]
+            - monitor the power fault and power overload and do
+                chassis power off if power fault or power overload.
+
+    Entry Test:
+        - ipmitool chassis status
+        - ipmitool raw 0x00 0x01
+            -- to get current chassis status
+---
+ power-control-x86/src/power_control.cpp | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/power-control-x86/src/power_control.cpp b/power-control-x86/src/power_control.cpp
+index f156119..96118af 100644
+--- a/power-control-x86/src/power_control.cpp
++++ b/power-control-x86/src/power_control.cpp
+@@ -387,6 +387,8 @@ static void sendPowerControlEvent(const Event event)
+         phosphor::logging::log<phosphor::logging::level::INFO>(errMsg.c_str());
+         return;
+     }
++    fprintf(stderr, "%s:%d powerState=%s event=%d \n",
++            getPowerStateName(powerState).c_str(), static_cast<int>(event));
+     handler(event);
+ }
+ 
+@@ -2796,6 +2798,15 @@ int main(int argc, char* argv[])
+         });
+ 
+ 
++    uint32_t lastPowerEvent = 0x00;
++    chassisIface->register_property(
++        "LastPowerEvent", lastPowerEvent,
++        sdbusplus::asio::PropertyPermission::readWrite);
++
++    int32_t pwControlReturnCode = 0x00;
++    chassisIface->register_property(
++        "PowerControlReturnCode", pwControlReturnCode,
++        sdbusplus::asio::PropertyPermission::readWrite);
+ 
+     chassisIface->initialize();
+ 

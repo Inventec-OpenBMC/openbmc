@@ -14,4 +14,5 @@ SRC_URI_append = " \
     file://0011-Add-and-modify-new-interface-related-to-system-boot-.patch \
     file://0012-Support-IPMIv1.5-SessionManagement-dbusyaml.patch \
     file://0013-Add-new-interface-related-to-bmc-global-enables-sett.patch \
+    file://0014-Add-LastEvent-PowerControlReturnCode.patch \
 "

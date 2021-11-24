@@ -49,6 +49,7 @@ double readPower(void)
         // Read the sensor value and scale properties
         auto properties = getAllDbusProperties(bus, service, powerStore.powerPath,
                                                SENSOR_VALUE_INTF, DBUS_TIMEOUT);
+
         value = std::get<double>(properties[SENSOR_VALUE_PROP]);
     }
     catch (std::exception &e)
@@ -172,6 +173,22 @@ void savePowerOffEventSEL(bool assert)
     generateSELEvent(bus, POWER_OFF_EVENT_SENSOR_PATH, powerOffEventData, assert);
 }
 
+
+void powerFaultCheck(void)
+{
+
+    auto _isPSUPowerOK = isPSUPowerOK(bus);
+    bool powerFault = !((_isPSUPowerOK) ? *_isPSUPowerOK : false);
+    if (powerFault){
+
+        savePowerThresholdEventSEL(true);
+        savePowerOffEventSEL(true);
+        // chassis status : power off due to power fault
+        hostPowerControl(bus, "xyz.openbmc_project.State.Host.Transition.Off");
+        setLastPowerEvent(bus, 1 << 3);
+    }
+}
+
 void powerLimitCheck(Power currentPower)
 {
     bool action = false;
@@ -179,6 +196,7 @@ void powerLimitCheck(Power currentPower)
     if (powerStore.actionTriggered)
     {
         /* action has triggered, only check is threshold gets down */
+        
         if (currentPower.value <= powerStore.powerCap)
         {
             if (powerStore.exceptionAction !=
@@ -259,7 +277,9 @@ void powerLimitCheck(Power currentPower)
 
             savePowerThresholdEventSEL(true);
             savePowerOffEventSEL(true);
+            //chassis status : power off due to power overload
             hostPowerControl(bus, "xyz.openbmc_project.State.Host.Transition.Off");
+            setLastPowerEvent(bus, 1<<1);
         }
 
         if (powerStore.exceptionAction == "xyz.openbmc_project.Control.Power.Cap.Action.Log")
@@ -325,6 +345,8 @@ void powerHandler(boost::asio::io_context &io, PowerStore &powerStore, double de
         {
             powerLimitCheck(currentPower);
         }
+
+        powerFaultCheck();
 
         end = getCurrentTimeWithMs();
         delayTime = (SAMPLING_INTERVEL - (end - start)) * MICRO_OFFSET;

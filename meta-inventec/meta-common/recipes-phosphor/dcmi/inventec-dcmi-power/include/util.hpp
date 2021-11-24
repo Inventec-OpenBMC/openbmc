@@ -10,14 +10,36 @@
 #include <stdlib.h>
 #include <sdbusplus/bus.hpp>
 
+
+using DbusObjectPath = std::string;
+using DbusService = std::string;
+using DbusInterface = std::string;
+using DbusObjectInfo = std::pair<DbusObjectPath, DbusService>;
 using DbusProperty = std::string;
 using Value = std::variant<bool, uint8_t, int16_t, uint16_t, int32_t, uint32_t,
       int64_t, uint64_t, double, std::string>;
 using PropertyMap = std::map<DbusProperty, Value>;
 
+using ObjectTree =
+    std::map<DbusObjectPath, std::map<DbusService, std::vector<DbusInterface>>>;
+
+using InterfaceList = std::vector<std::string>;
+
+using DbusInterfaceMap = std::map<DbusInterface, PropertyMap>;
+
+using ObjectValueTree =
+    std::map<sdbusplus::message::object_path, DbusInterfaceMap>;
+
+
+
+constexpr auto MAPPER_BUS_NAME = "xyz.openbmc_project.ObjectMapper";
+constexpr auto MAPPER_OBJ = "/xyz/openbmc_project/object_mapper";
+constexpr auto MAPPER_INTF = "xyz.openbmc_project.ObjectMapper";
+
 constexpr auto PROP_INTERFACE = "org.freedesktop.DBus.Properties";
 constexpr auto METHOD_SET = "Set";
 constexpr auto METHOD_GET_ALL = "GetAll";
+constexpr auto METHOD_GET = "Get";
 
 constexpr auto HOST_STATE_PATH = "/xyz/openbmc_project/state/host0";
 constexpr auto HOST_INTERFACE = "xyz.openbmc_project.State.Host";
@@ -25,6 +47,8 @@ constexpr auto HOST_INTERFACE = "xyz.openbmc_project.State.Host";
 constexpr auto IPMI_SEL_Service = "xyz.openbmc_project.Logging.IPMI";
 constexpr auto IPMI_SEL_Path = "/xyz/openbmc_project/Logging/IPMI";
 constexpr auto IPMI_SEL_Add_Interface = "xyz.openbmc_project.Logging.IPMI";
+
+constexpr std::chrono::microseconds GET_DBUS_TIMEOUT = std::chrono::microseconds(5 * 1000000);
 
 /**
  * @brief Get current timestamp in milliseconds.
@@ -85,14 +109,33 @@ std::string getService(std::shared_ptr<sdbusplus::asio::connection> &bus, const 
     return mapperResponse.begin()->first;
 }
 
-/** @brief Gets all the properties associated with the given object
- *         and the interface.
- *  @param[in] bus - DBUS Bus Object.
- *  @param[in] service - Dbus service name.
- *  @param[in] objPath - Dbus object path.
- *  @param[in] interface - Dbus interface.
- *  @return On success returns the map of name value pair.
- */
+
+Value getDbusProperty(std::shared_ptr<sdbusplus::asio::connection> &bus, const std::string& service,
+                      const std::string& objPath, const std::string& interface,
+                      const std::string& property,
+                      std::chrono::microseconds timeout = GET_DBUS_TIMEOUT)
+{
+
+    Value value;
+
+    auto method = bus->new_method_call(service.c_str(), objPath.c_str(),
+                                      PROP_INTERFACE, METHOD_GET);
+
+    method.append(interface, property);
+
+    auto reply = bus->call(method, timeout.count());
+
+    if (reply.is_method_error())
+    {
+        fprintf(stderr, "%s getDbusProperty %s, %s, %s, %s failed ",
+             __func__, service.c_str(), objPath.c_str(), interface.c_str(), property.c_str());
+    }
+
+    reply.read(value);
+
+    return value;
+}
+
 PropertyMap getAllDbusProperties(std::shared_ptr<sdbusplus::asio::connection> &bus,
                                  const std::string &service,
                                  const std::string &objPath,
@@ -114,6 +157,96 @@ PropertyMap getAllDbusProperties(std::shared_ptr<sdbusplus::asio::connection> &b
 
     reply.read(properties);
     return properties;
+}
+
+
+ObjectTree getAllDbusObjects(std::shared_ptr<sdbusplus::asio::connection> &bus,
+                                   const std::string& serviceRoot,
+                                   const std::string& interface,
+                                   const std::string& match)
+{
+    std::vector<std::string> interfaces;
+    interfaces.emplace_back(interface);
+
+    auto depth = 0;
+
+    auto mapperCall = bus->new_method_call(MAPPER_BUS_NAME, MAPPER_OBJ,
+                                          MAPPER_INTF, "GetSubTree");
+
+    mapperCall.append(serviceRoot, depth, interfaces);
+
+    auto mapperReply = bus->call(mapperCall);
+    if (mapperReply.is_method_error())
+    {
+        fprintf(stderr, "%s  %s, %s failed ",
+             __func__, serviceRoot.c_str(), interface.c_str());
+    }
+
+    ObjectTree objectTree;
+    mapperReply.read(objectTree);
+
+    for (auto it = objectTree.begin(); it != objectTree.end();)
+    {
+        if (it->first.find(match) == std::string::npos)
+        {
+            it = objectTree.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+
+    return objectTree;
+}
+
+
+void setDbusProperty(std::shared_ptr<sdbusplus::asio::connection> &bus, const std::string &service,
+                     const std::string &objPath, const std::string &interface,
+                     const std::string &property, const Value &value)
+{
+    auto method = bus->new_method_call(service.c_str(), objPath.c_str(),
+                                      PROP_INTERFACE, METHOD_SET);
+
+    method.append(interface, property, value);
+
+    if (!bus->call(method))
+    {
+        std::cerr << "Failed to set properties\n";
+    }
+}
+
+void setPowerControlReturnCode(std::shared_ptr<sdbusplus::asio::connection> &bus, int value)
+{
+    try
+    {
+        fprintf(stderr, "%s:%d value=%d \n", __func__, __LINE__, value);
+        const std::string objPath = "/xyz/openbmc_project/state/chassis0";
+        const std::string intf = "xyz.openbmc_project.State.Chassis";
+        auto service = getService(bus, intf, objPath);
+        setDbusProperty(bus, service, objPath, intf,
+                              "PowerControlReturnCode", value);
+    }
+    catch (sdbusplus::exception::SdBusError &e)
+    {
+        fprintf(stderr, "exception:%s \n", e.what());
+    }
+}
+
+void setLastPowerEvent(std::shared_ptr<sdbusplus::asio::connection> &bus, uint32_t value)
+{
+    try
+    {
+        fprintf(stderr, "%s:%d value=%d \n", __func__, __LINE__, value);
+        const std::string objPath = "/xyz/openbmc_project/state/chassis0";
+        const std::string intf = "xyz.openbmc_project.State.Chassis";
+        auto service = getService(bus, intf, objPath);
+        setDbusProperty(bus, service, objPath, intf, "LastPowerEvent", value);
+    }
+    catch (sdbusplus::exception::SdBusError &e)
+    {
+        fprintf(stderr, "exception:%s \n", e.what());
+    }
 }
 
 /**
@@ -159,3 +292,170 @@ void hostPowerControl(std::shared_ptr<sdbusplus::asio::connection> &bus, std::st
         std::cerr << "Failed to change power state " << control << "\n";
     }
 }
+
+
+std::optional<bool> isPSUInputPowerOK(std::shared_ptr<sdbusplus::asio::connection> &bus)
+{
+    bool isPSUInputPowerOK = true;
+
+    constexpr const char* PSUInputPowerObjectPath =
+        "/xyz/openbmc_project/sensors/power";
+    constexpr const char* PSUInputPowerIntf =
+        "xyz.openbmc_project.Sensor.Value";
+    ObjectTree objectTree;
+
+    try{
+        objectTree =
+            getAllDbusObjects(bus, PSUInputPowerObjectPath,
+                                    PSUInputPowerIntf, "Input_Power");
+    }catch(std::exception& e){
+        fprintf(stderr, "%s : Exception %s \n", __func__, e.what());
+        return std::nullopt;
+    }
+    
+    for (auto& treeItr : objectTree)
+    {
+        std::string objPath;
+
+        objPath = treeItr.first;
+        auto& serviceMap = treeItr.second;
+        for (auto& itr : serviceMap)
+        {
+            try
+            {
+                Value v;
+                auto service = itr.first;
+                v = getDbusProperty(bus, service, objPath,
+                                          PSUInputPowerIntf, "Value");
+                auto value = std::get<double>(v);
+
+                v = getDbusProperty(bus, service, objPath,
+                                          PSUInputPowerIntf, "MinValue");
+                auto minValue = std::get<double>(v);
+
+                v = getDbusProperty(bus, service, objPath,
+                                          PSUInputPowerIntf, "MaxValue");
+                auto maxValue = std::get<double>(v);
+
+                // in transformers platform, the RPM of fan is not measured
+                // well. So the value may be larger then maxValue The threshold
+                // value of the RPM will be defined by software.
+
+                fprintf(stderr,
+                        "%s objPath=%s value=%f max=%f min=%f \n",
+                        __func__, objPath.c_str(), value, maxValue, minValue);
+                if (value <= maxValue && value >= minValue)
+                {
+                    isPSUInputPowerOK &= true;
+                }
+                else
+                {
+                    isPSUInputPowerOK &= false;
+                    fprintf(
+                        stderr,
+                        "isPSUInputPowerOK is false objPath=%s value=%f max=%f "
+                        "min=%f \n",
+                        objPath.c_str(), value, maxValue, minValue);
+                }
+            }
+            catch (const std::exception& e)
+            {
+                fprintf(stderr, "%s objPath=%s Exception:%s \n", __func__,
+                        objPath.c_str(), e.what());
+                return std::nullopt;
+            }
+        }
+    }
+    return std::make_optional<bool>(isPSUInputPowerOK);
+}
+
+std::optional<bool> isPSUOutputPowerOK(std::shared_ptr<sdbusplus::asio::connection> &bus)
+{
+    bool isPSUOutputPowerOK = true;
+
+    constexpr const char* PSUOutputPowerObjectPath =
+        "/xyz/openbmc_project/sensors/power";
+    constexpr const char* PSUOutputPowerIntf =
+        "xyz.openbmc_project.Sensor.Value";
+    ObjectTree objectTree;
+
+    try
+    {
+        objectTree = getAllDbusObjects(
+            bus, PSUOutputPowerObjectPath, PSUOutputPowerIntf, "Output_Power");
+    }
+    catch (std::exception& e)
+    {
+        fprintf(stderr, "%s : Exception %s \n", __func__, e.what());
+        return std::nullopt;
+    }
+
+    for (auto& treeItr : objectTree)
+    {
+        std::string objPath;
+
+        objPath = treeItr.first;
+        auto& serviceMap = treeItr.second;
+        for (auto& itr : serviceMap)
+        {
+            try
+            {
+                Value v;
+                auto service = itr.first;
+                v = getDbusProperty(bus, service, objPath,
+                                          PSUOutputPowerIntf, "Value");
+                auto value = std::get<double>(v);
+
+                v = getDbusProperty(bus, service, objPath,
+                                          PSUOutputPowerIntf, "MinValue");
+                auto minValue = std::get<double>(v);
+
+                v = getDbusProperty(bus, service, objPath,
+                                          PSUOutputPowerIntf, "MaxValue");
+                auto maxValue = std::get<double>(v);
+
+                // in transformers platform, the RPM of fan is not measured
+                // well. So the value may be larger then maxValue The threshold
+                // value of the RPM will be defined by software.
+
+                fprintf(stderr, "%s objPath=%s value=%f max=%f min=%f \n",
+                        __func__, objPath.c_str(), value, maxValue, minValue);
+                if (value <= maxValue && value >= minValue)
+                {
+                    isPSUOutputPowerOK &= true;
+                }
+                else
+                {
+                    isPSUOutputPowerOK &= false;
+                    fprintf(stderr,
+                            "isPSUOutputPowerOK is false objPath=%s value=%f "
+                            "max=%f "
+                            "min=%f \n",
+                            objPath.c_str(), value, maxValue, minValue);
+                }
+            }
+            catch (const std::exception& e)
+            {
+                fprintf(stderr, "%s objPath=%s Exception:%s \n", __func__,
+                        objPath.c_str(), e.what());
+                return std::nullopt;
+            }
+        }
+    }
+    return std::make_optional<bool>(isPSUOutputPowerOK);
+}
+
+
+std::optional<bool> isPSUPowerOK(std::shared_ptr<sdbusplus::asio::connection> &bus)
+{
+    auto psuInput = isPSUInputPowerOK(bus);
+    auto psuOutput = isPSUOutputPowerOK(bus);
+    if(psuInput && psuOutput){
+        return std::make_optional<bool>(*psuInput && *psuOutput);
+    }else{
+        return std::nullopt;
+    }
+
+}
+
+
