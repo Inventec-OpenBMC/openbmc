@@ -41,6 +41,7 @@ SRC_URI_append = " file://transformers.cfg \
                    file://0032-force-spi-to-run-at-single-mode.patch \
                    file://0033-Modify-RGMII-TX-Clock-delay-and-TX-driving-strength.patch \
                    file://0034-Fix-bug-virtural-UART-device-node-cannot-be-created.patch \
+                   file://0035-enable-ikvm-aspeed-vide-driver.patch \
                  "
 
 do_add_overwrite_files () {
@@ -51,3 +52,4 @@ do_add_overwrite_files () {
 }
 
 addtask do_add_overwrite_files after do_patch before do_compile
+

@@ -1,0 +1,37 @@
+From 41f0360b70331a7cefd4731e341d8b043859f97e Mon Sep 17 00:00:00 2001
+From: "sun.cwsun" <sun.cwsun@inventec.com>
+Date: Wed, 24 Nov 2021 15:20:55 +0800
+Subject: [PATCH] BUG614 - [SW] [Transformers][SW] Enable the iKVM function
+
+    Symptom/Reason :
+        - Enable the iKVM function
+
+    Root Cause:
+        - Operator can use HOST GUI to management the HOST os by openbmc ikvm feature.
+
+    Solution/Change:
+        [aspeed-video]
+            - enable the aspeed video compress engine linux driver
+            - enable the aspeed video compress engine in linux device tree
+
+    Entry Test:
+        . Open the browser and login into openbmc web ui
+        . Clock the Control -> KVM
+        . The browser will show the host os environmet. You can manipulate the host os by using keyboard
+          and mouse
+---
+ drivers/media/platform/aspeed-video.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/media/platform/aspeed-video.c b/drivers/media/platform/aspeed-video.c
+index f2c4dadd6a0e..dc7114007976 100644
+--- a/drivers/media/platform/aspeed-video.c
++++ b/drivers/media/platform/aspeed-video.c
+@@ -1679,6 +1679,7 @@ static const struct of_device_id aspeed_video_of_match[] = {
+ 	{ .compatible = "aspeed,ast2400-video-engine", .data = &ast2400_config },
+ 	{ .compatible = "aspeed,ast2500-video-engine", .data = &ast2500_config },
+ 	{ .compatible = "aspeed,ast2600-video-engine", .data = &ast2600_config },
++	{ .compatible = "aspeed,ast2600-video", .data = &ast2600_config },
+ 	{}
+ };
+ MODULE_DEVICE_TABLE(of, aspeed_video_of_match);

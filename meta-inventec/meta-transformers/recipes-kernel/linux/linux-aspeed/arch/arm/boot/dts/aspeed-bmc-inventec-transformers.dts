@@ -38,8 +38,8 @@
                         reusable;
                 };
 
-                video_engine_memory: video {
-                        size = <0x04000000>;
+                video_engine_memory: jpegbuffer {
+                        size = <0x04000000>; /*64MB*/
                         alignment = <0x01000000>;
                         compatible = "shared-dma-pool";
                         reusable;
@@ -556,4 +556,9 @@
 
 &rtc {
         status = "okay";
+};
+
+&video {
+        status = "okay";
+	memory-region = <&video_engine_memory>;
 };
