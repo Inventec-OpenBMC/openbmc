@@ -56,6 +56,7 @@ RDEPENDS_${PN}-system = " \
         phosphor-gpio-monitor-monitor \
 	vlan \
 	tzdata \
+        phosphor-host-postd \        
         "
 
 SUMMARY_${PN}-ipmi-oem = "Inventec IPMI OEM"
