@@ -6,6 +6,37 @@ echo BMC ready !!
 gpioset `gpiofind RST_BMC_SGPIO`=1
 echo Release reset SGPIO !!
 
+
+gpioset `gpiofind CPLD_PWRBRK_N`=1
+gpioset `gpiofind ASSERT_CPU0_PROCHOT_R_N`=1
+gpioset `gpiofind ASSERT_CPU1_PROCHOT_R_N`=1
+gpioset `gpiofind PWR_BTN_BMC_OUT_N`=1
+gpioset `gpiofind LED_BMC_UID_LED_N`=1
+gpioset `gpiofind RST_BMC_CPU0_I2C_N`=1
+gpioset `gpiofind RST_BMC_CPU1_I2C_N`=1
+gpioset `gpiofind I2C_BUS7_RESET_N`=1
+gpioset `gpiofind BMC_USB2514_1_RESET_N`=1
+
+
+gpioset `gpiofind I3C_MUX_SELECT`=0
+gpioset `gpiofind SPI_MUX_SELECT`=0
+
+
+
+
+# Remove Riser and BP json config for entity-manager
+ENTITY_MANAGER_CONIG_PATH="/usr/share/entity-manager/configurations"
+ENTITY_MANAGER_RISER1_JSON="$ENTITY_MANAGER_CONIG_PATH/riser1.json"
+ENTITY_MANAGER_RISER2_JSON="$ENTITY_MANAGER_CONIG_PATH/riser2.json"
+ENTITY_MANAGER_BP1_JSON="$ENTITY_MANAGER_CONIG_PATH/bp1.json"
+ENTITY_MANAGER_BP2_JSON="$ENTITY_MANAGER_CONIG_PATH/bp2.json"
+CREATE_JSON_SH="/usr/sbin/create_json.sh"
+
+rm -rf $ENTITY_MANAGER_RISER1_JSON
+rm -rf $ENTITY_MANAGER_RISER2_JSON
+rm -rf $ENTITY_MANAGER_BP1_JSON
+rm -rf $ENTITY_MANAGER_BP2_JSON
+
 I2C_OFFSET=0
 CURRENT_I2C=27
 
@@ -31,6 +62,9 @@ then
     echo 24c32 0x50 > /sys/bus/i2c/devices/i2c-$RISER1_MUX_I2C_CH2/new_device
     echo emc1403 0x3c > /sys/bus/i2c/devices/i2c-$RISER1_MUX_I2C_CH3/new_device
     CURRENT_I2C=$(($CURRENT_I2C+4))
+
+    # Create Riser1 json file
+    bash $CREATE_JSON_SH riser1 $RISER1_MUX_I2C_CH0
 else
     RISER1_PRESENT="false"
 fi
@@ -58,6 +92,10 @@ then
     echo 24c32 0x50 > /sys/bus/i2c/devices/i2c-$RISER2_MUX_I2C_CH2/new_device
     echo emc1403 0x3c > /sys/bus/i2c/devices/i2c-$RISER2_MUX_I2C_CH3/new_device
     CURRENT_I2C=$(($CURRENT_I2C+4))
+
+    # Create Riser2 json file
+    bash $CREATE_JSON_SH riser2 $RISER2_MUX_I2C_CH0
+
 else
     RISER2_PRESENT="false"
 fi
@@ -90,6 +128,9 @@ then
     echo pca9545 0x73 > /sys/bus/i2c/devices/i2c-$BP1_MUX_U13_I2C_CH1/new_device
     echo pca9545 0x73 > /sys/bus/i2c/devices/i2c-$BP1_MUX_U13_I2C_CH2/new_device
     CURRENT_I2C=$(($CURRENT_I2C+16))
+
+    # Create BP1 json file
+    bash $CREATE_JSON_SH bp1 $BP1_MUX_U13_I2C_CH0
 else
     BP1_PRESENT="false"
 fi
@@ -116,6 +157,9 @@ then
     echo pca9545 0x73 > /sys/bus/i2c/devices/i2c-$BP2_MUX_U13_I2C_CH1/new_device
     echo pca9545 0x73 > /sys/bus/i2c/devices/i2c-$BP2_MUX_U13_I2C_CH2/new_device
     CURRENT_I2C=$(($CURRENT_I2C+4))
+
+    # Create BP2 json file
+    bash $CREATE_JSON_SH bp2 $BP2_MUX_U13_I2C_CH0
 else
     BP2_PRESENT="false"
 fi

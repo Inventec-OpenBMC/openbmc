@@ -12,13 +12,16 @@ RDEPENDS_${PN} += "libsystemd"
 
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/starscream-init:"
-SRC_URI += "file://starscream-init.sh"
+SRC_URI += "file://starscream-init.sh \
+            file://create_json.sh \
+"
 
 S = "${WORKDIR}"
 
 do_install() {
         install -d ${D}${sbindir}
         install -m 0755 starscream-init.sh ${D}${sbindir}
+        install -m 0755 create_json.sh ${D}${sbindir}
 }
 
 SYSTEMD_SERVICE_${PN} += "starscream-init.service"
