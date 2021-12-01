@@ -1,4 +1,4 @@
-From 2a4ed35231e8ef73dd71d01043d8bf266d07baa8 Mon Sep 17 00:00:00 2001
+From 7acf6b0df0a190d1bb7fc78969776be0c79b88c0 Mon Sep 17 00:00:00 2001
 From: cynthia <wu.cynthia@inventec.com>
 Date: Tue, 10 Aug 2021 11:00:55 +0800
 Subject: [PATCH] Implement get/set system boot option
@@ -27,8 +27,8 @@ Entry test:
 	  ex: ipmitool raw 0x0 0x9 0x0 0x0 0x0
 ---
  include/chassiscommand.hpp |  85 ++++++
- src/chassiscommands.cpp    | 523 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 608 insertions(+)
+ src/chassiscommands.cpp    | 541 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 626 insertions(+)
  create mode 100644 include/chassiscommand.hpp
 
 diff --git a/include/chassiscommand.hpp b/include/chassiscommand.hpp
@@ -123,7 +123,7 @@ index 0000000..880e03a
 +    };
 +}// namespace ipmi::chassis*/
 diff --git a/src/chassiscommands.cpp b/src/chassiscommands.cpp
-index 1ff29c2..402202e 100644
+index 1ff29c2..12eef2c 100644
 --- a/src/chassiscommands.cpp
 +++ b/src/chassiscommands.cpp
 @@ -29,6 +29,8 @@
@@ -135,7 +135,7 @@ index 1ff29c2..402202e 100644
  using namespace phosphor::logging;
  
  namespace ipmi::chassis
-@@ -626,6 +628,517 @@ ipmi::RspType<> ipmiSetFrontPanelButtonEnables(bool disablePowerButton,
+@@ -626,6 +628,535 @@ ipmi::RspType<> ipmiSetFrontPanelButtonEnables(bool disablePowerButton,
      return ipmi::responseSuccess();
  }
  
@@ -232,7 +232,7 @@ index 1ff29c2..402202e 100644
 +        std::string bootmode;
 +        std::string boottype;
 +        bool valid;
-+        bool presistant;
++        bool persistent;
 +        uint8_t type;
 +        uint8_t source;
 +        uint8_t device_selector;
@@ -249,12 +249,23 @@ index 1ff29c2..402202e 100644
 +        bool modeoverride;
 +        uint8_t muxoverride;
 +        uint8_t instanceselector;
++        const char* boot_path;
 +        try{
-+            variant = getDbusProperty(*dbus, SettingService, SettingBootObj,
++            variant = getDbusProperty(*dbus, SettingService, SettingOneTimeObj,
++                                     PersistantIntf, "Enabled");
++            persistent = !( std::get<bool>(variant) );
++
++            if(persistent){
++                boot_path = SettingBootObj;
++            }else{
++                /*If boot option isn't permanent, get data from /boot/one_time path*/
++                boot_path = SettingOneTimeObj;
++            }
++            variant = getDbusProperty(*dbus, SettingService, boot_path,
 +                                     bootSourceIntf, "BootSource");
 +            bootsource = std::get<std::string>(variant);
 +            source = sourceDbusToIpmi.at( Source::convertSourcesFromString(bootsource) );
-+            variant = getDbusProperty(*dbus, SettingService, SettingBootObj,
++            variant = getDbusProperty(*dbus, SettingService, boot_path,
 +                                     bootModeIntf, "BootMode");
 +            bootmode = std::get<std::string>(variant);
 +
@@ -270,9 +281,7 @@ index 1ff29c2..402202e 100644
 +            variant = getDbusProperty(*dbus, SettingService, SettingBootOptionObj,
 +                                     BootFlagIntf, "BootFlagValid");
 +            valid = std::get<bool>(variant);
-+            variant = getDbusProperty(*dbus, SettingService, SettingOneTimeObj,
-+                                     PersistantIntf, "Enabled");
-+            presistant = !( std::get<bool>(variant) );
++            
 +            variant = getDbusProperty(*dbus, SettingService, SettingBootOptionObj,
 +                                     BootTypeIntf, "BootType");
 +            boottype = std::get<std::string>(variant);
@@ -321,7 +330,7 @@ index 1ff29c2..402202e 100644
 +            fprintf(stderr,"error to get property: %s\n", e.what());
 +            return ipmi::responseUnspecifiedError();
 +        }
-+        response.pack(  parameter_version, bootOptionParameter, reserved1,  uint5_t{}, uint1_t{type}, presistant, valid, lockbutton, screenblank, uint4_t{device_selector}, lockkeyboard, cmosclear, uint2_t{consoleredirerct}, locksleepbutton,  pwbypass, eventtrap, uint2_t{fwverbosity}, lockpower,  uint3_t{muxoverride}, modeoverride,  uint4_t{}, uint4_t{instanceselector}, uint4_t{} );
++        response.pack(  parameter_version, bootOptionParameter, reserved1,  uint5_t{}, uint1_t{type}, persistent, valid, lockbutton, screenblank, uint4_t{device_selector}, lockkeyboard, cmosclear, uint2_t{consoleredirerct}, locksleepbutton,  pwbypass, eventtrap, uint2_t{fwverbosity}, lockpower,  uint3_t{muxoverride}, modeoverride,  uint4_t{}, uint4_t{instanceselector}, uint4_t{} );
 +        return ipmi::responseSuccess(std::move(response));
 +    }else if( bootOptionParameter== static_cast<uint7_t>(BootOptionParameter::BootInitInfo) ){
 +        uint8_t channelid;
@@ -486,7 +495,7 @@ index 1ff29c2..402202e 100644
 +    }else if( parameterSelector== static_cast<uint7_t>(BootOptionParameter::BootFlags) ){
 +        uint5_t rsvd;
 +        bool valid;
-+        bool presistant;
++        bool persistent;
 +        bool type;
 +
 +        bool cmosclear;
@@ -508,7 +517,7 @@ index 1ff29c2..402202e 100644
 +
 +        uint4_t rsvd3;
 +        uint4_t instanceselector;
-+        if (data.unpack(rsvd, type, presistant, valid, lockbutton, screenblank, device_selector, lock_keyboard,cmosclear, consoleredirerct, locksleep, pwbypass, eventtrap, fwverbosity,lockpower, muxoverride,  modeoverride, rsvd2, instanceselector, rsvd3 ) != 0 || !data.fullyUnpacked())
++        if (data.unpack(rsvd, type, persistent, valid, lockbutton, screenblank, device_selector, lock_keyboard,cmosclear, consoleredirerct, locksleep, pwbypass, eventtrap, fwverbosity,lockpower, muxoverride,  modeoverride, rsvd2, instanceselector, rsvd3 ) != 0 || !data.fullyUnpacked())
 +        {
 +            return ipmi::responseReqDataLenInvalid();
 +        }
@@ -523,7 +532,7 @@ index 1ff29c2..402202e 100644
 +            setDbusProperty(*dbus, SettingService, SettingBootOptionObj,
 +                                     BootFlagIntf, "BootFlagValid", valid );  
 +            setDbusProperty(*dbus, SettingService, SettingOneTimeObj,
-+                                     PersistantIntf, "Enabled", !presistant );  
++                                     PersistantIntf, "Enabled", !persistent );  
 +            setDbusProperty(*dbus, SettingService, SettingBootOptionObj,
 +                                     BootTypeIntf, "BootType", Type::convertTypesToString( typeIpmiToDbus.at(type) ) ); 
 +        }catch(sdbusplus::exception::SdBusError& e)
@@ -534,16 +543,25 @@ index 1ff29c2..402202e 100644
 +
 +        Source::Sources bootsource = sourceIpmiToDbus.at( uint8_t{device_selector} );
 +        std::string bootmode = Mode::convertModesToString(Mode::Modes::Regular);
++        const char* boot_path;
 +        try{
-+            setDbusProperty(*dbus, SettingService, SettingBootObj,
++            if(persistent){
++                boot_path = SettingBootObj;
++            }else{
++                /*if the setting isn't permanent, set boot option to /boot/one_time path*/
++                boot_path = SettingOneTimeObj;
++            }
++            setDbusProperty(*dbus, SettingService, boot_path,
 +                                     bootSourceIntf, "BootSource", Source::convertSourcesToString(bootsource) ); 
 +            if(bootsource == Source::Sources::Disk_safe){
 +                bootmode = Mode::convertModesToString(Mode::Modes::Safe);
 +            }else if(bootsource == Source::Sources::BIOS_setup){
 +                bootmode = Mode::convertModesToString(Mode::Modes::Setup);
 +            }
-+            setDbusProperty(*dbus, SettingService, SettingBootObj,
++            setDbusProperty(*dbus, SettingService, boot_path,
 +                                     bootModeIntf, "BootMode" ,bootmode);
++
++
 +            setDbusProperty(*dbus, SettingService, SettingBootOptionObj,
 +                                     BootFlagIntf, "CMOSClear", cmosclear );  
 +            setDbusProperty(*dbus, SettingService, SettingBootOptionObj,
@@ -653,7 +671,7 @@ index 1ff29c2..402202e 100644
  static void registerChassisFunctions(void)
  {
      log<level::INFO>("Registering Chassis commands");
-@@ -661,6 +1174,16 @@ static void registerChassisFunctions(void)
+@@ -661,6 +1192,16 @@ static void registerChassisFunctions(void)
                            ipmi::chassis::cmdSetFrontPanelButtonEnables,
                            ipmi::Privilege::Admin,
                            ipmiSetFrontPanelButtonEnables);
@@ -671,5 +689,5 @@ index 1ff29c2..402202e 100644
  
  } // namespace ipmi::chassis
 -- 
-2.33.0
+2.17.1
 
