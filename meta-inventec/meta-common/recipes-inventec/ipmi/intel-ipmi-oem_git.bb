@@ -53,8 +53,9 @@ SRC_URI_append += " file://0001-Removed-Get-Device-ID-command.patch \
                     file://0016-Fix-set-sensor-threshold-command-fail-issue.patch \
                     file://0017-Modify-the-Repository-Update-Support-to-non-modal.patch \
                     file://0018-Bug-629-SW-Transformers-OpenBMC-Support-mc-selftest-.patch \
-		    file://0019-Implement-Get-system-GUID-function.patch \
-		    file://0020-Implement-Get-Set-global-enables-and-modify-related-.patch \
-		    file://0021-Implement-get-chassis-status-command.patch \
+                    file://0019-Implement-Get-system-GUID-function.patch \
+                    file://0020-Implement-Get-Set-global-enables-and-modify-related-.patch \
+                    file://0021-Implement-get-chassis-status-command.patch \
+                    file://0022-Implement-Get-Sensor-Reading-Factors-Command.patch \
                   "
 
