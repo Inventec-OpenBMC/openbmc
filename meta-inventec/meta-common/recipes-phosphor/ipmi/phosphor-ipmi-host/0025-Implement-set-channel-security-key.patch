@@ -1,8 +1,35 @@
-From 2d81fb73b1f5384ea2c2b002377c151fca3e96f6 Mon Sep 17 00:00:00 2001
+From 4eef1a275cddbb17a0edb719420b39ea56a855fd Mon Sep 17 00:00:00 2001
 From: "sun.cwsun" <sun.cwsun@inventec.com>
 Date: Thu, 11 Nov 2021 13:05:48 +0800
-Subject: [PATCH] Bug 633 - [SW][Transformers][OpenBMC] IPMI command set
- channel security key
+Subject: [PATCH] Bug 688 - [Transformers][OpenBMC][IPMI] Set Channel Security
+ KG Keys won't work
+
+    Symptom/Reason :
+        - The kg key status report from get channel authentication capabilities always return false (all-zeros)
+
+    Root Cause:
+        - The get channel authentication capabilities does not support kg status checking.
+
+    Solution/Change:
+        [phosphor-ipmi-host]
+            - Checking bmc key(kg key) status.
+
+    Entry Test:
+        - set kg key but not lock, the kg status should return false ( all zeros)
+            -- ipmitool raw 0x06 0x56 0x01 0x01 0x01 0x68 0x65 0x6c 0x6c 0x6f 0x77 0x6f 0x72 0x6c 0x64
+            -- ipmitool channel authcap 1 4
+                Channel number             : 1
+                IPMI v1.5  auth types      : MD5 PASSWORD
+                KG status                  : default (all zeroes)
+
+        - lock on the kg key, the RMCP+ now need using kgkey to generate SIK. The kgstatus should return true (non-zero)
+            -- ipmitool raw 0x06 0x56 0x01 0x02 0x01
+            -- ipmitool channel authcap 1 4
+                Channel number             : 1
+                IPMI v1.5  auth types      : MD5 PASSWORD
+                KG status                  : non-zero
+
+Bug 633 - [SW][Transformers][OpenBMC] IPMI command set channel security key
 
     Symptom/Reason :
         - implement the IPMI command set channel security key
@@ -36,7 +63,8 @@ Subject: [PATCH] Bug 633 - [SW][Transformers][OpenBMC] IPMI command set
  user_channel/channel_layer.hpp |  35 ++++++++++
  user_channel/channel_mgmt.cpp  | 119 +++++++++++++++++++++++++++++++
  user_channel/channel_mgmt.hpp  |  38 ++++++++++
- 7 files changed, 346 insertions(+)
+ user_channel/usercommands.cpp  |  22 +++++-
+ 8 files changed, 366 insertions(+), 2 deletions(-)
 
 diff --git a/app/channel.cpp b/app/channel.cpp
 index 51e953d..24b8da6 100644
@@ -520,3 +548,44 @@ index 3cd1a34..a76973e 100644
      /** @brief Returns the IPMI channel ID authorized to push IPMI privilege
       * changes to phosphor-user-manager. Any channel access changes made on
       * any other channel are ignored.
+diff --git a/user_channel/usercommands.cpp b/user_channel/usercommands.cpp
+index ba53707..043abb7 100644
+--- a/user_channel/usercommands.cpp
++++ b/user_channel/usercommands.cpp
+@@ -506,9 +506,9 @@ ipmi::RspType<uint8_t,  // channel number
+     if (getChannelSessionSupport(channel) == EChannelSessSupported::multi){
+         rmcpAuthTypes |= 1 << 2; //for multi-session MD5 authtype
+     }
+-
++    
+     constexpr uint2_t reserved4 = 0;
+-    constexpr bool KGStatus = false;       // Not supporting now.
++    bool KGStatus = false;
+     constexpr bool perMessageAuth = false; // Per message auth - enabled
+     constexpr bool userAuth = false;       // User authentication - enabled
+     constexpr bool nullUsers = false;      // Null user names - not supported
+@@ -524,6 +524,24 @@ ipmi::RspType<uint8_t,  // channel number
+     ipmi::ipmiUserGetAllCounts(maxChUsers, enabledUsers, fixedUsers);
+     nonNullUsers = enabledUsers > 0;
+ 
++    std::string ks;
++    std::string kv;
++
++    ipmi::Cc cc = ipmi::getBMCKey(channel, ks, kv);
++    if (cc)
++    {
++        return ipmi::responseUnspecifiedError();
++    }
++
++    if (ks == "lock" || ks == "locked")
++    {
++        // BMC locks out modification or
++        // reading the key value.Once a key has been locked,
++        // it is cannot be rewritten or
++        // read via IPMI specified commands.
++        KGStatus = true;
++    }
++
+     return ipmi::responseSuccess(
+         channel, rmcpAuthTypes, reserved3, extDataSupport, anonymousLogin,
+         nullUsers, nonNullUsers, userAuth, perMessageAuth, KGStatus, reserved4,
