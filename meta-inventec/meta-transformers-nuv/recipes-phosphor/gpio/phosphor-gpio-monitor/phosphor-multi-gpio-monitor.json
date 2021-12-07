@@ -5,8 +5,8 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-	       "FALLING":"gpio-event-handler@NMI_SW_ASSERTED.service",
-	       "RISING": "gpio-event-handler@NMI_SW_DEASSERTED.service"
+	       "FALLING":["gpio-event-handler@NMI_SW_ASSERTED.service"],
+	       "RISING": ["gpio-event-handler@NMI_SW_DEASSERTED.service"]
        }
    },
    {
@@ -15,8 +15,8 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-	       "FALLING":"gpio-event-handler@INTRUDER_DEASSERTED.service",
-	       "RISING": "gpio-event-handler@INTRUDER_ASSERTED.service"
+	       "FALLING":["gpio-event-handler@INTRUDER_DEASSERTED.service"],
+	       "RISING": ["gpio-event-handler@INTRUDER_ASSERTED.service"]
        }
    },
    {
@@ -25,8 +25,8 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-               "FALLING":"gpio-event-handler@MEM_CONTROLLER_PWR_FAIL_ASSERTED.service",
-               "RISING": "gpio-event-handler@MEM_CONTROLLER_PWR_FAIL_DEASSERTED.service"
+               "FALLING":["gpio-event-handler@MEM_CONTROLLER_PWR_FAIL_ASSERTED.service"],
+               "RISING": ["gpio-event-handler@MEM_CONTROLLER_PWR_FAIL_DEASSERTED.service"]
        }
    },
    {
@@ -35,8 +35,8 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-               "FALLING":"gpio-event-handler@CPU_PWR_FAIL_ASSERTED.service",
-               "RISING": "gpio-event-handler@CPU_PWR_FAIL_DEASSERTED.service"
+               "FALLING":["gpio-event-handler@CPU_PWR_FAIL_ASSERTED.service"],
+               "RISING": ["gpio-event-handler@CPU_PWR_FAIL_DEASSERTED.service"]
        }
    },
    {
@@ -45,8 +45,8 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-               "FALLING":"gpio-event-handler@DIMM_MODULE_POWER_FAIL_ASSERTED.service",
-               "RISING": "gpio-event-handler@DIMM_MODULE_POWER_FAIL_DEASSERTED.service"
+               "FALLING":["gpio-event-handler@DIMM_MODULE_POWER_FAIL_ASSERTED.service"],
+               "RISING": ["gpio-event-handler@DIMM_MODULE_POWER_FAIL_DEASSERTED.service"]
        }
    },
    {
@@ -55,8 +55,8 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-               "FALLING":"gpio-event-handler@PCH_PWR_FAIL_ASSERTED.service",
-               "RISING": "gpio-event-handler@PCH_PWR_FAIL_DEASSERTED.service"
+               "FALLING":["gpio-event-handler@PCH_PWR_FAIL_ASSERTED.service"],
+               "RISING": ["gpio-event-handler@PCH_PWR_FAIL_DEASSERTED.service"]
        }
    },
    {
@@ -65,8 +65,8 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-               "FALLING":"gpio-event-handler@PROC0_VRHOT_N_ASSERTED.service",
-               "RISING": "gpio-event-handler@PROC0_VRHOT_N_DEASSERTED.service"
+               "FALLING":["gpio-event-handler@PROC0_VRHOT_N_ASSERTED.service"],
+               "RISING": ["gpio-event-handler@PROC0_VRHOT_N_DEASSERTED.service"]
        }
    },
    {
@@ -75,8 +75,8 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-               "FALLING":"gpio-event-handler@PROC1_VRHOT_N_ASSERTED.service",
-               "RISING": "gpio-event-handler@PROC1_VRHOT_N_DEASSERTED.service"
+               "FALLING":["gpio-event-handler@PROC1_VRHOT_N_ASSERTED.service"],
+               "RISING": ["gpio-event-handler@PROC1_VRHOT_N_DEASSERTED.service"]
        }
    },
    {
@@ -85,8 +85,8 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-               "FALLING":"gpio-event-handler@PROC0MEM_VRHOT_N_ASSERTED.service",
-               "RISING": "gpio-event-handler@PROC0MEM_VRHOT_N_DEASSERTED.service"
+               "FALLING":["gpio-event-handler@PROC0MEM_VRHOT_N_ASSERTED.service"],
+               "RISING": ["gpio-event-handler@PROC0MEM_VRHOT_N_DEASSERTED.service"]
        }
    },
    {
@@ -95,8 +95,8 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-               "FALLING":"gpio-event-handler@PROC1MEM_VRHOT_N_ASSERTED.service",
-               "RISING": "gpio-event-handler@PROC1MEM_VRHOT_N_DEASSERTED.service"
+               "FALLING":["gpio-event-handler@PROC1MEM_VRHOT_N_ASSERTED.service"],
+               "RISING": ["gpio-event-handler@PROC1MEM_VRHOT_N_DEASSERTED.service"]
        }
    },
    {
@@ -105,8 +105,8 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-               "FALLING":"gpio-event-handler@PROC0_MEMHOT_OUT_N_ASSERTED.service",
-               "RISING": "gpio-event-handler@PROC0_MEMHOT_OUT_N_DEASSERTED.service"
+               "FALLING":["gpio-event-handler@PROC0_MEMHOT_OUT_N_ASSERTED.service"],
+               "RISING": ["gpio-event-handler@PROC0_MEMHOT_OUT_N_DEASSERTED.service"]
        }
    },
    {
@@ -115,8 +115,8 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-               "FALLING":"gpio-event-handler@PROC1_MEMHOT_OUT_N_ASSERTED.service",
-               "RISING": "gpio-event-handler@PROC1_MEMHOT_OUT_N_DEASSERTED.service"
+               "FALLING":["gpio-event-handler@PROC1_MEMHOT_OUT_N_ASSERTED.service"],
+               "RISING": ["gpio-event-handler@PROC1_MEMHOT_OUT_N_DEASSERTED.service"]
        }
    },
    {
@@ -125,8 +125,8 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-               "FALLING":"gpio-event-handler@CPU0_PROCHOT_N_ASSERTED.service",
-               "RISING": "gpio-event-handler@CPU0_PROCHOT_N_DEASSERTED.service"
+               "FALLING":["gpio-event-handler@CPU0_PROCHOT_N_ASSERTED.service"],
+               "RISING": ["gpio-event-handler@CPU0_PROCHOT_N_DEASSERTED.service"]
        }
    },
    {
@@ -135,8 +135,8 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-               "FALLING":"gpio-event-handler@CPU1_PROCHOT_N_ASSERTED.service",
-               "RISING": "gpio-event-handler@CPU1_PROCHOT_N_DEASSERTED.service"
+               "FALLING":["gpio-event-handler@CPU1_PROCHOT_N_ASSERTED.service"],
+               "RISING": ["gpio-event-handler@CPU1_PROCHOT_N_DEASSERTED.service"]
        }
    },
    {
@@ -145,8 +145,8 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-               "FALLING":"gpio-event-handler@CPU0_THERMTRIP_N_ASSERTED.service",
-               "RISING": "gpio-event-handler@CPU0_THERMTRIP_N_DEASSERTED.service"
+               "FALLING":["gpio-event-handler@CPU0_THERMTRIP_N_ASSERTED.service"],
+               "RISING": ["gpio-event-handler@CPU0_THERMTRIP_N_DEASSERTED.service"]
        }
    },
    {
@@ -155,8 +155,8 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-               "FALLING":"gpio-event-handler@CPU1_THERMTRIP_N_ASSERTED.service",
-               "RISING": "gpio-event-handler@CPU1_THERMTRIP_N_DEASSERTED.service"
+               "FALLING":["gpio-event-handler@CPU1_THERMTRIP_N_ASSERTED.service"],
+               "RISING": ["gpio-event-handler@CPU1_THERMTRIP_N_DEASSERTED.service"]
        }
    },
    {
@@ -165,8 +165,8 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-               "FALLING":"gpio-event-handler@CPU0_MEMTRIP_N_ASSERTED.service",
-               "RISING": "gpio-event-handler@CPU0_MEMTRIP_N_DEASSERTED.service"
+               "FALLING":["gpio-event-handler@CPU0_MEMTRIP_N_ASSERTED.service"],
+               "RISING": ["gpio-event-handler@CPU0_MEMTRIP_N_DEASSERTED.service"]
        }
    },
    {
@@ -175,8 +175,8 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-               "FALLING":"gpio-event-handler@CPU1_MEMTRIP_N_ASSERTED.service",
-               "RISING": "gpio-event-handler@CPU1_MEMTRIP_N_DEASSERTED.service"
+               "FALLING":["gpio-event-handler@CPU1_MEMTRIP_N_ASSERTED.service"],
+               "RISING": ["gpio-event-handler@CPU1_MEMTRIP_N_DEASSERTED.service"]
        }
    },
    {
@@ -185,8 +185,8 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-               "FALLING":"gpio-event-handler@CPU_ERROR0_N_ASSERTED.service",
-               "RISING": "gpio-event-handler@CPU_ERROR0_N_DEASSERTED.service"
+               "FALLING":["gpio-event-handler@CPU_ERROR0_N_ASSERTED.service"],
+               "RISING": ["gpio-event-handler@CPU_ERROR0_N_DEASSERTED.service"]
        }
    },
    {
@@ -195,8 +195,8 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-               "FALLING":"gpio-event-handler@CPU_ERROR1_N_ASSERTED.service",
-               "RISING": "gpio-event-handler@CPU_ERROR1_N_DEASSERTED.service"
+               "FALLING":["gpio-event-handler@CPU_ERROR1_N_ASSERTED.service"],
+               "RISING": ["gpio-event-handler@CPU_ERROR1_N_DEASSERTED.service"]
        }
    },
    {
@@ -205,8 +205,8 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-               "FALLING":"gpio-event-handler@CPU_ERROR2_N_ASSERTED.service",
-               "RISING": "gpio-event-handler@CPU_ERROR2_N_DEASSERTED.service"
+               "FALLING":["gpio-event-handler@CPU_ERROR2_N_ASSERTED.service"],
+               "RISING": ["gpio-event-handler@CPU_ERROR2_N_DEASSERTED.service"]
        }
    },
    {
@@ -215,8 +215,8 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-               "FALLING":"gpio-event-handler@PCH_HOT_N_ASSERTED.service",
-               "RISING": "gpio-event-handler@PCH_HOT_N_DEASSERTED.service"
+               "FALLING":["gpio-event-handler@PCH_HOT_N_ASSERTED.service"],
+               "RISING": ["gpio-event-handler@PCH_HOT_N_DEASSERTED.service"]
        }
    },
    {
@@ -225,7 +225,7 @@
        "EventMon": "BOTH",
        "Continue": true,
        "Target": {
-               "FALLING": "smbios-mdr-reload.service"
+               "FALLING": ["smbios-mdr-reload.service"]
        }
    }
 ]
