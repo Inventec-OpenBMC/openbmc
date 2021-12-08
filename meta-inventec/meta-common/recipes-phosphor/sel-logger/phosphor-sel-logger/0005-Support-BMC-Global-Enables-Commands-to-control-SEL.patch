@@ -1,4 +1,4 @@
-From 9e23fd51c272d94782e9acd4ecf860af83bec344 Mon Sep 17 00:00:00 2001
+From deb97c6b3e0dea7376d3f02ed92b6f9e502f62ec Mon Sep 17 00:00:00 2001
 From: cynthia <wu.cynthia@inventec.com>
 Date: Fri, 5 Nov 2021 21:31:41 +0800
 Subject: [PATCH] Support BMC Global Enables Commands to control SEL
@@ -24,8 +24,8 @@ Subject: [PATCH] Support BMC Global Enables Commands to control SEL
 	   ipmitool sel list
 ---
  include/sel_logger.hpp |  4 ++++
- src/sel_logger.cpp     | 50 +++++++++++++++++++++++++++++++++++++++++-
- 2 files changed, 53 insertions(+), 1 deletion(-)
+ src/sel_logger.cpp     | 51 +++++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 54 insertions(+), 1 deletion(-)
 
 diff --git a/include/sel_logger.hpp b/include/sel_logger.hpp
 index 4b877ea..ab5a6b9 100644
@@ -43,7 +43,7 @@ index 4b877ea..ab5a6b9 100644
  // SEL entries.  Helps with filtering SEL entries in the journal.
  static constexpr char const* selMessageId = "b370836ccf2f4850ac5bee185b77893a";
 diff --git a/src/sel_logger.cpp b/src/sel_logger.cpp
-index 1956111..1ad2969 100644
+index 1956111..3d948f4 100644
 --- a/src/sel_logger.cpp
 +++ b/src/sel_logger.cpp
 @@ -33,6 +33,7 @@
@@ -58,7 +58,7 @@ index 1956111..1ad2969 100644
      sdbusplus::xyz::openbmc_project::Logging::SEL::Error::Created;
  #endif
  
-+bool SEL_Enable;
++bool SEL_Enable = true;
 +
  struct DBusInternalError final : public sdbusplus::exception_t
  {
@@ -90,7 +90,7 @@ index 1956111..1ad2969 100644
      // A maximum of 13 bytes of SEL event data are allowed in an OEM record
      if (selData.size() > selOemDataMaxSize)
      {
-@@ -275,12 +291,30 @@ int main(int argc, char *argv[])
+@@ -275,12 +291,31 @@ int main(int argc, char *argv[])
      // setup connection to dbus
      boost::asio::io_service io;
      auto conn = std::make_shared<sdbusplus::asio::connection>(io);
@@ -114,14 +114,15 @@ index 1956111..1ad2969 100644
 +
 +    }catch (const sdbusplus::exception_t&)
 +    {
-+        std::cerr << "error getting global enable setting " 
++        SEL_Enable = true;
++        std::cerr << "error getting global enable setting, set default (true) "
 +                  << "\n";
 +    }
 +
      // IPMI SEL Object
      conn->request_name(ipmiSelObject);
      auto server = sdbusplus::asio::object_server(conn);
-@@ -318,7 +352,21 @@ int main(int argc, char *argv[])
+@@ -318,7 +353,21 @@ int main(int argc, char *argv[])
                                     [&](unsigned int& propertyValue) {
                                         propertyValue = recordIndex;
                                         return propertyValue;
