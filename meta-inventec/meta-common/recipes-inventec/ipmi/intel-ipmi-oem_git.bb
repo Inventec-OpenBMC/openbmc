@@ -57,5 +57,6 @@ SRC_URI_append += " file://0001-Removed-Get-Device-ID-command.patch \
                     file://0020-Implement-Get-Set-global-enables-and-modify-related-.patch \
                     file://0021-Implement-get-chassis-status-command.patch \
                     file://0022-Implement-Get-Sensor-Reading-Factors-Command.patch \
+                    file://0023-Add-Get-Sensor-Type-command-support.patch \
                   "
 
