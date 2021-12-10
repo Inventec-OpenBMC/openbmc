@@ -10,5 +10,5 @@ echo 0-31 > /sys/bus/peci/drivers/intel_peci_client/unbind
 systemctl restart xyz.openbmc_project.cpusensor.service
 
 # Re-start phosphor-pid-control
-systemctl restart phosphor-pid-control.service
+systemctl stop phosphor-pid-control.service
 

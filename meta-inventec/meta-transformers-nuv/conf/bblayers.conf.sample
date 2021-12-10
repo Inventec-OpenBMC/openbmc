@@ -16,7 +16,6 @@ BBLAYERS ?= " \
   ##OEROOT##/meta-phosphor \
   ##OEROOT##/meta-nuvoton \
   ##OEROOT##/meta-x86 \
-  ##OEROOT##/meta-google \
   ##OEROOT##/meta-inventec \
   ##OEROOT##/meta-inventec/meta-transformers-nuv \
 "
@@ -31,7 +30,6 @@ BBLAYERS_NON_REMOVABLE ?= " \
   ##OEROOT##/meta-nuvoton \
   ##OEROOT##/meta-phosphor \
   ##OEROOT##/meta-x86 \
-  ##OEROOT##/meta-google \
   ##OEROOT##/meta-inventec \
   ##OEROOT##/meta-inventec/meta-transformers-nuv \
 "
