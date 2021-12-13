@@ -1,6 +1,6 @@
 [Unit]
 Description=Essential init commands for starscream
-Before=xyz.openbmc_project.EntityManager.service
+Before=xyz.openbmc_project.EntityManager.service xyz.openbmc_project.nvme.manager.service
 
 [Service]
 Type=oneshot

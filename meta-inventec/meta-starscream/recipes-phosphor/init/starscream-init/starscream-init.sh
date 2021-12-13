@@ -138,8 +138,10 @@ then
 
     # Create BP1 json file
     bash $CREATE_JSON_SH bp1 $BP1_MUX_U13_I2C_CH0
+    BP1_NVME_BASIC_I2C=$BP1_MUX_U13_I2C_CH0
 else
     BP1_PRESENT="false"
+    BP1_NVME_BASIC_I2C=0
 fi
 
 BP2_MUX_U13_I2C=25
@@ -167,11 +169,17 @@ then
 
     # Create BP2 json file
     bash $CREATE_JSON_SH bp2 $BP2_MUX_U13_I2C_CH0
+    BP2_NVME_BASIC_I2C=$BP2_MUX_U13_I2C_CH0
 else
     BP2_PRESENT="false"
+    BP2_NVME_BASIC_I2C=0
 fi
 
 
 echo "BP1 $BP1_PRESENT, BP2 $BP2_PRESENT"
 
+# Create NvMe json
+# Give BP1 basic I2C bus and BP2 basic I2C bus
+# If not present, set to 0
+bash $CREATE_JSON_SH nvme $BP1_NVME_BASIC_I2C $BP2_NVME_BASIC_I2C
 

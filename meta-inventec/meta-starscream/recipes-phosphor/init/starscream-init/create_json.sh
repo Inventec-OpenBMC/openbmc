@@ -18,6 +18,9 @@ ENTITY_MANAGER_RISER2_JSON="$ENTITY_MANAGER_CONIG_PATH/riser2.json"
 ENTITY_MANAGER_BP1_JSON="$ENTITY_MANAGER_CONIG_PATH/bp1.json"
 ENTITY_MANAGER_BP2_JSON="$ENTITY_MANAGER_CONIG_PATH/bp2.json"
 
+NVME_CONFG_JSON="/etc/nvme/nvme_config.json"
+NVME_EACH_BP=11
+
 create_riser1() {
 # BASIC_I2C_BUS would expect to be 28 in full device
 # Riser1_FRU - 30(BASIC_I2C_BUS + 2) - 0x50
@@ -614,7 +617,74 @@ cat <<EOF >$ENTITY_MANAGER_BP2_JSON
 EOF
 }
 
+create_nvme() {
+echo -e \
+"{\n\
+        \"config\": [" > $NVME_CONFG_JSON
 
+INDEX=0
+if [ $BP1_BASIC_I2C -ne 0 ]; then
+for i in $(seq 0 $(($NVME_EACH_BP-1)));
+do
+
+if [ $i -eq $(($NVME_EACH_BP-1)) ]; then
+    DOT=""
+else
+    DOT=","
+fi
+
+if [ $BP2_BASIC_I2C -ne 0 ]; then
+    DOT=","
+fi
+
+echo -e \
+"\
+            {\n\
+                \"NVMeDriveIndex\": $INDEX,\n\
+                \"NVMeDriveBusID\": $(($BP1_BASIC_I2C+$i+4))\n\
+            }$DOT\
+" >> $NVME_CONFG_JSON
+
+    INDEX=$(($INDEX+1))
+done
+fi
+
+INDEX=$NVME_EACH_BP
+if [ $BP2_BASIC_I2C -ne 0 ]; then
+
+for i in $(seq 0 $(($NVME_EACH_BP-1)));
+do
+if [ $i -eq $(($NVME_EACH_BP-1)) ]; then
+    DOT=""
+else
+    DOT=","
+fi
+
+echo -e \
+"\
+            {\n\
+                \"NVMeDriveIndex\": $INDEX,\n\
+                \"NVMeDriveBusID\": $(($BP2_BASIC_I2C+$i+4))\n\
+            }$DOT\
+" >> $NVME_CONFG_JSON
+
+    INDEX=$(($INDEX+1))
+done
+fi
+
+echo -e \
+"       ],\n\
+        \"threshold\": [\n\
+            {\n\
+                \"criticalHigh\": 75,\n\
+                \"criticalLow\": 0,\n\
+                \"maxValue\": 127,\n\
+                \"minValue\": -127\n\
+            }\n\
+    ]\n\
+}\n" >> $NVME_CONFG_JSON
+
+}
 
 # Switch module
 if [ $1 = "riser1" ]; then
@@ -625,6 +695,10 @@ elif [ $1 = "bp1" ]; then
     create_bp1
 elif [ $1 = "bp2" ]; then
     create_bp2
+elif [ $1 = "nvme" ]; then
+    BP1_BASIC_I2C=$2
+    BP2_BASIC_I2C=$3
+    create_nvme
 else
     echo "No match module"
 fi

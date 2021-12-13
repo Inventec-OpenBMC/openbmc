@@ -18,3 +18,5 @@ OBMC_IMAGE_EXTRA_INSTALL_append += " inventec-dcmi-power"
 OBMC_IMAGE_EXTRA_INSTALL_append += " smbios-mdr"
 OBMC_IMAGE_EXTRA_INSTALL_append += " inv-psu-update"
 OBMC_IMAGE_EXTRA_INSTALL_append += " inventec-mac-config"
+OBMC_IMAGE_EXTRA_INSTALL_append += " phosphor-nvme"
+
