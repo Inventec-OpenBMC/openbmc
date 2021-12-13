@@ -11,10 +11,17 @@ SET_PWM_RETRIES=100
 PID_STATUS_RETRIES=100
 result=0
 
+#variables for vhub commands
+NETFN_OEM=0x32
+CMD_VIRTUAL_USB=0xaa
+CONFIG_ENABLE_VHUB=0x00
+
 service_status="$( systemctl is-active phosphor-pid-control.service )"
 
 if [[ $current_state -eq 0 ]]; then
   echo "Detect power state s0"
+    #enable vhub
+    ipmitool raw ${NETFN_OEM} ${CMD_VIRTUAL_USB} ${CONFIG_ENABLE_VHUB}
 
 elif [[ $current_state -eq 5 ]]; then
 
