@@ -16,6 +16,7 @@ SRC_URI += "file://0001-Subject-PATCH-Subject-PATCH-Sensor-Patch-to-support-.pat
             file://0014-inventec-common-InvCfmSensor-Initial-Inventec-CFM-se.patch \
             file://0015-Bug-573-SW-Common-Accumulate-sensor-initial-commit.patch \
             file://0016-modify-the-psu-sensors-reading-method.patch \
+            file://0017-add-the-iio_hwmon-sensor-initial-and-service.patch \
             "
 
 PACKAGECONFIG_append =" \	
@@ -26,6 +27,7 @@ PACKAGECONFIG_append =" \
             averagesensor \
             invcfmsensor \
             accumulatesensor \
+            iiohwmonsensor \
             "
 
 PACKAGECONFIG_remove ="mcutempsensor intrusionsensor"
@@ -37,6 +39,7 @@ PACKAGECONFIG[eventsensor] = "-Devent=enabled, -Devent=disabled"
 PACKAGECONFIG[averagesensor] = "-Devent=enabled, -Devent=disabled"
 PACKAGECONFIG[invcfmsensor] = "-Devent=enabled, -Devent=disabled"
 PACKAGECONFIG[accumulatesensor] = "-Devent=enabled, -Devent=disabled"
+PACKAGECONFIG[iiohwmonsensor] = "-Devent=enabled, -Devent=disabled"
 
 SYSTEMD_SERVICE_${PN} += " xyz.openbmc_project.nmeventsensor.service"
 SYSTEMD_SERVICE_${PN} += " xyz.openbmc_project.bioseventsensor.service"
@@ -45,3 +48,4 @@ SYSTEMD_SERVICE_${PN} += " xyz.openbmc_project.eventsensor.service"
 SYSTEMD_SERVICE_${PN} += " xyz.openbmc_project.averagesensor.service"
 SYSTEMD_SERVICE_${PN} += " xyz.openbmc_project.invcfmsensor.service"
 SYSTEMD_SERVICE_${PN} += " xyz.openbmc_project.accumulatesensor.service"
+SYSTEMD_SERVICE_${PN} += " xyz.openbmc_project.iiohwmonsensor.service"
