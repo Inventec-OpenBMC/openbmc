@@ -13,6 +13,8 @@ SRC_URI_append_transformers-nuv = " \
   file://0011-peci-Sync-peci-verion-with-Intel-BMC-linux-and-Eagle.patch \
   file://0012-Add-tmp468-driver.patch \
   file://0013-add-sgpio-driver.patch \
+  file://0014-Add-Winbond-W25Q512JVFIM.patch \
+  file://0015-Add-watchdog-time.patch \
   "
 
 # Merge source tree by original project with our layer of additional files

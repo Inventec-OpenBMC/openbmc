@@ -63,7 +63,7 @@
 			<offset>0x108</offset>        <!-- offset in the header -->
 			<size>0x4</size>              <!-- size in the header -->
 		</config>
-		<content format='32bit'>0x030111BC</content>               <!-- content the user should fill 0x030032EB -->
+		<content format='32bit'>0x0300100b</content>               <!-- content the user should fill 0x030032EB -->
 	</BinField>
 	
 	<BinField>

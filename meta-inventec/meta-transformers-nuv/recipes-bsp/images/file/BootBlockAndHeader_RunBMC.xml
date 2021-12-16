@@ -63,7 +63,7 @@
 			<offset>0x108</offset>       
 			<size>0x4</size> 
 		</config>
-		<content format='32bit'>0x030011BB</content>               <!-- content the user should fill -->
+		<content format='32bit'>0x0300100b</content>               <!-- content the user should fill -->
 	</BinField>
 	
 	<BinField>
@@ -73,7 +73,7 @@
 			<offset>0x10C</offset>       
 			<size>0x1</size> 
 		</config>
-		<content format='bytes'>4</content>               <!-- content the user should fill -->
+		<content format='bytes'>10</content>               <!-- content the user should fill -->
 	</BinField>
 	
 	<BinField>
