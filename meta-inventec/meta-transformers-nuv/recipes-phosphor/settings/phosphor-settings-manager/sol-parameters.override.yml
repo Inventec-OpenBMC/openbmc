@@ -12,4 +12,4 @@
           Privilege:
               Default: 2
           RetryIntervalMS:
-              Default: 10              
+              Default: 100              
