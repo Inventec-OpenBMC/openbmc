@@ -1,11 +1,10 @@
-From b0727fc79e6d9085dc22ca7ec9520e25d660cd09 Mon Sep 17 00:00:00 2001
+From ec183f12869bcf892a8f9958e6b4693db7e90a91 Mon Sep 17 00:00:00 2001
 From: "pj.chen" <chen.pj@inventec.com>
 Date: Thu, 8 Jul 2021 16:14:48 +0000
-Subject: [PATCH] [inventec][common][AverageSensor] - averagesensor initial
- commit
+Subject: [PATCH] - averagesensor initial commit
 
 Symptom/Reason:
-    Add avergesensor to count the desire sensor's average.
+    Add averagesensor to count the desire sensor's average.
 
 Root cause:
     N/A
@@ -48,15 +47,17 @@ xyz.openbmc_project.State.Decorator.Availability      interface -         -     
 .Available                                            property  b         true                                     emits-change writable
 xyz.openbmc_project.State.Decorator.OperationalStatus interface -         -                                        -
 .Functional                                           property  b         true                                     emits-change
+
+%% original patch: 0013-inventec-common-AverageSensor-averagesensor-initial-.patch
 ---
  include/AverageSensor.hpp                     |  45 +++
  meson_options.txt                             |   1 +
  service_files/meson.build                     |   1 +
  .../xyz.openbmc_project.averagesensor.service |  12 +
- src/AverageSensor.cpp                         | 300 ++++++++++++++++++
+ src/AverageSensor.cpp                         | 299 ++++++++++++++++++
  src/AverageSensorMain.cpp                     | 273 ++++++++++++++++
  src/meson.build                               |  19 ++
- 7 files changed, 651 insertions(+)
+ 7 files changed, 650 insertions(+)
  create mode 100644 include/AverageSensor.hpp
  create mode 100644 service_files/xyz.openbmc_project.averagesensor.service
  create mode 100644 src/AverageSensor.cpp
@@ -157,10 +158,10 @@ index 0000000..12195de
 +WantedBy=multi-user.target
 diff --git a/src/AverageSensor.cpp b/src/AverageSensor.cpp
 new file mode 100644
-index 0000000..f41688c
+index 0000000..07123b7
 --- /dev/null
 +++ b/src/AverageSensor.cpp
-@@ -0,0 +1,300 @@
+@@ -0,0 +1,299 @@
 +/*
 +// Copyright (c) 2017 Intel Corporation
 +//
@@ -348,7 +349,6 @@ index 0000000..f41688c
 +            const std::vector<std::pair<std::string, std::vector<std::string>>>& objects) {
 +            if (ec)
 +            {
-+                std::fprintf(stderr, "Error call GetObject\n");
 +                updatedSensorNumber++;
 +            }
 +            else

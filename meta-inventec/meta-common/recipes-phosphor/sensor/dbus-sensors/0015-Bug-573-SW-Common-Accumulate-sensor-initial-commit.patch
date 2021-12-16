@@ -1,4 +1,4 @@
-From d484fa680a5450e8bf2318b52856210ae56d9353 Mon Sep 17 00:00:00 2001
+From dd6a1a10da47cc0162a1e85ac515950766c1b9d9 Mon Sep 17 00:00:00 2001
 From: "pj.chen" <chen.pj@inventec.com>
 Date: Tue, 5 Oct 2021 06:52:20 +0000
 Subject: [PATCH] Bug 573 - [SW][Common] - Accumulate sensor initial commit
@@ -37,15 +37,17 @@ THERMAL_Q91      | 64h | ok  |  7.4 | 25 degrees C
 THERMAL_Q94      | 65h | ok  |  7.5 | 25 degrees C
 THERMAL_Q92      | 66h | lcr |  7.6 | 0 degrees C
 acc_test         | 80h | ok  | 10.11 | 75 degrees C
+
+%% original patch: 0015-Bug-573-SW-Common-Accumulate-sensor-initial-commit.patch
 ---
  include/AccumulateSensor.hpp                  |  46 +++
  meson_options.txt                             |   1 +
  service_files/meson.build                     |   1 +
  ...z.openbmc_project.accumulatesensor.service |  12 +
- src/AccumulateSensor.cpp                      | 296 +++++++++++++++++
+ src/AccumulateSensor.cpp                      | 295 +++++++++++++++++
  src/AccumulateSensorMain.cpp                  | 308 ++++++++++++++++++
  src/meson.build                               |  19 ++
- 7 files changed, 683 insertions(+)
+ 7 files changed, 682 insertions(+)
  create mode 100644 include/AccumulateSensor.hpp
  create mode 100644 service_files/xyz.openbmc_project.accumulatesensor.service
  create mode 100644 src/AccumulateSensor.cpp
@@ -147,10 +149,10 @@ index 0000000..f918f85
 +WantedBy=multi-user.target
 diff --git a/src/AccumulateSensor.cpp b/src/AccumulateSensor.cpp
 new file mode 100644
-index 0000000..9125ff5
+index 0000000..1afddc2
 --- /dev/null
 +++ b/src/AccumulateSensor.cpp
-@@ -0,0 +1,296 @@
+@@ -0,0 +1,295 @@
 +/*
 +// Copyright (c) 2017 Intel Corporation
 +//
@@ -336,7 +338,6 @@ index 0000000..9125ff5
 +            const std::vector<std::pair<std::string, std::vector<std::string>>>& objects) {
 +            if (ec)
 +            {
-+                std::fprintf(stderr, "Error call GetObject\n");
 +                updatedSensorNumber++;
 +            }
 +            else
