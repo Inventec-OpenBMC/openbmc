@@ -996,6 +996,390 @@
                 }
             ],
             "Type": "ADC"
+        },
+        {
+            "Index": 0,
+            "Name": "P0_VDD11",
+            "PowerState": "On",
+            "ScaleFactor": 1,
+            "Max" : 1.8,
+            "Min" : 0,
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 1.3
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "P0_VDD11",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x8C",
+                    "EntityId": "0x07",
+                    "EntityInstance": "4"
+                }
+            ],
+            "Type": "IIO_HWMON"
+        },
+        {
+            "Index": 1,
+            "Name": "P1_VDD11",
+            "PowerState": "On",
+            "ScaleFactor": 1,
+            "Max" : 1.8,
+            "Min" : 0,
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 1.3
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0.9
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "P1_VDD11",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x8D",
+                    "EntityId": "0x07",
+                    "EntityInstance": "5"
+                }
+            ],
+            "Type": "IIO_HWMON"
+        },
+        {
+            "Index": 2,
+            "Name": "P0_3V3_S5",
+            "PowerState": "Always",
+            "ScaleFactor": 1,
+            "Max" : 1.8,
+            "Min" : 0,
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 1.5
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1.2
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "P0_3V3_S5",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x8E",
+                    "EntityId": "0x07",
+                    "EntityInstance": "6"
+                }
+            ],
+            "Type": "IIO_HWMON"
+        },
+        {
+            "Index": 3,
+            "Name": "P1_3V3_S5",
+            "PowerState": "Always",
+            "ScaleFactor": 1,
+            "Max" : 1.8,
+            "Min" : 0,
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 1.5
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1.2
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "P1_3V3_S5",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x8F",
+                    "EntityId": "0x07",
+                    "EntityInstance": "7"
+                }
+            ],
+            "Type": "IIO_HWMON"
+        },
+        {
+            "Index": 4,
+            "Name": "P3V3",
+            "PowerState": "On",
+            "ScaleFactor": 1,
+            "Max" : 1.8,
+            "Min" : 0,
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 1.5
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1.2
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "P3V3",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x90",
+                    "EntityId": "0x07",
+                    "EntityInstance": "8"
+                }
+            ],
+            "Type": "IIO_HWMON"
+        },
+        {
+            "Index": 5,
+            "Name": "VBAT",
+            "PowerState": "Always",
+            "ScaleFactor": 1,
+            "Max" : 1.8,
+            "Min" : 0,
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 1.6
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1.2
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "VBAT",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x91",
+                    "EntityId": "0x07",
+                    "EntityInstance": "9"
+                }
+            ],
+            "Type": "IIO_HWMON"
+        },
+        {
+            "Index": 6,
+            "Name": "P3V3_STBY",
+            "PowerState": "Always",
+            "ScaleFactor": 1,
+            "Max" : 1.8,
+            "Min" : 0,
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 1.5
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1.2
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "P3V3_STBY",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x92",
+                    "EntityId": "0x07",
+                    "EntityInstance": "10"
+                }
+            ],
+            "Type": "IIO_HWMON"
+        },
+        {
+            "Index": 7,
+            "Name": "P5V_STBY",
+            "PowerState": "Always",
+            "ScaleFactor": 1,
+            "Max" : 1.8,
+            "Min" : 0,
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 1.6
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1.2
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "P5V_STBY",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x93",
+                    "EntityId": "0x07",
+                    "EntityInstance": "11"
+                }
+            ],
+            "Type": "IIO_HWMON"
+        },
+        {
+            "Index": 8,
+            "Name": "P5V",
+            "PowerState": "On",
+            "ScaleFactor": 1,
+            "Max" : 1.8,
+            "Min" : 0,
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 1.5
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1.2
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "P5V",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x94",
+                    "EntityId": "0x07",
+                    "EntityInstance": "12"
+                }
+            ],
+            "Type": "IIO_HWMON"
+        },
+        {
+            "Index": 9,
+            "Name": "P12V",
+            "PowerState": "On",
+            "ScaleFactor": 1,
+            "Max" : 1.8,
+            "Min" : 0,
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 1.6
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1.2
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "P12V",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x95",
+                    "EntityId": "0x07",
+                    "EntityInstance": "13"
+                }
+            ],
+            "Type": "IIO_HWMON"
+        },
+        {
+            "Index": 10,
+            "Name": "P1_VDD18_S5",
+            "PowerState": "Always",
+            "ScaleFactor": 1,
+            "Max" : 1.8,
+            "Min" : 0,
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 1.5
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1.2
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "P1_VDD18_S5",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x96",
+                    "EntityId": "0x07",
+                    "EntityInstance": "14"
+                }
+            ],
+            "Type": "IIO_HWMON"
+        },
+        {
+            "Index": 11,
+            "Name": "P0_VDD18_S5",
+            "PowerState": "Always",
+            "ScaleFactor": 1,
+            "Max" : 1.8,
+            "Min" : 0,
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 1.5
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1.2
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "P0_VDD18_S5",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x97",
+                    "EntityId": "0x07",
+                    "EntityInstance": "15"
+                }
+            ],
+            "Type": "IIO_HWMON"
         }
     ],
     "Name": "motherBoard",
