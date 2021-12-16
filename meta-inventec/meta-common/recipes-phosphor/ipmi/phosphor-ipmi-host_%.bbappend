@@ -28,6 +28,7 @@ SRC_URI_append = " file://0001-sensorhandler-fix-get-threshold-error.patch \
                    file://0024-Add-special-case-for-system-interface-in-Get-Channel.patch \
                    file://0025-Implement-set-channel-security-key.patch \
                    file://0026-Implement-get-chassis-status-command.patch \
+		   file://0027-Reset-global-enable-configs-to-default-when-cold-res.patch \
 "
 
 
