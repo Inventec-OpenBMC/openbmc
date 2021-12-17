@@ -244,14 +244,14 @@
         // I2C EXPANDER
         status = "okay";
         i2c-switch@71 {
-                compatible = "nxp,pca9544";
+                compatible = "nxp,pca9546";
                 #address-cells = <1>;
                 #size-cells = <0>;
                 reg = <0x71>;
         };
 
         i2c-switch@73 {
-                compatible = "nxp,pca9544";
+                compatible = "nxp,pca9546";
                 #address-cells = <1>;
                 #size-cells = <0>;
                 reg = <0x73>;
@@ -262,7 +262,7 @@
         // I2C EXPANDER
         status = "okay";
         i2c-switch@70 {
-                compatible = "nxp,pca9544";
+                compatible = "nxp,pca9546";
                 #address-cells = <1>;
                 #size-cells = <0>;
                 reg = <0x70>;
@@ -278,10 +278,10 @@
                                 pagesize = <128>;
                         };
                 };
-                pcie_eeprom_riser2: i2c@1 {
+                pcie_eeprom_riser2: i2c@2 {
                         #address-cells = <1>;
                         #size-cells = <0>;
-                        reg = <1>;
+                        reg = <2>;
 
                         eeprom@55 {
                                 compatible = "atmel,24c512";
@@ -290,10 +290,10 @@
                         };
                 };
 
-                pcie_eeprom_riser3: i2c@2 {
+                pcie_eeprom_riser3: i2c@3 {
                         #address-cells = <1>;
                         #size-cells = <0>;
-                        reg = <2>;
+                        reg = <3>;
 
                         eeprom@55 {
                                 compatible = "atmel,24c512";
