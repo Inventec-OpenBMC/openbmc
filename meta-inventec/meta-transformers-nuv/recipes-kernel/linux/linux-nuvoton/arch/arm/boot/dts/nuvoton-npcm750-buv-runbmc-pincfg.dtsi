@@ -2,6 +2,11 @@
 
 / {
 	pinctrl: pinctrl@f0800000 {
+		gpio1o_pins: gpio1-pins {
+			pins = "GPIO1/IOX1LD";
+			bias-disable;
+			output-high;
+		};		
 		gpio138o_pins: gpio138o-pins {
 			pins = "GPIO138/SD1DT2";
 			bias-disable;

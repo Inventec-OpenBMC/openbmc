@@ -1,42 +1,31 @@
-From 6ca25453abf0a8b0be81d120a44814bd3c261098 Mon Sep 17 00:00:00 2001
+From d6444e9427c13205941117c8c7da03faba745cbd Mon Sep 17 00:00:00 2001
 From: emil <huang.emil@inventec.com>
 Date: Thu, 18 Nov 2021 13:47:21 +0000
-Subject: [PATCH] 1. Interrupt support 2. Modify frequency to 780k for MB CPLD
- 3. Remove debug log
+Subject: [PATCH] remove sgpio1 setting
+
+----
+
+1. Interrupt support 2. Modify frequency to 780k for MB CPLD 3. Remove debug log
 
 ----
 
 add sgpio driver.
 ---
- arch/arm/boot/dts/nuvoton-common-npcm7xx.dtsi |  28 +
+ arch/arm/boot/dts/nuvoton-common-npcm7xx.dtsi |  14 +
  drivers/gpio/Kconfig                          |   8 +
  drivers/gpio/Makefile                         |   1 +
  drivers/gpio/gpio-npcm-sgpio.c                | 614 ++++++++++++++++++
- 4 files changed, 651 insertions(+)
+ 4 files changed, 637 insertions(+)
  create mode 100755 drivers/gpio/gpio-npcm-sgpio.c
 
 diff --git a/arch/arm/boot/dts/nuvoton-common-npcm7xx.dtsi b/arch/arm/boot/dts/nuvoton-common-npcm7xx.dtsi
-index 750edfc5e534..20594e839655 100644
+index 750edfc5e534..db5b93d65de3 100644
 --- a/arch/arm/boot/dts/nuvoton-common-npcm7xx.dtsi
 +++ b/arch/arm/boot/dts/nuvoton-common-npcm7xx.dtsi
-@@ -492,6 +492,34 @@
+@@ -492,6 +492,20 @@
  				clock-names = "clk_apb4";
  			};
  
-+			sgpio1: sgpio@101000 {
-+				clocks = <&clk NPCM7XX_CLK_APB3>;
-+				compatible = "nuvoton,npcm7xx-sgpio";
-+				interrupts = <GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH>;
-+				gpio-controller;
-+				pinctrl-names = "default";
-+				pinctrl-0 = <&iox1_pins>;
-+				bus-frequency = <16000000>;
-+				nin_gpios = <64>;
-+				nout_gpios = <64>;
-+				reg = <0x101000 0x200>;
-+				status = "disabled";
-+			};
-+
 +			sgpio2: sgpio@102000 {
 +				clocks = <&clk NPCM7XX_CLK_APB3>;
 +				compatible = "nuvoton,npcm7xx-sgpio";

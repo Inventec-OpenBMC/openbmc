@@ -656,6 +656,7 @@
 				&ddc_pins
 				&wdog1_pins
 				&wdog2_pins
+				&gpio1o_pins
 				&gpio138o_pins
 				&gpio139o_pins
 				&gpio89o_pins
