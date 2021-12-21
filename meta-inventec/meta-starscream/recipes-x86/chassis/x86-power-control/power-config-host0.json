@@ -1,5 +1,6 @@
 {
   "gpio_configs":{
+      "IdButton": "BUTTON_LED_UID",
       "NMIOut": "NMI_OUT",
       "PwrOK": "PS_PWROK",
       "PwrOut": "POWER_OUT",
