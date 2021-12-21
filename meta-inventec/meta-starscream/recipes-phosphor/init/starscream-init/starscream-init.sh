@@ -25,11 +25,18 @@ gpioset `gpiofind BMC_ASSERT_CLR_CMOS`=0
 gpioset `gpiofind HDT_MUX_SELECT_MON`=0
 gpioset `gpiofind CPLD_JTAG_OE_R_N`=1
 gpioset `gpiofind CPLD_HDT_RESET_N`=1
-gpioset `gpiofind I3C_MUX_SELECT`=0
 gpioset `gpiofind SPI_MUX_SELECT`=0
 
+#if bmc reboot while mb power stays on , following conditions need to be checked
 
-
+bios_post_complete=$(gpioget `gpiofind FM_BIOS_POST_CMPLT_BUF_N`)
+if [ "$bios_post_complete" = "0" ]; then
+    echo "bios post comeplete is low"
+    systemctl start dimm-plug@init.service
+else
+    echo "bios post comeplete is high, set mux to cpu"
+    gpioset `gpiofind I3C_MUX_SELECT`=0
+fi    
 
 # Remove Riser and BP json config for entity-manager
 ENTITY_MANAGER_CONIG_PATH="/usr/share/entity-manager/configurations"

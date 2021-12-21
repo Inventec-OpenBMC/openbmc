@@ -1380,6 +1380,990 @@
                 }
             ],
             "Type": "IIO_HWMON"
+        },
+        {
+            "Address": "0x10",
+            "Bus": "0",
+            "Name": "DIMM_P0_A0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P0_A0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x9a",
+                    "EntityId": "0x20",
+                    "EntityInstance": "0"
+                }
+            ],
+            "Type": "TSOD"
+        },
+        {
+            "Address": "0x11",
+            "Bus": "0",
+            "Name": "DIMM_P0_B0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P0_B0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x9b",
+                    "EntityId": "0x20",
+                    "EntityInstance": "1"
+                }
+            ],
+            "Type": "TSOD"
+        },
+        {
+            "Address": "0x12",
+            "Bus": "0",
+            "Name": "DIMM_P0_C0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P0_C0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x9c",
+                    "EntityId": "0x20",
+                    "EntityInstance": "2"
+                }
+            ],
+            "Type": "TSOD"
+        },
+        {
+            "Address": "0x13",
+            "Bus": "0",
+            "Name": "DIMM_P0_D0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P0_D0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x9d",
+                    "EntityId": "0x20",
+                    "EntityInstance": "1"
+                }
+            ],
+            "Type": "TSOD"
+        },
+        {
+            "Address": "0x14",
+            "Bus": "0",
+            "Name": "DIMM_P0_E0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P0_E0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x9e",
+                    "EntityId": "0x20",
+                    "EntityInstance": "4"
+                }
+            ],
+            "Type": "TSOD"
+        },
+        {
+            "Address": "0x15",
+            "Bus": "0",
+            "Name": "DIMM_P0_F0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P0_F0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0x9f",
+                    "EntityId": "0x20",
+                    "EntityInstance": "5"
+                }
+            ],
+            "Type": "TSOD"
+        },
+        {
+            "Address": "0x10",
+            "Bus": "1",
+            "Name": "DIMM_P0_G0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P0_G0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xa0",
+                    "EntityId": "0x20",
+                    "EntityInstance": "6"
+                }
+            ],
+            "Type": "TSOD"
+        },
+        {
+            "Address": "0x11",
+            "Bus": "1",
+            "Name": "DIMM_P0_H0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P0_H0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xa1",
+                    "EntityId": "0x20",
+                    "EntityInstance": "7"
+                }
+            ],
+            "Type": "TSOD"
+        },
+        {
+            "Address": "0x12",
+            "Bus": "1",
+            "Name": "DIMM_P0_I0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P0_I0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xa2",
+                    "EntityId": "0x20",
+                    "EntityInstance": "8"
+                }
+            ],
+            "Type": "TSOD"
+        },
+        {
+            "Address": "0x13",
+            "Bus": "1",
+            "Name": "DIMM_P0_J0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P0_J0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xa3",
+                    "EntityId": "0x20",
+                    "EntityInstance": "9"
+                }
+            ],
+            "Type": "TSOD"
+        },
+        {
+            "Address": "0x14",
+            "Bus": "1",
+            "Name": "DIMM_P0_K0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P0_K0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xa4",
+                    "EntityId": "0x20",
+                    "EntityInstance": "10"
+                }
+            ],
+            "Type": "TSOD"
+        },
+        {
+            "Address": "0x15",
+            "Bus": "1",
+            "Name": "DIMM_P0_L0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P0_L0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xa5",
+                    "EntityId": "0x20",
+                    "EntityInstance": "11"
+                }
+            ],
+            "Type": "TSOD"
+        },
+        {
+            "Address": "0x10",
+            "Bus": "2",
+            "Name": "DIMM_P1_A0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P1_A0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xa6",
+                    "EntityId": "0x20",
+                    "EntityInstance": "12"
+                }
+            ],
+            "Type": "TSOD"
+        },
+        {
+            "Address": "0x11",
+            "Bus": "2",
+            "Name": "DIMM_P1_B0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P1_B0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xa7",
+                    "EntityId": "0x20",
+                    "EntityInstance": "13"
+                }
+            ],
+            "Type": "TSOD"
+        },
+        {
+            "Address": "0x12",
+            "Bus": "2",
+            "Name": "DIMM_P1_C0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P1_C0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xa8",
+                    "EntityId": "0x20",
+                    "EntityInstance": "14"
+                }
+            ],
+            "Type": "TSOD"
+        },
+        {
+            "Address": "0x13",
+            "Bus": "2",
+            "Name": "DIMM_P1_D0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P1_D0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xa9",
+                    "EntityId": "0x20",
+                    "EntityInstance": "15"
+                }
+            ],
+            "Type": "TSOD"
+        },
+        {
+            "Address": "0x14",
+            "Bus": "2",
+            "Name": "DIMM_P1_E0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P1_E0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xaa",
+                    "EntityId": "0x20",
+                    "EntityInstance": "16"
+                }
+            ],
+            "Type": "TSOD"
+        },
+        {
+            "Address": "0x15",
+            "Bus": "2",
+            "Name": "DIMM_P1_F0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P1_F0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xab",
+                    "EntityId": "0x20",
+                    "EntityInstance": "17"
+                }
+            ],
+            "Type": "TSOD"
+        },
+        {
+            "Address": "0x10",
+            "Bus": "3",
+            "Name": "DIMM_P1_G0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P1_G0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xac",
+                    "EntityId": "0x20",
+                    "EntityInstance": "18"
+                }
+            ],
+            "Type": "TSOD"
+        },
+        {
+            "Address": "0x11",
+            "Bus": "3",
+            "Name": "DIMM_P1_H0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P1_H0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xad",
+                    "EntityId": "0x20",
+                    "EntityInstance": "19"
+                }
+            ],
+            "Type": "TSOD"
+        },
+        {
+            "Address": "0x12",
+            "Bus": "3",
+            "Name": "DIMM_P1_I0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P1_I0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xae",
+                    "EntityId": "0x20",
+                    "EntityInstance": "20"
+                }
+            ],
+            "Type": "TSOD"
+        },
+        {
+            "Address": "0x13",
+            "Bus": "3",
+            "Name": "DIMM_P1_J0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P1_J0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xaf",
+                    "EntityId": "0x20",
+                    "EntityInstance": "21"
+                }
+            ],
+            "Type": "TSOD"
+        },
+        {
+            "Address": "0x14",
+            "Bus": "3",
+            "Name": "DIMM_P1_K0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P1_K0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xb0",
+                    "EntityId": "0x20",
+                    "EntityInstance": "22"
+                }
+            ],
+            "Type": "TSOD"
+        },
+        {
+            "Address": "0x15",
+            "Bus": "3",
+            "Name": "DIMM_P1_L0_TEMP",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 82
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 72
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "SensorInfo": [
+                {
+                    "Label": "DIMM_P1_L0_TEMP",
+                    "SensorModel": "Threshold",
+                    "SensorNum": "0xb1",
+                    "EntityId": "0x20",
+                    "EntityInstance": "23"
+                }
+            ],
+            "Type": "TSOD"
         }
     ],
     "Name": "motherBoard",

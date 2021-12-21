@@ -1,10 +1,13 @@
 [
-   {
-       "Name": "CPLD_CATERR",
-       "ChipId": "0",
-       "LineName": "CPLD_CATERR",
+    {
+       "Name": "FM_BIOS_POST_CMPLT_BUF_N",
+       "LineName": "FM_BIOS_POST_CMPLT_BUF_N",
        "EventMon": "BOTH",
-       "Continue": true
-   }
+       "Continue": true,
+       "Target": {
+           "FALLING":["dimm-plug@insert.service"],
+           "RISING": ["dimm-plug@remove.service"]
+       }
+    }
 ]
 
