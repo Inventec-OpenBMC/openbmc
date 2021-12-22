@@ -36,4 +36,5 @@ SRC_URI_append =  " file://0001-Empty-base-dn-error.patch \
                     file://0010-Bug404-No-PowerSupplies-data-in-redfish-v1-Chassis.patch \
                     file://0011-Boot-flag.patch \
                     file://0012-Redfish-add-power-matrics-support.patch \
+                    file://0013-Add-system-airflow-sensor-support.patch \
 "

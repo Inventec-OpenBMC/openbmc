@@ -1,0 +1,24 @@
+From 71c961cbf4fabd670ad49f13f89c5d57fadb51f5 Mon Sep 17 00:00:00 2001
+From: Qiping Fang <fang.qiping@inventec.com>
+Date: Tue, 21 Dec 2021 17:43:56 -0800
+Subject: [PATCH] Add system airflow sensor support
+
+---
+ redfish-core/lib/sensors.hpp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/redfish-core/lib/sensors.hpp b/redfish-core/lib/sensors.hpp
+index ecd1ed6..7e7cc9e 100644
+--- a/redfish-core/lib/sensors.hpp
++++ b/redfish-core/lib/sensors.hpp
+@@ -63,6 +63,7 @@ static const boost::container::flat_map<std::string_view,
+              {node::sensors,
+               {"/xyz/openbmc_project/sensors/power",
+                "/xyz/openbmc_project/sensors/current",
++	       "/xyz/openbmc_project/sensors/cfm",
+                "/xyz/openbmc_project/sensors/utilization"}},
+              {node::thermal,
+               {"/xyz/openbmc_project/sensors/fan_tach",
+-- 
+2.17.1
+
