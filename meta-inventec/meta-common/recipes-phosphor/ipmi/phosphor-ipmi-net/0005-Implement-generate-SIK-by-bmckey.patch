@@ -1,4 +1,4 @@
-From 40c17fe046efa1d92cfe14ebd1b2c198f4d249e6 Mon Sep 17 00:00:00 2001
+From a943f24c95de87fd7273df6b4485fbdb579013a8 Mon Sep 17 00:00:00 2001
 From: "sun.cwsun" <sun.cwsun@inventec.com>
 Date: Tue, 16 Nov 2021 13:00:45 +0800
 Subject: [PATCH] Bug 726 - [Transformers][OpenBMC][IPMI]KG status is incorrect
@@ -51,10 +51,11 @@ Bug 634 - [SW][Transformers][OpenBMC][IPMI]Implement generating SIK by BMC Key
             ipmitool -C17 -I lanplus -H 172.17.0.2 -p 2623 -U root -P 0penBmc -k helloworld shell
 
 ---
- auth_algo.cpp      | 32 ++++++++++++++++++++++++++++++++
- auth_algo.hpp      |  9 +++++++++
- command/rakp34.cpp | 18 +++++++++++++++++-
- 3 files changed, 58 insertions(+), 1 deletion(-)
+ auth_algo.cpp            | 32 ++++++++++++++++++++++++++++++++
+ auth_algo.hpp            |  9 +++++++++
+ command/channel_auth.cpp | 14 +++++++++++++-
+ command/rakp34.cpp       | 18 +++++++++++++++++-
+ 4 files changed, 71 insertions(+), 2 deletions(-)
 
 diff --git a/auth_algo.cpp b/auth_algo.cpp
 index 4572831..0790f69 100644
@@ -147,6 +148,31 @@ index 894a853..ca97018 100644
      std::vector<uint8_t>
          generateICV(const std::vector<uint8_t>& input) const override;
  };
+diff --git a/command/channel_auth.cpp b/command/channel_auth.cpp
+index 9a389e5..e705d03 100644
+--- a/command/channel_auth.cpp
++++ b/command/channel_auth.cpp
+@@ -51,7 +51,19 @@ std::vector<uint8_t>
+     response->none = 0;
+ 
+     response->reserved3 = 0;
+-    response->KGStatus = 0;       // KG is set to default
++
++    response->KGStatus = 0;
++    std::string ks;
++    std::string kv;
++    ipmi::Cc cc = ipmi::getBMCKey(chNum, ks, kv);
++
++    if ( (cc == ipmi::ccSuccess) && (kv.size() > 0) )
++    {
++        // KGKey does not support locked state
++        // only check if the length is larger then 0, treated as kgkey enabled
++        response->KGStatus = 1;
++    }
++
+     response->perMessageAuth = 0; // Per-message Authentication enable, bug492
+     response->userAuth = 0;       // User Level Authentication is enabled
+     uint8_t maxChUsers = 0;
 diff --git a/command/rakp34.cpp b/command/rakp34.cpp
 index b106b6f..e8a509c 100644
 --- a/command/rakp34.cpp

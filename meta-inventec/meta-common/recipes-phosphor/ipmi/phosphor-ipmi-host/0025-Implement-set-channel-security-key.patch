@@ -1,8 +1,35 @@
-From 1d98181216bb57db2651e0e998f34612ea1bad41 Mon Sep 17 00:00:00 2001
+From 06f441384c9187dcb3a53f246710ed5736b1ff5a Mon Sep 17 00:00:00 2001
 From: "sun.cwsun" <sun.cwsun@inventec.com>
 Date: Thu, 11 Nov 2021 13:05:48 +0800
-Subject: [PATCH] Bug 688-2 - [Transformers][OpenBMC][IPMI] Set Channel
- Security KG Keys won't work
+Subject: [PATCH] Bug 726 - [Transformers][OpenBMC][IPMI]KG status is incorrect
+ of Get Channel Authentication Capabilities command after set KG key.
+
+    Symptom/Reason :
+        - The kg key status report from get channel authentication capabilities always return false (all-zeros)
+
+    Root Cause:
+        - The get channel authentication capabilities does not support kg status checking.
+
+    Solution/Change:
+        [phosphor-ipmi-host]
+            - Checking bmc key(kg key) status.
+
+        [phosphor-ipmi-net]
+            - Using kgkey to establish RMCP+ session when kgkey length is not zero.
+            - support KGStatus attribute of channel authentication capabilities when query from network.
+
+    Entry Test:
+        - set kg key but not lock, the kg status should return false ( all zeros)
+            -- ipmitool raw 0x06 0x56 0x01 0x01 0x01 0x68 0x65 0x6c 0x6c 0x6f 0x77 0x6f 0x72 0x6c 0x64
+
+        - the RMCP+ now need using kgkey to generate SIK. The kgstatus should return true (non-zero)
+            -- ipmitool raw 0x06 0x56 0x01 0x02 0x01
+            -- ipmitool channel authcap 1 4
+                Channel number             : 1
+                IPMI v1.5  auth types      : MD5 PASSWORD
+                KG status                  : non-zero
+
+Bug 688-2 - [Transformers][OpenBMC][IPMI] Set Channel Security KG Keys won't work
 
     Symptom/Reason :
         - The kg key implement the lock state
@@ -62,8 +89,8 @@ Bug 633 - [SW][Transformers][OpenBMC] IPMI command set channel security key
  user_channel/channel_layer.hpp |  35 ++++++++
  user_channel/channel_mgmt.cpp  | 157 +++++++++++++++++++++++++++++++++
  user_channel/channel_mgmt.hpp  |  45 ++++++++++
- user_channel/usercommands.cpp  |  22 ++++-
- 8 files changed, 396 insertions(+), 2 deletions(-)
+ user_channel/usercommands.cpp  |  19 +++-
+ 8 files changed, 393 insertions(+), 2 deletions(-)
 
 diff --git a/app/channel.cpp b/app/channel.cpp
 index 51e953d..2d7b151 100644
@@ -578,7 +605,7 @@ index 3cd1a34..b856785 100644
       * changes to phosphor-user-manager. Any channel access changes made on
       * any other channel are ignored.
 diff --git a/user_channel/usercommands.cpp b/user_channel/usercommands.cpp
-index ba53707..043abb7 100644
+index ba53707..b395184 100644
 --- a/user_channel/usercommands.cpp
 +++ b/user_channel/usercommands.cpp
 @@ -506,9 +506,9 @@ ipmi::RspType<uint8_t,  // channel number
@@ -593,25 +620,22 @@ index ba53707..043abb7 100644
      constexpr bool perMessageAuth = false; // Per message auth - enabled
      constexpr bool userAuth = false;       // User authentication - enabled
      constexpr bool nullUsers = false;      // Null user names - not supported
-@@ -524,6 +524,24 @@ ipmi::RspType<uint8_t,  // channel number
+@@ -524,6 +524,21 @@ ipmi::RspType<uint8_t,  // channel number
      ipmi::ipmiUserGetAllCounts(maxChUsers, enabledUsers, fixedUsers);
      nonNullUsers = enabledUsers > 0;
  
 +    std::string ks;
 +    std::string kv;
-+
 +    ipmi::Cc cc = ipmi::getBMCKey(channel, ks, kv);
 +    if (cc)
 +    {
 +        return ipmi::responseUnspecifiedError();
 +    }
 +
-+    if (ks == "lock" || ks == "locked")
++    if (kv.size() > 0)
 +    {
-+        // BMC locks out modification or
-+        // reading the key value.Once a key has been locked,
-+        // it is cannot be rewritten or
-+        // read via IPMI specified commands.
++        //KGKey does not support locked state
++        //only check if the length is larger then 0, treated as kgkey enabled 
 +        KGStatus = true;
 +    }
 +
