@@ -1,8 +1,35 @@
-From 20490c348873210ec05ad2a7fa5c9a9c2825f273 Mon Sep 17 00:00:00 2001
+From 40c17fe046efa1d92cfe14ebd1b2c198f4d249e6 Mon Sep 17 00:00:00 2001
 From: "sun.cwsun" <sun.cwsun@inventec.com>
 Date: Tue, 16 Nov 2021 13:00:45 +0800
-Subject: [PATCH] Bug 634 - [SW][Transformers][OpenBMC][IPMI]Implement
- generating SIK by BMC Key
+Subject: [PATCH] Bug 726 - [Transformers][OpenBMC][IPMI]KG status is incorrect
+ of Get Channel Authentication Capabilities command after set KG key.
+
+    Symptom/Reason :
+        - The kg key status report from get channel authentication capabilities always return false (all-zeros)
+
+    Root Cause:
+        - The get channel authentication capabilities does not support kg status checking.
+
+    Solution/Change:
+        [phosphor-ipmi-host]
+            - Checking bmc key(kg key) status.
+
+        [phosphor-ipmi-net]
+            - Using kgkey to establish RMCP+ session when kgkey length is not zero.
+            - support KGStatus attribute of channel authentication capabilities when query from network.
+
+    Entry Test:
+        - set kg key but not lock, the kg status should return false ( all zeros)
+            -- ipmitool raw 0x06 0x56 0x01 0x01 0x01 0x68 0x65 0x6c 0x6c 0x6f 0x77 0x6f 0x72 0x6c 0x64
+
+        - the RMCP+ now need using kgkey to generate SIK. The kgstatus should return true (non-zero)
+            -- ipmitool raw 0x06 0x56 0x01 0x02 0x01
+            -- ipmitool channel authcap 1 4
+                Channel number             : 1
+                IPMI v1.5  auth types      : MD5 PASSWORD
+                KG status                  : non-zero
+
+Bug 634 - [SW][Transformers][OpenBMC][IPMI]Implement generating SIK by BMC Key
 
     Symptom/Reason :
         - implement the SIK generation with kgkey
@@ -22,11 +49,12 @@ Subject: [PATCH] Bug 634 - [SW][Transformers][OpenBMC][IPMI]Implement
             ipmitool raw 0x06 0x56 0x01 0x02 0x01
         - After set kg key and lock kgkey, build RMCP+ session with kgkey
             ipmitool -C17 -I lanplus -H 172.17.0.2 -p 2623 -U root -P 0penBmc -k helloworld shell
+
 ---
- auth_algo.cpp      |  32 +++++++++++++++
- auth_algo.hpp      |   9 ++++
- command/rakp34.cpp | 100 ++++++++++++++++++++++++++++++++++++++++++++-
- 3 files changed, 140 insertions(+), 1 deletion(-)
+ auth_algo.cpp      | 32 ++++++++++++++++++++++++++++++++
+ auth_algo.hpp      |  9 +++++++++
+ command/rakp34.cpp | 18 +++++++++++++++++-
+ 3 files changed, 58 insertions(+), 1 deletion(-)
 
 diff --git a/auth_algo.cpp b/auth_algo.cpp
 index 4572831..0790f69 100644
@@ -120,39 +148,31 @@ index 894a853..ca97018 100644
          generateICV(const std::vector<uint8_t>& input) const override;
  };
 diff --git a/command/rakp34.cpp b/command/rakp34.cpp
-index b106b6f..f6ae4ed 100644
+index b106b6f..e8a509c 100644
 --- a/command/rakp34.cpp
 +++ b/command/rakp34.cpp
-@@ -10,11 +10,16 @@
+@@ -10,6 +10,8 @@
  #include <cstring>
  #include <phosphor-logging/log.hpp>
  
-+#include <nlohmann/json.hpp>
 +
 +
  using namespace phosphor::logging;
  
  namespace command
- {
- 
-+static int getKGKey(uint8_t channelNum, std::string& ks, std::string& kv);
-+
- void applyIntegrityAlgo(const uint32_t bmcSessionID)
- {
-     auto session =
-@@ -218,7 +223,21 @@ std::vector<uint8_t> RAKP34(const std::vector<uint8_t>& inPayload,
+@@ -218,7 +220,21 @@ std::vector<uint8_t> RAKP34(const std::vector<uint8_t>& inPayload,
      std::copy_n(session->userName.data(), userLength, iter);
  
      // Generate Session Integrity Key
 -    auto sikOutput = authAlgo->generateHMAC(input);
 +    // if enable the BMC Key of the channel
-+    // key state is locked and kekey value is not 0
++    // bug688.2 kgkey does support locked state
 +    // generate the SIK with kgkey
 +    std::string ks;
 +    std::string kv;
 +    std::vector<uint8_t> sikOutput;
-+    auto rt = getKGKey(session->channelNum(), ks, kv);
-+    if ( (rt == 0) &&(ks == "lock" || ks == "locked") && (kv.size() > 0))
++    ipmi::Cc cc = ipmi::getBMCKey(session->channelNum(), ks, kv);
++    if ((cc == ipmi::ccSuccess) && (kv.size() > 0))
 +    {
 +        std::copy_n(kv.c_str(), kv.size(), authAlgo->kgKey.data());
 +        sikOutput = authAlgo->generateSIK(input);
@@ -163,87 +183,3 @@ index b106b6f..f6ae4ed 100644
  
      // Update the SIK in the Authentication Algo Interface
      authAlgo->sessionIntegrityKey.insert(authAlgo->sessionIntegrityKey.begin(),
-@@ -276,4 +295,83 @@ std::vector<uint8_t> RAKP34(const std::vector<uint8_t>& inPayload,
-     return outPayload;
- }
- 
-+static constexpr const char* kgkeyConfigDefaultFilename =
-+    "/var/lib/ipmi/kgkey_config.json";
-+static constexpr const char* bmcKeyString = "bmc_key";
-+static constexpr const char* bmcKeyStateString = "keystate";
-+static constexpr const char* bmcKeyValueString = "keyvalue";
-+
-+using Json = nlohmann::json;
-+
-+static Json _readJsonFile(const std::string& configFile)
-+{
-+    std::ifstream jsonFile(configFile);
-+    if (!jsonFile.good())
-+    {
-+        log<level::INFO>("JSON file not found",
-+                         entry("FILE_NAME=%s", configFile.c_str()));
-+        return nullptr;
-+    }
-+
-+    Json data = nullptr;
-+    try
-+    {
-+        data = Json::parse(jsonFile, nullptr, false);
-+    }
-+    catch (Json::parse_error& e)
-+    {
-+        log<level::DEBUG>("Corrupted channel config.",
-+                          entry("MSG=%s", e.what()));
-+        throw std::runtime_error("Corrupted channel config file");
-+    }
-+
-+    return data;
-+}
-+
-+static int getKGKey(uint8_t channelNum, std::string& ks, std::string& kv)
-+{
-+    Json data = _readJsonFile(kgkeyConfigDefaultFilename);
-+    if (data.empty())
-+    {
-+        ks = "";
-+        kv = "";
-+    }else{
-+        try
-+        {
-+            std::string chKey = std::to_string(channelNum);
-+            Json jsonChData = data[chKey].get<Json>();
-+            if (jsonChData.is_null())
-+            {
-+                log<level::ERR>("Channel data is null");
-+                return -EBADMSG;
-+            }
-+
-+            Json jBMCKey = jsonChData[bmcKeyString].get<Json>();
-+            if (jBMCKey.is_null())
-+            {
-+                ks = "";
-+                kv = "";
-+            }
-+            else
-+            {
-+                ks = jBMCKey[bmcKeyStateString].get<std::string>();
-+                kv = jBMCKey[bmcKeyValueString].get<std::string>();
-+            }
-+        }
-+        catch (const Json::exception& e)
-+        {
-+            log<level::DEBUG>("Json Exception caught.",
-+                              entry("MSG=%s", e.what()));
-+            return -EBADMSG;
-+        }
-+        catch (const std::invalid_argument& e)
-+        {
-+            log<level::ERR>("Corrupted config.", entry("MSG=%s", e.what()));
-+            return -EBADMSG;
-+        }
-+    }
-+
-+    return 0;
-+}
-+
- } // namespace command

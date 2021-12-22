@@ -1,33 +1,32 @@
-From 4eef1a275cddbb17a0edb719420b39ea56a855fd Mon Sep 17 00:00:00 2001
+From 1d98181216bb57db2651e0e998f34612ea1bad41 Mon Sep 17 00:00:00 2001
 From: "sun.cwsun" <sun.cwsun@inventec.com>
 Date: Thu, 11 Nov 2021 13:05:48 +0800
-Subject: [PATCH] Bug 688 - [Transformers][OpenBMC][IPMI] Set Channel Security
- KG Keys won't work
+Subject: [PATCH] Bug 688-2 - [Transformers][OpenBMC][IPMI] Set Channel
+ Security KG Keys won't work
 
     Symptom/Reason :
-        - The kg key status report from get channel authentication capabilities always return false (all-zeros)
+        - The kg key implement the lock state
 
     Root Cause:
-        - The get channel authentication capabilities does not support kg status checking.
+        - The kg key should not support lock status
+            -- the ipmitool will get the content of kgkey as clear text by set security key command
 
     Solution/Change:
         [phosphor-ipmi-host]
             - Checking bmc key(kg key) status.
+            - remove the kg key lock support
+
+        [phosphor-ipmi-net]
+            - Using kgkey to establish RMCP+ session when kgkey length is not zero.
+            - remove the kg key lock support
 
     Entry Test:
         - set kg key but not lock, the kg status should return false ( all zeros)
             -- ipmitool raw 0x06 0x56 0x01 0x01 0x01 0x68 0x65 0x6c 0x6c 0x6f 0x77 0x6f 0x72 0x6c 0x64
-            -- ipmitool channel authcap 1 4
-                Channel number             : 1
-                IPMI v1.5  auth types      : MD5 PASSWORD
-                KG status                  : default (all zeroes)
 
-        - lock on the kg key, the RMCP+ now need using kgkey to generate SIK. The kgstatus should return true (non-zero)
+        - try lock the kg key, it should return 0xc1 error
             -- ipmitool raw 0x06 0x56 0x01 0x02 0x01
-            -- ipmitool channel authcap 1 4
-                Channel number             : 1
-                IPMI v1.5  auth types      : MD5 PASSWORD
-                KG status                  : non-zero
+            Unable to send RAW command (channel=0x0 netfn=0x6 lun=0x0 cmd=0x56 rsp=0xc1): Invalid command
 
 Bug 633 - [SW][Transformers][OpenBMC] IPMI command set channel security key
 
@@ -56,21 +55,21 @@ Bug 633 - [SW][Transformers][OpenBMC] IPMI command set channel security key
             ipmitool -C17 -I lanplus -H 172.17.0.2 -p 2623 -U root -P 0penBmc -k helloworld shell
 
 ---
- app/channel.cpp                | 123 +++++++++++++++++++++++++++++++++
- app/channel.hpp                |   8 +++
+ app/channel.cpp                | 108 +++++++++++++++++++++++
+ app/channel.hpp                |   8 ++
  apphandler.cpp                 |   6 ++
- user_channel/channel_layer.cpp |  17 +++++
- user_channel/channel_layer.hpp |  35 ++++++++++
- user_channel/channel_mgmt.cpp  | 119 +++++++++++++++++++++++++++++++
- user_channel/channel_mgmt.hpp  |  38 ++++++++++
- user_channel/usercommands.cpp  |  22 +++++-
- 8 files changed, 366 insertions(+), 2 deletions(-)
+ user_channel/channel_layer.cpp |  17 ++++
+ user_channel/channel_layer.hpp |  35 ++++++++
+ user_channel/channel_mgmt.cpp  | 157 +++++++++++++++++++++++++++++++++
+ user_channel/channel_mgmt.hpp  |  45 ++++++++++
+ user_channel/usercommands.cpp  |  22 ++++-
+ 8 files changed, 396 insertions(+), 2 deletions(-)
 
 diff --git a/app/channel.cpp b/app/channel.cpp
-index 51e953d..24b8da6 100644
+index 51e953d..2d7b151 100644
 --- a/app/channel.cpp
 +++ b/app/channel.cpp
-@@ -178,6 +178,129 @@ ipmi::RspType<uint8_t,             // Channel Number
+@@ -178,6 +178,114 @@ ipmi::RspType<uint8_t,             // Channel Number
      return ipmi::responseSuccess(rspChannel, rspRecords);
  }
  
@@ -126,15 +125,6 @@ index 51e953d..24b8da6 100644
 +        return ipmi::responseUnspecifiedError();
 +    }
 +
-+    if (ks == "lock" || ks == "locked")
-+    {
-+        // BMC locks out modification or
-+        // reading the key value.Once a key has been locked,
-+        // it is cannot be rewritten or
-+        // read via IPMI specified commands.
-+        return ipmi::response(ccCanNotSetOrConfirmKey);
-+    }
-+
 +    switch (static_cast<int>(operation))
 +    {
 +        case 0: // READ
@@ -182,14 +172,8 @@ index 51e953d..24b8da6 100644
 +
 +        case 2: // LOCK
 +        {
-+            if(kv.size() == 0){
-+                return ipmi::responseIllegalCommand();
-+            }
-+            ks = "locked";
-+            lockState = 1;
-+            ipmi::setBMCKey(rspChannel, ks, kv);
-+            ipmi::writeBMCKey(rspChannel);
-+            return ipmi::responseSuccess(lockState, std::nullopt);
++            // kgkey does not support lock operation
++            return ipmi::responseInvalidCommand();
 +        }
 +        break;
 +    }
@@ -321,7 +305,7 @@ index 8d4b648..1278e79 100644
 +
  } // namespace ipmi
 diff --git a/user_channel/channel_mgmt.cpp b/user_channel/channel_mgmt.cpp
-index 4d420c4..ef8f36e 100644
+index 4d420c4..cf1df7c 100644
 --- a/user_channel/channel_mgmt.cpp
 +++ b/user_channel/channel_mgmt.cpp
 @@ -45,6 +45,8 @@ static constexpr const char* channelNvDataFilename =
@@ -353,7 +337,7 @@ index 4d420c4..ef8f36e 100644
  
  // Default values
  static constexpr const char* defaultChannelName = "RESERVED";
-@@ -791,6 +799,88 @@ Cc ChannelConfig::setChannelEnabledAuthType(const uint8_t chNum,
+@@ -791,6 +799,97 @@ Cc ChannelConfig::setChannelEnabledAuthType(const uint8_t chNum,
      return ccSuccess;
  }
  
@@ -384,15 +368,24 @@ index 4d420c4..ef8f36e 100644
 +                                        std::string& keyState,
 +                                        std::string& keyValue)
 +{
++
++    if (loadKeyConfig() != 0)
++    {
++        //The config file may not be created yet
++        return ccSuccess;
++    }
++
 +    if (!isValidChannel(chNum))
 +    {
 +        log<level::DEBUG>("Invalid channel");
++        fprintf(stderr, "Invalid channel \n");
 +        return ccInvalidFieldRequest;
 +    }
 +
 +    if (getChannelSessionSupport(chNum) == EChannelSessSupported::none)
 +    {
 +        log<level::DEBUG>("Sessionless channel doesn't have access data.");
++        fprintf(stderr, "Sessionless channel doesn't have access data \n");
 +        return ccInvalidFieldRequest;
 +    }
 +
@@ -442,25 +435,28 @@ index 4d420c4..ef8f36e 100644
  int ChannelConfig::writeChannelEnabledAuthTypeData(uint8_t chNum)
  {
      boost::interprocess::scoped_lock<boost::interprocess::named_recursive_mutex>
-@@ -1060,6 +1150,12 @@ int ChannelConfig::loadChannelConfig()
-         return -EIO;
-     }
+@@ -1048,6 +1147,62 @@ uint8_t ChannelConfig::getManagementNICID()
+     return id;
+ }
  
++int ChannelConfig::loadKeyConfig()
++{
++    boost::interprocess::scoped_lock<boost::interprocess::named_recursive_mutex>
++        channelLock{*channelMutex};
++
 +    Json keyData = readJsonFile(channelKgkeyFilename);
-+    if(keyData.empty())
++    if (keyData.empty())
 +    {
-+        log<level::DEBUG>("No kgkey is configed");
++        log<level::DEBUG>("No kgkey is configed \n");
++        fprintf(stderr, "No kgkey is configed \n");
 +    }
-+
-     channelData.fill(ChannelProperties{});
- 
-     for (int chNum = 0; chNum < maxIpmiChannels; chNum++)
-@@ -1137,6 +1233,29 @@ int ChannelConfig::loadChannelConfig()
-                 chData.authTypeEnable._administrator = jsonAuthTypeEnable[authTypeEnabledAdministratorString].get<EAuthType>();
-                 chData.authTypeEnable._oem = jsonAuthTypeEnable[authTypeEnabledOemString].get<EAuthType>();
-             }
-+
-+
++    
++    for (int chNum = 0; chNum < maxIpmiChannels; chNum++)
++    {
++        try
++        {
++            ChannelProperties& chData = channelData[chNum];
++            std::string chKey = std::to_string(chNum);
 +            if( ! keyData.empty())
 +            { 
 +                Json jsonChKeyData = keyData[chKey].get<Json>();
@@ -482,11 +478,37 @@ index 4d420c4..ef8f36e 100644
 +                    chData.bmcKey.keyState = "unlock";
 +                    chData.bmcKey.keyValue = "";
 +            }
++        }
++        
++        catch (const Json::exception& e)
++        {
++            log<level::DEBUG>("Json Exception caught.",
++                              entry("MSG=%s", e.what()));
++            return -EBADMSG;
++        }
++        catch (const std::invalid_argument& e)
++        {
++            log<level::ERR>("Corrupted config.", entry("MSG=%s", e.what()));
++            return -EBADMSG;
++        }
++    }
++    return 0;
++}
++
+ int ChannelConfig::loadChannelConfig()
+ {
+     boost::interprocess::scoped_lock<boost::interprocess::named_recursive_mutex>
+@@ -1137,6 +1292,8 @@ int ChannelConfig::loadChannelConfig()
+                 chData.authTypeEnable._administrator = jsonAuthTypeEnable[authTypeEnabledAdministratorString].get<EAuthType>();
+                 chData.authTypeEnable._oem = jsonAuthTypeEnable[authTypeEnabledOemString].get<EAuthType>();
+             }
++
++
          }
          catch (const Json::exception& e)
          {
 diff --git a/user_channel/channel_mgmt.hpp b/user_channel/channel_mgmt.hpp
-index 3cd1a34..a76973e 100644
+index 3cd1a34..b856785 100644
 --- a/user_channel/channel_mgmt.hpp
 +++ b/user_channel/channel_mgmt.hpp
 @@ -59,6 +59,12 @@ struct AuthTypeEnable
@@ -510,10 +532,17 @@ index 3cd1a34..a76973e 100644
  };
  
  class ChannelConfig;
-@@ -274,6 +281,37 @@ class ChannelConfig
+@@ -274,6 +281,44 @@ class ChannelConfig
       */
      int writeChannelEnabledAuthTypeData(uint8_t  chNum);
  
++    /** @brief load channel kg key data into channel keydata object
++     *
++     *  @return ccSuccess for success, others for failure.
++     */
++
++    int loadKeyConfig(void);
++    
 +    /** @brief set BMCkey with key state and key value
 +     *
 +     *  @param[in] chNum - channel number
