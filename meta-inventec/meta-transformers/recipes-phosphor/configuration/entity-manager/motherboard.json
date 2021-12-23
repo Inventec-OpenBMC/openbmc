@@ -2028,6 +2028,13 @@
                 {
                     "Direction": "greater than",
                     "Label": "temp1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 55
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
                     "Name": "upper non critical",
                     "Severity": 0,
                     "Value": 50
@@ -2037,7 +2044,21 @@
                     "Label": "temp1",
                     "Name": "lower non critical",
                     "Severity": 0,
-                    "Value": 30
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": -5
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 55
                 },
                 {
                     "Direction": "greater than",
@@ -2051,7 +2072,21 @@
                     "Label": "temp2",
                     "Name": "lower non critical",
                     "Severity": 0,
-                    "Value": 30
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": -5
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp3",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 55
                 },
                 {
                     "Direction": "greater than",
@@ -2065,7 +2100,14 @@
                     "Label": "temp3",
                     "Name": "lower non critical",
                     "Severity": 0,
-                    "Value": 30
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp3",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": -5
                 }
             ],
             "SensorInfo": [
