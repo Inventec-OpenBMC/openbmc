@@ -36,7 +36,26 @@ if [ "$bios_post_complete" = "0" ]; then
 else
     echo "bios post comeplete is high, set mux to cpu"
     gpioset `gpiofind I3C_MUX_SELECT`=0
-fi    
+fi
+
+psu1_present=$(gpioget `gpiofind PSU0_CPLD_PRESENT_N`)
+if [ "$psu1_present" = "0" ]; then
+    echo "PSU1 pluged"
+    systemctl start inv-psu-update@11plug.service
+else
+    echo "PSU1 unpluged"
+    systemctl start inv-psu-update@11unplug.service
+fi
+
+psu2_present=$(gpioget `gpiofind PSU1_CPLD_PRESENT_N`)
+if [ "$psu2_present" = "0" ]; then
+    echo "PSU2 pluged"
+    systemctl start inv-psu-update@12plug.service
+else
+    echo "PSU2 unpluged"
+    systemctl start inv-psu-update@12unplug.service
+fi
+
 
 # Remove Riser and BP json config for entity-manager
 ENTITY_MANAGER_CONIG_PATH="/usr/share/entity-manager/configurations"

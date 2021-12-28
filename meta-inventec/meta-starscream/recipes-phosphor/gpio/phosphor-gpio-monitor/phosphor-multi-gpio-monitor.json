@@ -8,6 +8,26 @@
            "FALLING":["dimm-plug@insert.service"],
            "RISING": ["dimm-plug@remove.service"]
        }
+    },
+    {
+        "Name": "PSU0_PRESENT",
+        "LineName": "PSU0_CPLD_PRESENT_N",
+        "EventMon": "BOTH",
+        "Continue": true,
+        "Target": {
+            "FALLING":["inv-psu-update@01plug.service"],
+            "RISING": ["inv-psu-update@01unplug.service"]
+        }
+    },
+    {
+        "Name": "PSU1_PRESENT",
+        "LineName": "PSU1_CPLD_PRESENT_N",
+        "EventMon": "BOTH",
+        "Continue": true,
+        "Target": {
+            "FALLING":["inv-psu-update@02plug.service"],
+            "RISING": ["inv-psu-update@02unplug.service"]
+        }
     }
 ]
 

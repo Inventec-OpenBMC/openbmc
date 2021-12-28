@@ -324,16 +324,6 @@
                 #io-channel-cells = <1>;
         };
 
-        psu@58 {
-                compatible = "pmbus";
-                reg = <0x58>;
-        };
-
-        psu@5a {
-                compatible = "pmbus";
-                reg = <0x5a>;
-        };
-
         // Motherboard Temp_U89
         tmp421@4e {
                 compatible = "ti,tmp421";
@@ -525,9 +515,9 @@
     /*C0-C7*/   "BUTTON_LED_UID","","","","","","","",
     /*D0-D7*/   "","","","","","","","FM_BIOS_POST_CMPLT_BUF_N",
     /*E0-E7*/   "","","","","","","","",
-    /*F0-F7*/   "","","","","","","","",
-    /*G0-G7*/   "","","","","","","","",
-    /*H0-H7*/   "","","","","","","","",
+    /*F0-F7*/   "FAN0_INSTALL_R_N","FAN1_INSTALL_R_N","FAN2_INSTALL_R_N","FAN3_INSTALL_R_N","FAN4_INSTALL_R_N","FAN5_INSTALL_R_N","CPU0_PRSNT_N","CPU1_PRSNT_N",
+    /*G0-G7*/   "","","","","","","PSU0_CPLD_PRESENT_N","PSU1_CPLD_PRESENT_N",
+    /*H0-H7*/   "","","","","","","RISER0_PRESENT_N","RISER1_PRESENT_N",
     /*out*/
     /*A0-A7*/   "","","","","","","","",
     /*B0-B7*/   "RST_BMC_CPU0_I2C_N","RST_BMC_CPU1_I2C_N","I2C_BUS7_RESET_N","BMC_USB2514_1_RESET_N","BMC_CPU0_UART_EN","HDT_BUF_EN_N","BMC_ASSERT_CLR_CMOS","HDT_MUX_SELECT_MON",

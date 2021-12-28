@@ -12,20 +12,13 @@ RDEPENDS_${PN} += "libsystemd"
 
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/inv-psu-update:"
-SRC_URI += "file://inv-psu-plug.sh"
-SRC_URI += "file://inv-psu-unplug.sh"
+SRC_URI += "file://inv-psu-update.sh"
 
 S = "${WORKDIR}"
 
 do_install() {
         install -d ${D}${sbindir}
-        install -m 0755 inv-psu-plug.sh ${D}${sbindir}
-        install -m 0755 inv-psu-unplug.sh ${D}${sbindir}
+        install -m 0755 inv-psu-update.sh ${D}${sbindir}
 }
 
-SYSTEMD_SERVICE_${PN} += "inv-psu-plug@.service"
-SYSTEMD_SERVICE_${PN} += "inv-psu-plug@1.service"
-SYSTEMD_SERVICE_${PN} += "inv-psu-plug@2.service"
-SYSTEMD_SERVICE_${PN} += "inv-psu-unplug@.service"
-SYSTEMD_SERVICE_${PN} += "inv-psu-unplug@1.service"
-SYSTEMD_SERVICE_${PN} += "inv-psu-unplug@2.service"
+SYSTEMD_SERVICE_${PN} += "inv-psu-update@.service"
