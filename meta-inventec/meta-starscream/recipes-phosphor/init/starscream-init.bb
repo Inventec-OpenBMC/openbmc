@@ -13,6 +13,8 @@ RDEPENDS_${PN} += "libsystemd"
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/starscream-init:"
 SRC_URI += "file://starscream-init.sh \
+            file://starscream-config-init.sh \
+            file://starscream-gpio-init.sh \
             file://create_json.sh \
 "
 
@@ -21,7 +23,11 @@ S = "${WORKDIR}"
 do_install() {
         install -d ${D}${sbindir}
         install -m 0755 starscream-init.sh ${D}${sbindir}
+        install -m 0755 starscream-config-init.sh ${D}${sbindir}
+        install -m 0755 starscream-gpio-init.sh ${D}${sbindir}
         install -m 0755 create_json.sh ${D}${sbindir}
 }
 
 SYSTEMD_SERVICE_${PN} += "starscream-init.service"
+SYSTEMD_SERVICE_${PN} += "starscream-config-init.service"
+SYSTEMD_SERVICE_${PN} += "starscream-gpio-init.service"
