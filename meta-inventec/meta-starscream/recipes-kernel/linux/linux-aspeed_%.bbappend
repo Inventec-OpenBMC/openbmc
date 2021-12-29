@@ -43,6 +43,8 @@ SRC_URI_append = " file://starscream.cfg \
                    file://0035-HWMON-driver-for-SMSC-EMC2301-2302-2303-2305-chips.patch \
                    file://0036-Add-Microchip-pac1934-2-1-chip-family-ADC-driver.patch \
                    file://0037-add-tsod-driver.patch \ 
+	               file://0038-hwmon-Add-support-for-SB-RMI-power-module.patch \
+	               file://0039-hwmon-sbrmi-Add-Documentation.patch \
                 "
 
 do_add_overwrite_files () {

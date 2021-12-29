@@ -240,6 +240,11 @@
                                 compatible = "amd,sbtsi";
                                 reg = <0x4c>;
                         };
+                        // AMD SB-RMI CPU1
+                        sbrmi@3c {
+                                compatible = "amd,sbrmi";
+                                reg = <0x3c>;
+                        };
 		};
 
                 i2c@2 {
@@ -250,6 +255,11 @@
                         sbtsi@48 {
                                 compatible = "amd,sbtsi";
                                 reg = <0x48>;
+                        };
+                        // AMD SB-RMI CPU2
+                        sbrmi@38 {
+                                compatible = "amd,sbrmi";
+                                reg = <0x38>;
                         };
                 };
         };
