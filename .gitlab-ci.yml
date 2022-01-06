@@ -1,0 +1,18 @@
+stages: 
+  - build
+build-job:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" 
+  script:
+    - git checkout nibu_202112 
+    - pwd
+    - cd inv/docker/
+    - bash builder.sh -t transformers
+  artifacts:
+    paths:
+      - build/transformers/tmp/deploy/images/transformers/obmc-phosphor-image-transformers-*.static.mtd   
+    expire_in: 1 day
+  stage: build
+  timeout: 6 hours 
+  tags:
+    - Callisto
